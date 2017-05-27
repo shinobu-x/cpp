@@ -39,8 +39,16 @@ public:
   }
 };
 
+class sq_7_t {
+public:
+  template <typename T>
+  T operator()(const T& x) const {
+    return x*x;
+  }
+};
+
 template <typename T>
-inline T sq_7(const T& x) {
+inline T sq_8(const T& x) {
   return x*x;
 };
 
@@ -65,7 +73,10 @@ void doit() {
   const sq_6_t<T> sq_6;
   std::cout << sq_6(x) << '\n';
 
+  const sq_7_t sq_7;
   std::cout << sq_7(x) << '\n';
+
+  std::cout << sq_8(x) << '\n';
 }
 
 auto main() -> int
