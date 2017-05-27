@@ -40,6 +40,11 @@ public:
 };
 
 template <typename T>
+inline T sq_7(const T& x) {
+  return x*x;
+};
+
+template <typename T>
 void doit() {
   T x = 3.14;
 
@@ -59,6 +64,8 @@ void doit() {
 
   const sq_6_t<T> sq_6;
   std::cout << sq_6(x) << '\n';
+
+  std::cout << sq_7(x) << '\n';
 }
 
 auto main() -> int
