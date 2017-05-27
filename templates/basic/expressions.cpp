@@ -1,16 +1,20 @@
 #include <iostream>
 
+// Macro
 #define sq_1(x) ((x)*(x))
 
+// Function
 double sq_2(double x) {
   return x*x;
 }
 
+// Function template
 template <typename T>
 T sq_3(const T& x) {
   return x*x;
 }
 
+// Class type1
 class sq_4_t {
 public:
   sq_4_t(double x) : s_(x*x) {}
@@ -22,6 +26,7 @@ private:
   double s_;
 };
 
+// Class type2
 class sq_5_t {
 public:
   typedef double value_type;
@@ -31,6 +36,7 @@ public:
   }
 };
 
+// Template ver1
 template <typename T>
 class sq_6_t {
 public:
@@ -39,6 +45,7 @@ public:
   }
 };
 
+// Template ver2
 class sq_7_t {
 public:
   template <typename T>
@@ -47,11 +54,13 @@ public:
   }
 };
 
+// Template ver3
 template <typename T>
 inline T sq_8(const T& x) {
   return x*x;
 };
 
+// Go!
 template <typename T>
 void doit() {
   T x = 3.14;
