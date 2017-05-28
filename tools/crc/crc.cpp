@@ -4,6 +4,8 @@
 
 #include <arpa/inet.h>
 
+#include "crc.hpp"
+
 #define M_MAXN 255
 
 template <typename T>
@@ -28,6 +30,7 @@ private:
   byte_ bf_[32];
   typedef T type_;
   type_ crc_;
+
 public:
   crc_check_t() : l_(L) {}
 
@@ -41,8 +44,9 @@ public:
       typedef uint32_t type_;
       type_ crc_ = 0xFFFFFFFF;
     }
+    T crc_type;
     do_gen_rand();
-    do_cal();
+    crc_type = do_cal();
   }
 
   int gen_rand(int max, unsigned long* i) {
