@@ -1,4 +1,10 @@
+#include <cstdio>
+#include <cstring>
 #include <iostream>
+
+#include <arpa/inet.h>
+
+#define M_MAXN 255
 
 template <typename T>
 struct value_type;
@@ -15,7 +21,16 @@ struct value_type<uint32_t> {
 
 template <typename T, int L>
 struct crc_check_t {
-  typedef uint8_t byte;
+private:
+  int l_;
+  unsigned long i_ = time(NULL);
+  typedef uint8_t byte_;
+  byte_ bf_[32];
+  typedef T type_;
+  type_ crc_;
+public:
+  crc_check_t() : l_(L) {}
+
   int type = value_type<T>::value;
 
   void cal_crc() {
@@ -26,15 +41,47 @@ struct crc_check_t {
       typedef uint32_t type_;
       type_ crc_ = 0xFFFFFFFF;
     }
+    do_gen_rand();
     do_cal();
   }
 
-  void do_cal() {
-    std::cout << "T" << '\n';
+  int gen_rand(int max, unsigned long* i) {
+    *i = (*i)*1103515245 + 12345;
+    double n = max*((double)(*i/65536 % 32768) / (double)(32767));
+    return (n > 0) ? ((int)(n + 0.5)) : ((int)(n - 0.5));
   }
+
+  void do_gen_rand() {
+    for (int i = 0; i < l_; ++i)
+      bf_[i] = gen_rand(M_MAXN, &i_);
+    show_rand();
+  }
+
+  void show_rand() {
+    for (int i = 0; i < l_; ++i)
+      printf("%02x", bf_[i]);
+    std::cout << '\n';
+  }
+
 private:
-  typedef T type_;
-  type_ crc_;
+  T do_cal() {
+    if (type == 1) {  /// uint16_t
+      for (int i = 0; i < l_; ++i) {
+        crc_ ^= (type_)(bf_[i] << 8);
+        for (int j = 0; j < 8; ++j) {
+          if (crc_ & 0x8000) {
+            crc_ <<= 1;
+            crc_ ^= 0x1021;
+          } else
+            crc_ <<= 1;
+        }
+      }
+      crc_ = htons(crc_);
+
+      memcpy(bf_+28, &crc_, sizeof(crc_));
+    }
+    return crc_;
+  }
 };
 
 template <typename T>
