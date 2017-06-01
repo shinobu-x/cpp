@@ -32,8 +32,10 @@ template <typename T>
 T doit() {
   auto a = powerof_2<5>::value;
   auto b = more_powerof_2<10>::value;
+  largest_precision_type<int>::type c = a + b;
   std::cout << a << '\n';
   std::cout << b << '\n';
+  std::cout << c << '\n';
 }
 
 auto main() -> int
