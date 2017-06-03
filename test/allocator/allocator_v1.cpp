@@ -18,8 +18,8 @@ T doit() {
 //  for (T i = 0; i < x; ++i)
 //    std::cout << v[i] << '\n';
 
-  v = NULL;
   free(v);
+  v = NULL;
 }
 
 auto main() -> int
