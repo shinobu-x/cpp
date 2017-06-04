@@ -21,12 +21,16 @@ void f(selector<condition>, const T& x) {
 template <typename T>
 T doit() {
   T a = 1;
+  const selector<true> ON;
+  const selector<false> OFF;
   f<true>(a);
   f<false>(a);
   f(selector<true>(), a);
   f(selector<false>(), a);
   f(true_type(), a);
   f(false_type(), a);
+  f(ON, a);
+  f(OFF, a);
 }
 
 auto main() -> int
