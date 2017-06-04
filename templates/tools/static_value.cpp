@@ -22,6 +22,12 @@ T doit() {
   std::cout << c << '\n';
   c = 5;
   std::cout << c << '\n';
+  static_value<bool, true> d;
+  if (d.value) std::cout << "True" << '\n';
+  else std::cout << "False" << '\n';
+  static_value<bool, false> e;
+  if (e.value) std::cout << "True" << '\n';
+  else std::cout << "False" << '\n';
 }
 
 auto main() -> int
