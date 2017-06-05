@@ -7,7 +7,7 @@ struct recursive_multiply {
 
 template < >
 struct recursive_multiply<0> {
-  enum { value = 1 }; /// Stop!
+  enum { value = 1 }; // Stop!
 };
 
 template <typename T, T N>
