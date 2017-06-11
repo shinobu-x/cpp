@@ -13,9 +13,9 @@ T doit(std::string& s) {
   for (T i = 0; i < s.length(); ++i) {
     if (s[i] >= 0x20) {
       if (is_optimize)
-        r += s[i];
+        r += s[i];  // Without temporary storage
       else if (!is_optimize)
-        r = r + s[i];
+        r = r + s[i];  // With temporary storage
     }
   }
 }
