@@ -5,8 +5,6 @@ template <typename T, T N>
 T doit() {
   std::random_device rd;
   T *a[N];
-  *(a+1) = (T*)(malloc(sizeof(T)));
-
   for (T i=0; i<N; ++i) {
     *(a+i) = (T*)(malloc(sizeof(T)));
     **(a+i) = rd();
