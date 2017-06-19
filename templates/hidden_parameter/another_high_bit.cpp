@@ -1,6 +1,14 @@
 #include <climits>
 #include <iostream>
 
+template <typename T, T V>
+struct static_parameter {};
+
+template <typename T, T V>
+struct static_value : static_parameter<T, V> {
+  const static T value = V;
+};
+
 template <typename T>
 T high_bit(T x, T y = CHAR_BIT*sizeof(T)) {
   T u = (x>>(y/2));
@@ -13,12 +21,21 @@ template <size_t X, int N>
 struct helper {
   static const size_t U = (X>>(N/2));
   static const int value = 
-    U ? (N/2)+helper<U, N-N/2>::value : helper<X, X/2>::value;
+    U ? (N/2) : 0 + helper<(U ? U : X), (U ? N-N/2 : N/2)>::value;
 };
 
-template <typename T, T x>
+template <size_t X>
+struct helper<X, 1> {
+  static const int value = X ? 0 : -1;
+};
+
+template <size_t X>
+struct static_highest_bit
+  : static_value<int, helper<X, CHAR_BIT*sizeof(size_t)>::value> {};
+
+template <typename T, T V>
 T doit() {
-//  std::cout << high_bit<T>(x) << '\n';
+  std::cout << static_highest_bit<V>::value << '\n';
 }
 
 auto main() -> int
