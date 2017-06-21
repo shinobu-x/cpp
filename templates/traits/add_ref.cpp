@@ -12,8 +12,6 @@ struct add_ref<T&> {
   T a;
 };
 
-// Specialization for void here
-
 template <>
 struct add_ref<void> {};
 
