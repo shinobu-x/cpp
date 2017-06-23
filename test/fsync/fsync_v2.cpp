@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <chrono>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -14,7 +15,8 @@
 #define SIZE 4096
 #define JOBS 1000
 #define LOOP 10
-
+#define OUT std::cout <<
+#define END << '\n';
 int n_write=0, n_fsync=0;
 
 template <typename T, T N>
@@ -22,7 +24,7 @@ T do_fsync() {
   char *b;
   int fd, r;
   char file[]="/var/lib/nova/instances/test.txt";
-
+//  char file[]="/tmp/test.txt";
   std::cout << std::this_thread::get_id() << '\n';
 
   for (T i=0; i<LOOP; ++i) {
@@ -37,10 +39,9 @@ T do_fsync() {
         perror("Error: write");
       else {
         n_write++;
-        std::cout << "Write: " << n_write;
-        std::cout << " / ";
-        std::cout << "Fsync: " << n_fsync;
-        std::cout  << '\n';
+        OUT "Write: " << n_write;
+        OUT " / ";
+        OUT "Fsync: " << n_fsync END;
         // std::cout << "Write " << r << " bytes\n";
 
         if (fsync(fd) != 0)
@@ -75,6 +76,13 @@ T doit() {
 
 auto main() -> int
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   doit<int, JOBS>();
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  OUT std::chrono::duration_cast<
+    std::chrono::milliseconds>(end - start).count() END;
   return 0;
 }
