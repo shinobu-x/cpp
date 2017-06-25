@@ -23,10 +23,16 @@ template <typename T, typename U>
 void doit() {
   // Use them
   std::pair<T, U> p;
+
   p.*ID = -5;
   p.*VALUE = 1.23;
+
   std::cout << p.*ID << '\n';
   std::cout << p.*VALUE << '\n';
+
+  int id_value::* const ID = &id_value::first;
+
+  std::cout << ID << '\n';
 }
 
 auto main() -> int
