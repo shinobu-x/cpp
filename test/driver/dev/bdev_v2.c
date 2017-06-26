@@ -40,8 +40,8 @@ static struct bdev_t {
 static void transfer(struct bdev_t *dev, sector_t sector,
   unsigned long nsect, char *buffer, int write) {
 
-  unsigned long offset = sector * sector_size;
-  unsigned long nbytes = nsect * sector_size;
+  unsigned long offset = sector * sector_size;  /* Object start byte */
+  unsigned long nbytes = nsect * sector_size;   /* Bytes from offset */
 
   if ((offset + nbytes) > dev->size) {
     printk(KERN_NOTICE "bdev: Buffer overflow (%ld %ld)\n", offset, nbytes);
