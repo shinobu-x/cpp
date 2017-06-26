@@ -45,7 +45,7 @@ static void bdev_transfer(struct bdev_t *dev, sector_t sector,
   unsigned long nbytes = nsect * sector_size;
 
   if ((offset + nbytes) > dev->size) {
-    printk (KERN_NOTICE "Buffer overflow (%ld %ld)\n", offset, nbytes);
+    printk(KERN_NOTICE "Buffer overflow (%ld %ld)\n", offset, nbytes);
     return;
   }
 
@@ -64,7 +64,7 @@ static void bdev_request(struct request_queue *q) {
 
   while (req != NULL) {
     if (req == NULL || (req->cmd_type != REQ_TYPE_FS)) {
-      printk (KERN_NOTICE "Skip non-CMD request\n");
+      printk(KERN_NOTICE "Skip non-CMD request\n");
       __blk_end_request_all(req, -EIO);
       continue;
     }
@@ -137,8 +137,7 @@ static int __init bdev_init(void) {
   add_disk(Bdev.gd);
 
   printk(KERN_INFO "bdev: loaded\n");
-  printk(KERN_INFO "major = %d\n", major_num);
-  printk(KERN_INFO "buffer size = %d\n", Bdev.size);
+  printk(KERN_INFO "major = %d\n", major_num); printk(KERN_INFO "buffer size = %d\n", Bdev.size);
 
   return 0;
 
