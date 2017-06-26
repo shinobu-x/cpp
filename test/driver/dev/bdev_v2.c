@@ -34,6 +34,9 @@ static struct bdev_t {
   struct gendisk *gd;
 } Bdev;
 
+/**
+ * I/O operations
+ */
 static void transfer(struct bdev_t *dev, sector_t sector,
   unsigned long nsect, char *buffer, int write) {
 
@@ -51,6 +54,9 @@ static void transfer(struct bdev_t *dev, sector_t sector,
   printk(KERN_INFO "bdev: offset = %lu, len = %lu\n", offset, nbytes);
 }
 
+/**
+ * I/O request
+ */
 static void request(struct request_queue *q) {
 
   struct request *req;
@@ -64,6 +70,10 @@ static void request(struct request_queue *q) {
       continue;
     }
 
+    /**
+     * blk_rq_pos:          the current sector
+     * blk_rq_cur_sectors:  sectors left in the current segment
+     */
     transfer(&Bdev, blk_rq_pos(req), blk_rq_cur_sectors(req), req->buffer,
       rq_data_dir(req));
 
@@ -121,11 +131,16 @@ static int __init bdev_init(void) {
   strcpy(Bdev.gd->disk_name, "bdev");
   set_capacity(Bdev.gd, sectors);
   Bdev.gd->queue = queue;
+  /**
+   * Add partitioning information to kernel list
+   * @disk: per-device partitioning information
+   */
   add_disk(Bdev.gd);
 
   printk(KERN_INFO "bdev: loaded\n");
-  printk(KERN_INFO "major: %d, minor: %d\n", major_number, minor_number);
-  printk(KERN_INFO "buffer size = %lu\n", Bdev.size);
+  printk(KERN_INFO "bdev: major = %d, minor = %d\n",
+    major_number, minor_number);
+  printk(KERN_INFO "bdev: buffer size = %lu\n", Bdev.size);
 
   return 0;
 
