@@ -137,7 +137,8 @@ static int __init bdev_init(void) {
   add_disk(Bdev.gd);
 
   printk(KERN_INFO "bdev: loaded\n");
-  printk(KERN_INFO "major = %d\n", major_num); printk(KERN_INFO "buffer size = %d\n", Bdev.size);
+  printk(KERN_INFO "major = %d\n", major_num);
+  printk(KERN_INFO "buffer size = %d\n", Bdev.size);
 
   return 0;
 
