@@ -63,8 +63,6 @@ static void bdev_request(struct request_queue *q) {
   req = blk_fetch_request(q);
 
   while (req != NULL) {
-    // blk_fs_request() was removed in 2.6.36
-    //if (!blk_fs_request(req)) {
     if (req == NULL || (req->cmd_type != REQ_TYPE_FS)) {
       printk (KERN_NOTICE "Skip non-CMD request\n");
       __blk_end_request_all(req, -EIO);
