@@ -11,7 +11,9 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 
-MODULE_LICENSE("BSD/GPL");
+MODULE_DESCRIPTION("Block Device Test");
+MODULE_AUTHOR("Shinobu Kinjo");
+MODULE_LICENSE("GPL");
 static char *Version = "1.0";
 
 static int major_num = 0;
@@ -27,10 +29,10 @@ module_param(sectors, int, 0);
 static struct request_queue *queue;
 
 static struct bdev_t {
-        unsigned long size;
-        spinlock_t lock;
-        u8 *data;
-        struct gendisk *gd;
+  unsigned long size;
+  spinlock_t lock;
+  u8 *data;
+  struct gendisk *gd;
 } Bdev;
 
 /*
@@ -39,7 +41,7 @@ static struct bdev_t {
 static void bdev_transfer(struct bdev_t *dev, sector_t sector,
   unsigned long nsect, char *buffer, int write) {
 
-  unsigned long offset = sector * sector_size;
+  unsigned long offset = sectors * sector_size;
   unsigned long nbytes = nsect * sector_size;
 
   if ((offset + nbytes) > dev->size) {
@@ -47,12 +49,11 @@ static void bdev_transfer(struct bdev_t *dev, sector_t sector,
     return;
   }
 
-  if (write)
-    memcpy(dev->data + offset, buffer, nbytes);
-  else
-    memcpy(buffer, dev->data + offset, nbytes);
+  write ? memcpy(dev->data + offset, buffer, nbytes)
+    : memcpy(buffer, dev->data + offset, nbytes);
 
-  printk(KERN_INFO "bdev: offset = %u, len = %u\n", offset, nbytes);
+  printk(KERN_INFO "bdev: buffer = %c,  offset = %u, len = %u\n",
+    buffer, offset, nbytes);
 }
 
 static void bdev_request(struct request_queue *q) {
@@ -69,7 +70,7 @@ static void bdev_request(struct request_queue *q) {
       __blk_end_request_all(req, -EIO);
       continue;
     }
-    
+
     bdev_transfer(&Bdev, blk_rq_pos(req), blk_rq_cur_sectors(req), req->buffer,
       rq_data_dir(req)
     );
@@ -123,7 +124,7 @@ static int __init sbd_init(void) {
   }
 
   Bdev.gd = alloc_disk(16);
-     
+
   if (!Bdev.gd)
     goto out_unregister;
 
