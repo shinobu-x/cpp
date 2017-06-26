@@ -98,7 +98,7 @@ static struct block_device_operations bdev_ops = {
   .getgeo = block_setgeo
 };
 
-static int __init sbd_init(void) {
+static int __init bdev_init(void) {
 
   Bdev.size = sectors * sector_size;
   spin_lock_init(&Bdev.lock);
@@ -149,7 +149,7 @@ out:
   return -ENOMEM;
 }
 
-static void __exit sbd_exit(void)
+static void __exit bdev_exit(void)
 {
   del_gendisk(Bdev.gd);
   put_disk(Bdev.gd);
@@ -159,5 +159,5 @@ static void __exit sbd_exit(void)
   printk(KERN_INFO "bdev: unloaded\n");
 }
 
-module_init(sbd_init);
-module_exit(sbd_exit);
+module_init(bdev_init);
+module_exit(bdev_exit);
