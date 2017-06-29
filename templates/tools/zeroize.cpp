@@ -37,9 +37,6 @@ template <typename T>
 T doit() {
   T a[5];
   zeroize<T, 5>(a);
-
-  for (auto v : a)
-    std::cout << v << '\n';
 }
 
 auto main() -> int
