@@ -23,20 +23,23 @@ struct zeroize_helper {
     std::fill_n(data, N, T());
   }
 
-  static T test(T* const data, const int N) {
+  static T test(const int N) {
     return N;
   }
 };
 
 template <typename T, int N>
-void zeroize(T (&data)[N]) {
-  zeroize_helper<T>::test(data, N);
+int zeroize(T (&data)[N]) {
+  zeroize_helper<T>::apply(data, static_value<int, N>::value);
 }
 
 template <typename T>
 T doit() {
   T a[5];
   zeroize<T, 5>(a);
+
+  for (auto v : a)
+    std::cout << v << '\n';
 }
 
 auto main() -> int
