@@ -39,6 +39,7 @@ struct string_traits<std::basic_string<char_t> > {
   static bool is_end_of_string(const_iterator i, argument_type s) {
     return i == s.end();
   }
+
 };
 
 template <>
@@ -63,6 +64,9 @@ struct string_traits<const char*> {
 template <typename T>
 T doit() {
   const char* c_string = "a b c d e f g";
+
+//  for (char c = *c_string; c; c=*++c_string)
+
   string_traits<const char*> c_traits;
   std::cout << c_traits.begin(c_string) << '\n';
 }
