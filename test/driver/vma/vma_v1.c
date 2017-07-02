@@ -51,7 +51,7 @@ int my_open(struct inode* inode, struct file* fp) {
 int my_release(struct inode* inode, struct file* fp) {
   return 0;
 }
-
+/*
 void my_vma_open(struct vm_area_struct* vma) {
 }
 
@@ -62,7 +62,7 @@ static struct vm_operations_struct my_remap_vm_ops = {
   open: my_vma_open,
   close: my_vma_close,
 };
-
+*/
 static int __init do_setup(void) {
   return 0;
 }
