@@ -1,73 +1,130 @@
+#include <linux/debugfs.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/init.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/types.h>
+#include <linux/version.h>
 #include <asm/page.h>
 
 MODULE_DESCRIPTION("VMA Test part1");
 MODULE_AUTHOR("Shinobu Kinjo");
 MODULE_LICENSE("GPL");
 
-int my_open(struct inode* inode, struct file* fp);
-int my_release(struct inode* inode, struct file* fp);
-int my_remap_mmap(struct file* fp, struct vm_area_struct* vma);
-int my_nopage_mmap(struct file* fp, struct vm_area_struct* vma);
+struct dentry* mine;
 
-struct file_operations my_remap_ops = {
-  open: my_open,
-  release: my_release,
-  mmap: my_remap_mmap,
+#define ME "my_vma"
+#define PRINT() printk(KERN_NOTICE ME ": %s\n", __func__);
+
+struct my_info {
+  char* data;
+  int ref;
 };
 
-struct file_operations my_nopage_ops = {
-  open: my_open,
-  release: my_release,
-  mmap: my_nopage_mmap,
+void mmap_open(struct vm_area_struct* vma) {
+  struct my_info* me = (struct my_info*)vma->vm_private_data;
+
+  PRINT();
+
+  me->ref++;
+}
+
+void mmap_close(struct vm_area_struct* vma) {
+  struct my_info* me = (struct my_info*)vma->vm_private_data;
+
+  PRINT();
+
+  me->ref--;
+}
+
+int mmap_fault(struct vm_area_struct* vma, struct vm_fault* vmf) {
+  struct page* p;
+  struct my_info* me;
+  unsigned long addr = (unsigned long)vmf->virtual_address;
+
+  PRINT();
+
+  if (addr > vma->vm_end) {
+    printk(KERN_WARNING "Invalid address");
+    return VM_FAULT_SIGBUS;
+  }
+
+  me = (struct my_info*)vma->vm_private_data;
+  if (!me->data) {
+    printk(KERN_WARNING "No data");
+    return VM_FAULT_SIGBUS;
+  }
+
+  p = virt_to_page(me->data);
+
+  get_page(p);
+
+  vmf->page = p;
+  return 0;
+}
+
+struct vm_operations_struct mmap_vm_ops = {
+  .open = mmap_open,
+  .close = mmap_close,
+  .fault = mmap_fault,
 };
 
-#define MAX_DEV 2
+int my_mmap(struct file* fp, struct vm_area_struct* vma) {
+  vma->vm_ops = &mmap_vm_ops;
+//  vma->vm_flags |= VM_RESERVED;
+  vma->vm_private_data = fp->private_data;
 
-struct file_operations *my_fops[MAX_DEV] = {
-  &my_remap_ops,
-  &my_nopage_ops,
-};
+  PRINT();
+
+  mmap_open(vma);
+  return 0;
+}
+
+int my_close(struct inode* inode, struct file* fp) {
+  struct my_info* me = fp->private_data;
+
+  PRINT()
+
+  free_page((unsigned long)me->data);
+  kfree(me);
+  fp->private_data = NULL;
+  return 0;
+}
 
 int my_open(struct inode* inode, struct file* fp) {
-  unsigned int dev = MINOR(inode->i_rdev);
+  struct my_info* me;
+  me = kmalloc(sizeof(struct my_info), GFP_KERNEL);
+  // Get new memory
+  me->data = (char*)get_zeroed_page(GFP_KERNEL);
 
-  if (dev >= MAX_DEV)
-    return -ENODEV;
+  PRINT();
 
-  fp->f_op = my_fops[dev];
+  memcpy(me->data, "ABCDEFG: ", 32);
+  memcpy(me->data + 32, fp->f_dentry->d_name.name,
+    strlen(fp->f_dentry->d_name.name));
 
-//  Removed since 2.6.10...
-//  MOD_INC_USE_COUNT;
-
+  fp->private_data = me;
   return 0;
 }
 
-int my_release(struct inode* inode, struct file* fp) {
-  return 0;
-}
-/*
-void my_vma_open(struct vm_area_struct* vma) {
-}
-
-void my_vma_close(struct vm_area_struct* vma) {
-}
-
-static struct vm_operations_struct my_remap_vm_ops = {
-  open: my_vma_open,
-  close: my_vma_close,
+static const struct file_operations my_ops = {
+  .open = my_open,
+  .release = my_close,
+  .mmap = my_mmap,
 };
-*/
+
 static int __init do_setup(void) {
+  mine = debugfs_create_file(ME, 0644, NULL, NULL, &my_ops);
+  PRINT();
   return 0;
 }
 
 static void __exit do_cleanup(void) {
+  PRINT();
+  debugfs_remove(mine);
 }
 
 module_init(do_setup);
