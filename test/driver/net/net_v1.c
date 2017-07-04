@@ -85,7 +85,7 @@ void setup_pool(struct net_device* dev) {
   }
 }
 
-void teardown_pool(struct net_device* dev) {
+void do_teardown_pool(struct net_device* dev) {
   struct my_priv* priv = netdev_priv(dev);
   struct my_packet* pkt;
 
@@ -496,3 +496,43 @@ void do_setup(struct net_device* dev) {
   rx_ints(dev, 1);
   setup_pool(dev);
 }
+
+void do_cleanup(void) {
+  int i;
+  for (i=0; i<2; ++i) {
+    if(my_devs[i]) {
+      unregister_netdev(my_devs[i]);
+      do_teardown_pool(my_devs[i]);
+      free_netdev(my_devs[i]);
+    }
+  }
+  return;
+}
+
+int do_init(void) {
+  int result, i, r = -ENOMEM;
+
+  my_interrupt = use_napi ? napi_interrupt : regular_interrupt;
+
+  my_devs[0] = alloc_netdev(sizeof(struct my_priv), "me%d", do_setup);
+  my_devs[1] = alloc_netdev(sizeof(struct my_priv), "me%d", do_setup);
+
+  if (my_devs[0] == NULL || my_devs[1] == NULL)
+    goto out;
+
+  r = -ENODEV;
+
+  for (i=0; i<2; ++i)
+    if ((result = register_netdev(my_devs[i])))
+      printk(KERN_NOTICE "net_v1: Error %i registering device \"%s\"\n",
+        result, my_devs[i]->name);
+    else
+      r = 0;
+out:
+  if (r)
+    do_cleanup();
+  return r;
+}
+
+module_init(do_init);
+module_exit(do_cleanup);
