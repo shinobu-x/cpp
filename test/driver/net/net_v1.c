@@ -25,7 +25,7 @@ MODULE_LICENSE("GPL");
 #define MY_TX_INTR 0x0002
 #define MY_TIMEOUT 5
 
-extern struct net_device* my_devs[];
+struct net_device* my_devs[2];
 
 static int lockup = 0;
 static int timeout = MY_TIMEOUT;
@@ -173,7 +173,7 @@ int do_release(struct net_device* dev) {
   return 0;
 }
 
-int do_config(struct net_device* dev, struct ifmap* map) {
+int my_config(struct net_device* dev, struct ifmap* map) {
   if (dev->flags & IFF_UP)
     return -EBUSY;
 
@@ -364,4 +364,135 @@ static void hw_tx(char* buf, int size, struct net_device* dev) {
   memcpy(tx_buffer->data, buf, size);
   enqueue_buf(dest, tx_buffer);
 
+  if (priv->rx_int_enabled) {
+    priv->status |= MY_RX_INTR;
+    my_interrupt(0, dest, NULL);
+  }
+
+  priv = netdev_priv(dev);
+  priv->tx_packet_size = size;
+  priv->tx_packet_data = buf;
+  priv->status |= MY_TX_INTR;
+
+  if (lockup && ((priv->stats.tx_packets + 1) % lockup) == 0) {
+    netif_stop_queue(dev);
+    printk(KERN_NOTICE "net_v1: Simulate lockup at %ld, txp %ld\n", jiffies,
+      (unsigned long)priv->stats.tx_packets);
+  } else
+    my_interrupt(0, dev, NULL);
+}
+
+int my_tx(struct sk_buff* skb, struct net_device* dev) {
+  int size;
+  char* data, shortpkt[ETH_ZLEN];
+  struct my_priv* priv = netdev_priv(dev);
+
+  data = skb->data;
+  size = skb->len;
+
+  if (size < ETH_ZLEN) {
+    memset(shortpkt, 0, ETH_ZLEN);
+    memcpy(shortpkt, skb->data, skb->len);
+    size = ETH_ZLEN;
+    data = shortpkt;
+  }
+
+  dev->trans_start = jiffies; // Timestamp
+  priv->skb = skb;
+  hw_tx(data, size, dev);
+
+  return 0;
+}
+
+void my_tx_timeout(struct net_device* dev) {
+  struct my_priv* priv = netdev_priv(dev);
+
+  printk(KERN_NOTICE "net_v1: Transmit timeout at %ld, latency %ld\n", jiffies,
+    jiffies-(dev->trans_start));
+
+  priv->status = MY_TX_INTR;
+  my_interrupt(0, dev, NULL);
+  priv->stats.tx_errors++;
+  netif_wake_queue(dev);
+
+  return;
+}
+
+int my_ioctl(struct net_device* dev, struct ifraq* rq, int cmd) {
+  printk(KERN_NOTICE "net_v1: ioctl\n");
+  return 0;
+}
+
+struct net_device_stats* my_stats(struct net_device* dev) {
+  struct my_priv* priv = netdev_priv(dev);
+  return &priv->stats;
+}
+
+int rebuild_header(struct sk_buff* skb) {
+  struct ethhdr* header = (struct ethhdr*)skb->data;
+  struct net_device* dev = skb->dev;
+
+  memcpy(header->h_source, dev->dev_addr, dev->addr_len);
+  memcpy(header->h_dest, dev->dev_addr, dev->addr_len);
+  header->h_dest[ETH_ALEN-1] ^= 0x01; // xor 1
+
+  return 0;
+}
+
+int my_header(struct sk_buff* skb, struct net_device* dev,
+  unsigned short type, const void* daddr, const void* saddr, unsigned size) {
+  struct ethhdr* header = (struct ethhdr*)skb_push(skb, ETH_HLEN);
+
+  header->h_proto = htons(type);
+  memcpy(header->h_source, saddr ? saddr : dev->dev_addr, dev->addr_len);
+  memcpy(header->h_dest, daddr ? daddr : dev->dev_addr, dev->addr_len);
+  header->h_dest[ETH_ALEN-1] ^= 0x01; // xor 1
+
+  return (dev->hard_header_len);
+}
+
+int my_mtu(struct net_device* dev, int mtu) {
+  unsigned long flags;
+  struct my_priv* priv = netdev_priv(dev);
+  spinlock_t* lock = &priv->lock;
+
+  if ((mtu<68) || (mtu>1500))
+    return -EINVAL;
+
+  spin_lock_irqsave(lock, flags);
+  dev->mtu = mtu;
+  spin_unlock_irqrestore(lock, flags);
+
+  return 0;
+}
+
+static const struct net_device_ops my_netdev_ops = {
+  .ndo_open = do_open,
+  .ndo_stop = do_release,
+  .ndo_start_xmit = my_tx,
+  .ndo_do_ioctl = my_ioctl,
+  .ndo_set_config = my_config,
+  .ndo_get_stats = my_stats,
+  .ndo_change_mtu = my_mtu,
+  .ndo_tx_timeout = my_tx_timeout
+};
+
+void do_setup(struct net_device* dev) {
+  struct my_priv* priv;
+  ether_setup(dev);
+  dev->watchdog_timeo = timeout;
+  dev->netdev_ops = &my_netdev_ops;
+  dev->header_ops = &my_netdev_ops;
+  dev->flags |= IFF_NOARP;
+  dev->features |= NETIF_F_HW_CSUM;
+
+  priv = netdev_priv(dev);
+
+  if (use_napi)
+    netif_napi_add(dev, &priv->napi, do_poll, 2);
+
+  memset(priv, 0, sizeof(struct my_priv));
+  spin_lock_init(&priv->lock);
+  rx_ints(dev, 1);
+  setup_pool(dev);
 }
