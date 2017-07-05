@@ -325,7 +325,7 @@ static void hw_tx(char* buf, int size, struct net_device* dev) {
   struct my_packet* tx_buffer;
 
   if (size < sizeof(struct ethhdr) + sizeof(struct iphdr)) {
-    printk("net_v1: %i octest\n", size);
+    printk("net_v1: %i octet\n", size);
     return;
   }
 
