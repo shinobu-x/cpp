@@ -60,8 +60,8 @@ struct priv_t {
   struct napi_struct napi;
 };
 
-static void tx_timeout(struct net_device* dev);
-static void (*interrup)(int, void*, struct pt_regs*);
+static void _tx_timeout(struct net_device* dev);
+static void (*irq_interrupt)(int, void*, struct pt_regs*);
 
 void setup_pool(struct net_device* dev) {
   struct priv_t* priv = netdev_priv(dev);
@@ -332,7 +332,7 @@ static void hw_tx(char* buf, int len, struct net_device* dev) {
   struct packet_t* tx_buf;
 
   if (len < sizeof(struct ethhdr) + sizeof(struct iphdr)) {
-    printk("net_v2: %i octet\n", size);
+    printk("net_v2: %i octet\n", len);
     return;
   }
 
@@ -354,3 +354,54 @@ static void hw_tx(char* buf, int len, struct net_device* dev) {
 
   header->check = 0;
   header->check = ip_fast_csum((unsigned char*)header, header->ihl);
+
+  if (dev == net_devs[0])
+    printk(KERN_NOTICE "%08x:%05i --> %08x:%05i\n",
+      ntohl(header->saddr), ntohs(((struct tcphdr*)(header+1))->source),
+      ntohl(header->daddr), ntohs(((struct tcphdr*)(header+1))->dest));
+  else
+    printk(KERN_NOTICE "%08x:%05i --> %08x:%05i\n",
+      ntohl(header->daddr), ntohs(((struct tcphdr*)(header+1))->dest),
+      ntohl(header->saddr), ntohs(((struct tcphdr*)(header+1))->source));
+
+  dest = net_devs[dev == net_devs[0] ? 1 : 0];
+  priv = netdev_priv(dest);
+  tx_buf = get_tx_buffer(dev);
+  tx_buf->data_len = len;
+  memcpy(tx_buf->data, buf, len);
+  enqueue_buffer(dest, tx_buf);
+
+  if (priv->rx_int_enabled) {
+    priv->status |= RX_INTR;
+    irq_interrupt(0, dest, NULL);
+  }
+
+  if (lockup && ((priv->stats.tx_packets + 1) % lockup) == 0) {
+    netif_stop_queue(dev);
+    printk(KERN_NOTICE "net_v2: Simulate lockup at %ld, txp %ld\n", jiffies,
+      (unsigned long)priv->stats.tx_packets);
+  } else
+    irq_interrupt(0, dev, NULL);
+}
+
+int do_tx(struct sk_buff* skb, struct net_device* dev) {
+  int len;
+  char* data, short_packet[ETH_ZLEN];
+  struct priv_t* priv = netdev_priv(dev);
+
+  data = skb->data;
+  len = skb->len;
+
+  if (len < ETH_ZLEN) {
+    memset(short_packet, 0, ETH_ZLEN);
+    memcpy(short_packet, skb->data, skb->len);
+    len = ETH_ZLEN;
+    data = short_packet;
+  }
+
+  dev->trans_start = jiffies;  // Timestamp
+  priv->skb = skb;
+  hw_tx(data, len, dev);
+
+  return 0;
+}
