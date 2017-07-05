@@ -346,7 +346,7 @@ static void hw_tx(char* buf, int size, struct net_device* dev) {
   ((u8*)d_addr)[2] ^= 1;
 
   header->check = 0;
-  header->check = ip_fast_csum((unsigned char *)header, header->ihl);
+  header->check = ip_fast_csum((unsigned char*)header, header->ihl);
 
   if (dev == my_devs[0])
     printk(KERN_NOTICE "%08x:%05i --> %08x:%05i\n",
