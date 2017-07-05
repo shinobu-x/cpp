@@ -49,8 +49,8 @@ struct my_packet {
 struct my_priv {
   struct net_device_stats stats;
   int status;
-  struct my_packet *ppool;
-  struct my_packet *rx_queue;  // Incoming packets
+  struct my_packet* ppool;
+  struct my_packet* rx_queue;  // Incoming packets
   int rx_int_enabled;
   int tx_packet_size;
   u8* tx_packet_data;
