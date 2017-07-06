@@ -60,7 +60,7 @@ struct priv_t {
   struct napi_struct napi;
 };
 
-static void _tx_timeout(struct net_device* dev);
+static void do_tx_timeout(struct net_device* dev);
 static void (*irq_interrupt)(int, void*, struct pt_regs*);
 
 void setup_pool(struct net_device* dev) {
@@ -79,7 +79,7 @@ void setup_pool(struct net_device* dev) {
     }
 
     pkt->dev = dev;
-    pkt->next = priv;
+    pkt->next = priv->packet_pool;
     priv->packet_pool = pkt;
   }
 }
@@ -88,7 +88,7 @@ void do_teardown_pool(struct net_device* dev) {
   struct priv_t* priv = netdev_priv(dev);
   struct packet_t* pkt;
 
-  while (pkt = priv->packet_pool) {
+  while ((pkt = priv->packet_pool)) {
     priv->packet_pool = pkt->next;
     kfree(pkt);
   }
@@ -155,7 +155,7 @@ struct packet_t* dequeue_buffer(struct net_device* dev) {
   return pkt;
 }
 
-struct packet_t* rx_ints(struct net_device* dev, int enable) {
+static void rx_ints(struct net_device* dev, int enable) {
   struct priv_t* priv = netdev_priv(dev);
   priv->rx_int_enabled = enable;
 }
@@ -328,7 +328,8 @@ static void hw_tx(char* buf, int len, struct net_device* dev) {
   struct iphdr* header;
   struct net_device* dest;
   struct priv_t* priv;
-  u32* saddr, daddr;
+  u32* saddr;
+  u32* daddr;
   struct packet_t* tx_buf;
 
   if (len < sizeof(struct ethhdr) + sizeof(struct iphdr)) {
@@ -469,7 +470,12 @@ int set_mtu(struct net_device* dev, int mtu) {
   return 0;
 }
 
-static const struct net_device_ops ops_t = {
+static const struct header_ops header_ops_t = {
+  .create = create_header,
+  .rebuild = rebuild_header
+};
+
+static const struct net_device_ops device_ops_t = {
   .ndo_open = do_open,
   .ndo_stop = do_release,
   .ndo_start_xmit = do_tx,
@@ -483,8 +489,8 @@ static const struct net_device_ops ops_t = {
 void do_setup(struct net_device* dev) {
   struct priv_t* priv;
   dev->watchdog_timeo = timeout;
-  dev->netdev_ops = &ops_t;
-  dev->header_ops = &ops_t;
+  dev->netdev_ops = &device_ops_t;
+  dev->header_ops = &header_ops_t;
   dev->flags |= IFF_NOARP;
   dev->features |= NETIF_F_HW_CSUM;
 
@@ -500,6 +506,19 @@ void do_setup(struct net_device* dev) {
 }
 
 void do_cleanup(void) {
+  int i;
+
+  for (i=0; i<2; ++i) {
+    if (net_devs[i]) {
+      unregister_netdev(net_devs[i]);
+      do_teardown_pool(net_devs[i]);
+      free_netdev(net_devs[i]);
+    }
+  }
+  return;
+}
+
+int do_init(void) {
   int result, i, r = -ENOMEM;
 
   irq_interrupt = use_napi ? napi_interrupt : regular_interrupt;
@@ -527,5 +546,5 @@ out:
 
 // ******
 
-module_init(do_setup);
+module_init(do_init);
 module_exit(do_cleanup);
