@@ -176,7 +176,7 @@ int do_release(struct net_device* dev) {
   return 0;
 }
 
-int do_config(struct net_device* dev, struct ifmap* map) {
+int set_config(struct net_device* dev, struct ifmap* map) {
   if (dev->flags & IFF_UP)
     return -EBUSY;
 
@@ -405,3 +405,127 @@ int do_tx(struct sk_buff* skb, struct net_device* dev) {
 
   return 0;
 }
+
+void do_tx_timeout(struct net_device* dev) {
+  struct priv_t* priv = netdev_priv(dev);
+
+  printk(KERN_NOTICE "net_v2: Transmit timeout at %ld, latency %ld\n", jiffies,
+    jiffies-(dev->trans_start));
+
+  priv->status = TX_INTR;
+  irq_interrupt(0, dev, NULL);
+  priv->stats.tx_errors++;
+  netif_wake_queue(dev);  // Transmit packets again
+
+  return;
+}
+
+int do_ioctl(struct net_device* dev, struct ifraq* rq, int cmd) {
+  printk(KERN_NOTICE "net_v2: ioctl\n");
+  return 0;
+}
+
+struct net_device_stats* get_stats(struct net_device* dev) {
+  struct priv_t* priv = netdev_priv(dev);
+  return &priv->stats;
+}
+
+int rebuild_header(struct sk_buff* skb) {
+  struct ethhdr* header = (struct ethhdr*)skb->data;
+  struct net_device* dev = skb->dev;
+
+  memcpy(header->h_source, dev->dev_addr, dev->addr_len);
+  memcpy(header->h_dest, dev->dev_addr, dev->addr_len);
+  header->h_dest[ETH_ALEN-1] ^= 0x01;  // XOR 1
+
+  return (dev->hard_header_len);
+}
+
+int create_header(struct sk_buff* skb, struct net_device* dev,
+  unsigned short type, const void* daddr, const void* saddr, unsigned len) {
+  // skb_push: Add data to beginning of the packet
+  struct ethhdr* header = (struct ethhdr*)skb_push(skb, ETH_HLEN);
+
+  header->h_proto = htons(type);
+  memcpy(header->h_source, saddr ? saddr : dev->dev_addr, dev->addr_len);
+  memcpy(header->h_dest, daddr ? daddr : dev->dev_addr, dev->addr_len);
+  header->h_dest[ETH_ALEN-1] ^= 0x01;  // XOR
+
+  return (dev->hard_header_len);
+}
+
+int set_mtu(struct net_device* dev, int mtu) {
+  unsigned long flags;
+  struct priv_t* priv = netdev_priv(dev);
+  spinlock_t* l = &priv->l;
+
+  if ((mtu<68) || (mtu>1500))
+    return -EINVAL;
+
+  spin_lock_irqsave(l, flags);
+  dev->mtu = mtu;
+  spin_unlock_irqrestore(l, flags);
+
+  return 0;
+}
+
+static const struct net_device_ops ops_t = {
+  .ndo_open = do_open,
+  .ndo_stop = do_release,
+  .ndo_start_xmit = do_tx,
+  .ndo_do_ioctl = do_ioctl,
+  .ndo_set_config = set_config,
+  .ndo_get_stats = get_stats,
+  .ndo_change_mtu = set_mtu,
+  .ndo_tx_timeout = do_tx_timeout
+};
+
+void do_setup(struct net_device* dev) {
+  struct priv_t* priv;
+  dev->watchdog_timeo = timeout;
+  dev->netdev_ops = &ops_t;
+  dev->header_ops = &ops_t;
+  dev->flags |= IFF_NOARP;
+  dev->features |= NETIF_F_HW_CSUM;
+
+  priv = netdev_priv(dev);
+
+  if (use_napi)
+    netif_napi_add(dev, &priv->napi, do_poll, 2);
+
+  memset(priv, 0, sizeof(struct priv_t));
+  spin_lock_init(&priv->l);
+  rx_ints(dev, 1);
+  setup_pool(dev);
+}
+
+void do_cleanup(void) {
+  int result, i, r = -ENOMEM;
+
+  irq_interrupt = use_napi ? napi_interrupt : regular_interrupt;
+
+  net_devs[0] = alloc_netdev(sizeof(struct priv_t), "TEST_IF%d", do_setup);
+  net_devs[1] = alloc_netdev(sizeof(struct priv_t), "TEST_IF%d", do_setup);
+
+  if (net_devs[0] == NULL || net_devs[1] == NULL)
+    goto out;
+
+  r = -ENODEV;
+
+  for (i=0; i<2; ++i)
+    if ((result = register_netdev(net_devs[i])))
+      printk(KERN_NOTICE "net_v2: Failed to register device [%i] \"%s\"\n",
+        result, net_devs[i]->name);
+    else
+      r = 0;
+
+out:
+  if (r)
+    do_cleanup();
+  return r;
+}
+
+// ******
+
+module_init(do_setup);
+module_exit(do_cleanup);
