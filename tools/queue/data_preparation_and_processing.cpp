@@ -6,45 +6,58 @@
 #include <thread>
 #include <vector>
 
-std::mutex m;
-std::queue<int> q;
-std::vector<int> v;
-std::condition_variable c;
-
-void do_calc() {
-  std::cout << __func__ << ": " << std::this_thread::get_id() << '\n';
-  for (int i=0; i<10000; ++i)
-    v.push_back(i);
-}
-
-void do_prep() {
-  std::cout << __func__ << ": " << std::this_thread::get_id() << '\n';
-  std::lock_guard<std::mutex> l(m);
-  for (typename std::vector<int>::iterator it = v.begin(); it!=v.end(); ++it)
-    q.push(*it);
-
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  c.notify_one();
-}
-
-void do_proc() {
-  std::cout << __func__ << ": " << std::this_thread::get_id() << '\n';
-  while (true) {
-    std::unique_lock<std::mutex> l(m);
-    c.wait(l, []{return !q.empty();});
-    int data = q.front();
-    q.pop();
-    std::cout << data << '\n';
-    if (q.empty())
-      break;
+template <typename T>
+class data_proc {
+public:
+  void do_calc() {
+    calc_();
   }
-}
+
+  void do_prep() {
+    prep_();
+  }
+
+  void do_proc() {
+    proc_();
+  }
+private:
+  std::mutex m_;
+  std::queue<T> q_;
+  std::vector<T> v_;
+  std::condition_variable c_;
+
+  void calc_() {
+    for (T i=0; i<10000; ++i)
+      v_.push_back(i);
+  }
+
+  void prep_() {
+    std::lock_guard<std::mutex> l(m_);
+    for (typename std::vector<T>::iterator it=v_.begin(); it!=v_.end(); ++it) \
+      q_.push(*it);
+//    std::this_thread::sleep_for(std::chrono::seconds(3));
+    c_.notify_one();
+  }
+
+  void proc_() {
+    while (true) {
+      std::unique_lock<std::mutex> l(m_);
+      c_.wait(l, [&]{ return !q_.empty(); });
+      T data = q_.front();
+      q_.pop();
+      std::cout << data << '\n';
+      if (q_.empty())
+        break;
+    }
+  }
+};
 
 template <typename T>
 void doit() {
-  do_calc();
-  do_prep();
-  do_proc();
+  data_proc<T> go;
+  go.do_calc();
+  go.do_prep();
+  go.do_proc();
 }
 
 auto main() -> decltype(0)
