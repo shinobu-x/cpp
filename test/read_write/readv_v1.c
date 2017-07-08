@@ -5,6 +5,12 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+/**
+ * Scatter/gather I/O is a method of input and output where a single system call
+ * writes to a vector of buffers from a single data stream, or alternatively re-
+ * ads into a vector of buffers from a single data stream.
+ */
+
 int main() {
   int fd, i, max=3;
   char a[40], b[28], c[70];
@@ -39,7 +45,8 @@ int main() {
   if (close(fd)) {
     perror("close: Failed");
     return 1;
-  }
+  } else
+    unlink("./file.txt");
 
   return 0;
 }
