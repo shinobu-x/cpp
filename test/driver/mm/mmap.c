@@ -5,65 +5,70 @@
 
 #include "common.h"
 
-#define X_MAJOR 0
-#define X_DEVS 4
-#define X_ORDER 0
-#define X_QSET 500
-
-struct dev_t {
-  void** data;
-  struct dev_t* next;
-  int vmas;
-  int order;
-  int qset;
-  size_t size;
-  struct semaphore sem;
-  struct cdev cdev;
-};
-
-extern struct dev_t* devs_t;
-extern struct file_operations op_t;
-extern int x_major;
-extern int x_devs;
-extern int x_order;
-extern int x_qset;
-
-int x_trim(struct dev_t* dev)
-struct dev_t* x_follow(struct dev_t* dev, int n);
-
-#define X_IOC_MAGIC 'K'
-#define X_IOC_RESET _IO(IOC_MAGIC, 0)
-
-/**
- * S: Set through a ptr
- * T: Tell directly
- * G: Get (to apointed var)
- * Q: Query, response is on the return value
- * X: Exchange G and S atomically
- * H: Shift T and Q atomically
- */
-
-#define X_IOCSORDER   _IOW(X_IOC_MAGIC,  1, int)
-#define X_IOCTORDER   _IO(X_IOC_MAGIC,   2)
-#define X_IOCGORDER   _IOR(X_IOC_MAGIC,  3, int)
-#define X_IOCQORDER   _IO(X_IOC_MAGIC,   4)
-#define X_IOCXORDER   _IOWR(X_IOC_MAGIC, 5, int)
-#define X_IOCHORDER   _IO(X_IOC_MAGIC,   6)
-#define X_IOCSQSET    _IOW(X_IOC_MAGIC,  7, int)
-#define X_IOCTQSET    _IO(X_IOC_MAGIC,   8)
-#define X_IOCGQSET    _IOR(X_IOC_MAGIC,  9, int)
-#define X_IOCQQSET    _IO(X_IOC_MAGIC,  10)
-#define X_IOCXQSET    _IOWR(X_IOC_MAGIC,11, int)
-#define X_IOCHQSET    _IO(X_IOC_MAGIC,  12)
-
-#define X_IOC_MAXNR 12
-
-void x_vma_open(struct vma_area_struct* vma) {
+void x_vma_open(struct vm_area_struct* vma) {
   struct dev_t* dev = vma->vm_private_data;
   dev->vmas++;
 }
 
-void x_vma_close(struct vma_area_struct* vma) {
-  struct dev_t* dev = vma_vm_private_data;
+void x_vma_close(struct vm_area_struct* vma) {
+  struct dev_t* dev = vma->vm_private_data;
   dev->vmas--;
+}
+
+static int x_vma_nopage(struct vm_area_struct* vma, struct vm_fault* vmf) {
+  unsigned long offset;
+  struct dev_t* ptr;
+  struct dev_t* dev = vma->vm_private_data;
+  struct page* page = NULL;
+  void* pageptr = NULL;
+  int r = VM_FAULT_NOPAGE;
+
+  down(&dev->sem);
+  offset = (unsigned long)(vmf->virtual_address - vma->vm_start) +
+    (vma->vm_pgoff << PAGE_SHIFT);
+
+  if (offset >= dev->size)
+    goto out;  // Out of range
+
+  offset >>= PAGE_SHIFT;  // Offset is a number of pages
+
+  for (ptr = dev; ptr && offset >= dev->qset;) {
+    ptr = ptr->next;
+    offset -= dev->qset;
+  }
+
+  if (ptr && ptr->data)
+    pageptr = ptr->data[offset];
+
+  if (!pageptr)
+    goto out;  // Hole or end of file
+
+  page = virt_to_page(pageptr);
+
+  get_page(page);
+  vmf->page = page;
+  r = 0;
+
+out:
+  up(&dev->sem);
+  return r;
+}
+
+struct vm_operations_struct ops_t = {
+  .open = x_vma_open,
+  .close = x_vma_close,
+  .fault = x_vma_nopage,
+};
+
+int x_mmap(struct file* fp, struct vm_area_struct* vma) {
+  struct inode* inode = fp->f_path.dentry->d_inode;
+
+  if (devs_t[iminor(inode)].order)
+    return -ENODEV;
+
+  vma->vm_ops = &ops_t;
+  vma->vm_private_data = fp->private_data;
+  x_vma_open(vma);
+
+  return 0;
 }
