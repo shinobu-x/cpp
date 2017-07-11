@@ -6,19 +6,19 @@
 #include "common.h"
 
 void x_vma_open(struct vm_area_struct* vma) {
-  struct dev_t* dev = vma->vm_private_data;
+  struct x_dev_t* dev = vma->vm_private_data;
   dev->vmas++;
 }
 
 void x_vma_close(struct vm_area_struct* vma) {
-  struct dev_t* dev = vma->vm_private_data;
+  struct x_dev_t* dev = vma->vm_private_data;
   dev->vmas--;
 }
 
 static int x_vma_nopage(struct vm_area_struct* vma, struct vm_fault* vmf) {
   unsigned long offset;
-  struct dev_t* ptr;
-  struct dev_t* dev = vma->vm_private_data;
+  struct x_dev_t* ptr;
+  struct x_dev_t* dev = vma->vm_private_data;
   struct page* page = NULL;
   void* pageptr = NULL;
   int r = VM_FAULT_NOPAGE;
@@ -54,7 +54,7 @@ out:
   return r;
 }
 
-struct vm_operations_struct ops_t = {
+struct vm_operations_struct ops_vm_t = {
   .open = x_vma_open,
   .close = x_vma_close,
   .fault = x_vma_nopage,
@@ -66,7 +66,7 @@ int x_mmap(struct file* fp, struct vm_area_struct* vma) {
   if (devs_t[iminor(inode)].order)
     return -ENODEV;
 
-  vma->vm_ops = &ops_t;
+  vma->vm_ops = &ops_vm_t;
   vma->vm_private_data = fp->private_data;
   x_vma_open(vma);
 

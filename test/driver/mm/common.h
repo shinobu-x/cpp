@@ -28,9 +28,9 @@
 #define X_ORDER 0
 #define X_QSET 500
 
-struct dev_t {
+struct x_dev_t {
   void** data;
-  struct dev_t* next;
+  struct x_dev_t* next;
   int vmas;
   int order;
   int qset;
@@ -39,15 +39,15 @@ struct dev_t {
   struct cdev cdev;
 };
 
-extern struct dev_t* devs_t;
+extern struct x_dev_t* devs_t;
 extern struct file_operations op_t;
 extern int x_major;
 extern int x_devs;
 extern int x_order;
 extern int x_qset;
 
-int x_trim(struct dev_t* dev);
-struct dev_t* x_follow(struct dev_t* dev, int n);
+int x_trim(struct x_dev_t* dev);
+struct x_dev_t* x_follow(struct x_dev_t* dev, int n);
 
 #define X_IOC_MAGIC 'K'
 #define X_IOCRESET _IO(X_IOC_MAGIC, 0)

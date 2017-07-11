@@ -1,7 +1,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
-#include <linux/kernel.h>
+#include <linux/kernel.h>  /** container_of **/
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/errno.h>
@@ -28,8 +28,8 @@ module_param(x_devs, int, 0);
 module_param(x_qset, int, 0);
 module_param(x_order, int, 0);
 
-struct dev_t* devs_t;
-int x_trim(struct dev_t* dev);
+struct x_dev_t* devs_t;
+int x_trim(struct x_dev_t* dev);
 void x_cleanup(void);
 
 #ifdef USE_PROC
@@ -37,7 +37,7 @@ void x_cleanup(void);
 int do_read_proc(struct seq_file* m, void* v) {
   int i, j, order, qset;
   int limit = m->size - 80;
-  struct dev_t* dev;
+  struct x_dev_t* dev;
 
   for (i=0; i<x_devs; ++i) {
     dev = &devs_t[i];
@@ -79,10 +79,10 @@ static int do_open_proc(struct inode* inode, struct file* fp) {
   return single_open(fp, do_read_proc, NULL);
 }
 
-static struct file_operations ops_t = {
+static struct file_operations ops_proc_t = {
   .owner = THIS_MODULE,
   .open = do_open_proc,
-  .read = do_read_proc,
+  .read = seq_read,
   .llseek = seq_lseek,
   .release = single_release
 };
@@ -90,9 +90,9 @@ static struct file_operations ops_t = {
 #endif // USE_PROC
 
 int x_open(struct inode* inode, struct file* fp) {
-  struct dev_t* dev;
+  struct x_dev_t* dev;
 
-  dev = container_of(inode->i_cdev, struct dev_t, cdev);
+  dev = container_of(inode->i_cdev, struct x_dev_t, cdev);
 
   if ((fp->f_flags & O_ACCMODE) == O_WRONLY) {
     if (down_interruptible(&dev->sem))
@@ -111,11 +111,11 @@ int x_release(struct inode* inode, struct file* fp) {
   return 0;
 }
 
-struct dev_t* x_follow(struct dev_t* dev, int n) {
+struct x_dev_t* x_follow(struct x_dev_t* dev, int n) {
   while (n--) {
     if (!dev->next) {
-      dev->next = kmalloc(sizeof(struct dev_t), GFP_KERNEL);
-      memset(dev->next, 0, sizeof(struct dev_t));
+      dev->next = kmalloc(sizeof(struct x_dev_t), GFP_KERNEL);
+      memset(dev->next, 0, sizeof(struct x_dev_t));
     }
 
     dev = dev->next;
@@ -125,8 +125,8 @@ struct dev_t* x_follow(struct dev_t* dev, int n) {
 }
 
 ssize_t x_read(struct file* fp, char* __user buf, size_t count, loff_t* f_pos) {
-  struct dev_t* dev = fp->private_data;
-  struct dev_t* ptr;
+  struct x_dev_t* dev = fp->private_data;
+  struct x_dev_t* ptr;
   int quantum = PAGE_SIZE << dev->order;
   int qset = dev->qset;
   int itemsize = quantum*qset;
@@ -171,8 +171,8 @@ do_nothing:
 
 ssize_t x_write(struct file* fp, const char* __user buf, size_t count,
   loff_t* f_pos) {
-  struct dev_t* dev = fp->private_data;
-  struct dev_t* ptr;
+  struct x_dev_t* dev = fp->private_data;
+  struct x_dev_t* ptr;
   int quantum = PAGE_SIZE << dev->order;
   int qset = dev->qset;
   int itemsize = quantum*qset;
@@ -269,10 +269,209 @@ long x_ioctl(struct file* fp, unsigned int cmd, unsigned long arg) {
   return r;
 }
 
+loff_t x_llseek(struct file* fp, loff_t off, int there) {
+  struct x_dev_t* dev = fp->private_data;
+  long newpos;
+
+  switch (there) {
+  case 0:
+    newpos = off;
+    break;
+
+  case 1:
+    newpos = fp->f_pos + off;
+    break;
+
+  case 2:
+    newpos = dev->size + off;
+    break;
+
+  default:
+    return -EINVAL;
+  }
+
+  if (newpos < 0)
+    return -EINVAL;
+
+  fp->f_pos = newpos;
+
+  return newpos;
+}
+
+struct delay_work_t {
+  struct kiocb* iocb;
+  int r;
+  struct delayed_work dw;
+};
+
+static void x_do_deferred_op(struct work_struct* w) {
+  struct delay_work_t* stuff = container_of(w, struct delay_work_t, dw.work);
+  aio_complete(stuff->iocb, stuff->r, 0);
+  kfree(stuff);
+}
+
+static int x_defer_op(int is_write, struct kiocb* iocb,
+  const struct iovec* iovec,
+  unsigned long nr_segs, loff_t pos) {
+
+  struct delay_work_t* stuff;
+  int r = 0;
+  size_t l = 0;
+  unsigned long s;
+
+  for (s = 0; s < nr_segs; ++s) {
+    if (is_write)
+      l = x_write(iocb->ki_filp, iovec[s].iov_base, iovec[s].iov_len, &pos);
+    else
+      l = x_read(iocb->ki_filp, iovec[s].iov_base, iovec[s].iov_len, &pos);
+
+    if (l < 0)
+      return l;
+
+    r += l;
+  }
+
+  // Synchronous IOCB?
+  if (is_sync_kiocb(iocb))
+    return r;
+
+  stuff = kmalloc(sizeof(*stuff), GFP_KERNEL);
+
+  if (stuff == NULL)
+    return r;
+
+  stuff->iocb = iocb;
+  stuff->r = r;
+  INIT_DELAYED_WORK(&stuff->dw, x_do_deferred_op);
+  schedule_delayed_work(&stuff->dw, HZ/100);
+
+  return -EIOCBQUEUED;
+}
+
+static ssize_t x_aio_read(struct kiocb* iocb, const struct iovec* iovec,
+  unsigned long nr_segs, loff_t pos) {
+  return x_defer_op(0, iocb, iovec, nr_segs, pos);
+}
+
+static ssize_t x_aio_write(struct kiocb* iocb, const struct iovec* iovec,
+  unsigned long nr_segs, loff_t pos) {
+  return x_defer_op(1, iocb, iovec, nr_segs, pos);
+}
+
+extern int x_mmap(struct file* fp, struct vm_area_struct* vma);
+
+struct file_operations ops_t = {
+  .owner = THIS_MODULE,
+  .llseek = x_llseek,
+  .read = x_read,
+  .write = x_write,
+  .unlocked_ioctl = x_ioctl,
+  .mmap = x_mmap,
+  .open = x_open,
+  .release = x_release,
+  .aio_read = x_aio_read,
+  .aio_write = x_aio_write,
+};
+
+int x_trim(struct x_dev_t* dev) {
+  struct x_dev_t* next;
+  struct x_dev_t* ptr;
+  int i;
+
+  // Active mapping?
+  if (dev->vmas)
+    return -EBUSY;
+
+  for (ptr = dev; ptr; ptr = next) {
+    if (ptr->data) {
+      for (i = 0; i < x_qset; ++i)
+        if (ptr->data[i])
+          free_pages((unsigned long)(ptr->data[i]), ptr->order);
+
+      kfree(ptr->data);
+      ptr->data = NULL;
+    }
+    next = ptr->next;
+
+    if (ptr != dev)
+      kfree(ptr);
+  }
+
+  dev->size = 0;
+  dev->qset = x_qset;
+  dev->order = x_order;
+  dev->next = NULL;
+
+  return 0;
+}
+
+static void x_setup_cdev(struct x_dev_t* dev, int idx) {
+  int e;
+  int n = MKDEV(x_major, idx);
+  cdev_init(&dev->cdev, &ops_t);
+  dev->cdev.owner = THIS_MODULE;
+  dev->cdev.ops = &ops_t;
+  e = cdev_add(&dev->cdev, n, 1);
+
+  if (e)
+    printk(KERN_NOTICE "Error: %d, device id %d", e, idx);
+}
+
 static int __init do_setup(void) {
+  int r, i;
+  dev_t dev = MKDEV(x_major, 0);
+
+  if (x_major)
+    r = register_chrdev_region(dev, x_devs, "xp");
+  else {
+    r = alloc_chrdev_region(&dev, 0, x_devs, "xp");
+    x_major = MAJOR(dev);
+  }
+
+  if (r < 0)
+    return r;
+
+  devs_t = kmalloc(x_devs*sizeof(struct x_dev_t), GFP_KERNEL);
+
+  if (!devs_t) {
+    r = -ENOMEM;
+    goto nomem;
+  }
+
+  memset(devs_t, 0, x_devs*sizeof(struct x_dev_t));
+
+  for (i=0; i<x_devs; ++i) {
+    devs_t[i].order = x_order;
+    devs_t[i].qset = x_qset;
+    sema_init(&devs_t[i].sem, 1);
+    x_setup_cdev(devs_t + i, i);
+  }
+
+#ifdef USE_PROC
+  proc_create("xp", 0, NULL, &ops_proc_t);
+#endif
+
+  return 0;
+
+nomem:
+  unregister_chrdev_region(dev, x_devs);
+  return r;
 }
 
 static void __exit do_cleanup(void) {
+  int i;
+
+#ifdef USE_PROC
+  remove_proc_entry("xp", NULL);
+#endif
+
+  for (i=0; i<x_devs; i++) {
+    cdev_del(&devs_t[i].cdev);
+    x_trim(devs_t + i);
+  }
+
+  kfree(devs_t);
+  unregister_chrdev_region(MKDEV(x_major, 0), x_devs);
 }
 
 module_init(do_setup);
