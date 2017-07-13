@@ -27,6 +27,7 @@ T do_accumulate(IT first, IT last, T init) {
   IT start = first;
 
   for (unsigned long i=0; i<cpus-1; ++i) {
+    std::cout << std::this_thread::get_id() << '\n';
     IT end = start;
     std::advance(end, size);
     std::packaged_task<T(IT, IT)> task(accumulater<IT, T>);
