@@ -1,118 +1,118 @@
-/**
- * Cache Line:
- * -----------
- * Smallest unit that can be transferred between the main memory and cache. The
- * size of a cache line can be determined from the CPU specification, or direct-
- * ly retrieved from the processor by using the manufacturer's instruction set.
- *
- * [cpu#0] [cpu#1]     +-----------+
- *    |       |        | CL0 [ ]   | L1|D Cache|32k/core
- *    v       v        | ...       |
- *  [L1C]   [L2C] ---> | CL512 [ ] |
- *    |       |        +-----------+
- *     \_____/
- *        |            +-------------+
- *        v            | CL0 [ ]     | L2|D/I Cache|2MB Shared
- *  +-----------+      | ...         |
- *  |L2C(Shared)|      | CL32768 [ ] |
- *  +-----------+      +-------------+
- */
+----------
+Cache Line
+----------
+ Smallest unit that can be transferred between the main memory and cache. The s-
+ ize of a cache line can be determined from the CPU specification, or directly 
+ retrieved from the processor by using the manufacturer's instruction set.
+ // ******
+ [cpu#0] [cpu#1]     +-----------+
+    |       |        | CL0 [ ]   | L1|D Cache|32k/core
+    v       v        | ...       |
+  [L1C]   [L2C] ---> | CL512 [ ] |
+    |       |        +-----------+
+     \_____/
+        |            +-------------+
+        v            | CL0 [ ]     | L2|D/I Cache|2MB Shared
+  +-----------+      | ...         |
+  |L2C(Shared)|      | CL32768 [ ] |
+  +-----------+      +-------------+
+================================================================================
 
-/**
- * Cache Coherency
- * ---------------
- * The protocol is to enforce data consistency among all the core's caches so t-
- * hat the system correctly processes valid data.
- * e.g.,
- * 1. CPU#1 updates Z in its own cache from 1 to 2.
- * 2. CPU#2 read Z in its own cache.
- * 3. Both CPU#1 and #2 have Z which value is 1.
- * 4. CPU#1 updates Z to 2.
- * 5. Employed with the < write-back > policy, CPU#1's cache doesn't need to im-
- *    mediately update the new value to the main memory.
- * 6. Z in the main memory and CPU#2's cache remains 1.
- * 7. CPU#1 must write 2 back to the main memory, and reload it to CPU#2's cache
- *    before CPU#2 start reading Z.
- *
- * a. CPU#1 update Z.
- * b. CPU#1 marks < Exclusive > to the cache line which Z resides.
- * c. CPU#1 allows load and store operations on the cache line.
- * d. CPU#2 needs to read Z.
- * e. CPU#2 marks the cache line as < Shared >
- * f. CPU#1 write 2 into cache line.
- * g. CPU#1 marks the cache line as < Modified >.
- * h. CPU#1 forces CPU#2 to < Invalidate > its cache line.
- * i. CPU#1 needs to backup Z with 2 to the main memory before CPU#2 can reload 
- *    2 to its cache line.
- */
+---------------
+Cache Coherency
+---------------
+ The protocol is to enforce data consistency among all the core's caches so that
+ the system correctly processes valid data.
+ // *****
+ 1. CPU#1 updates Z in its own cache from 1 to 2.
+ 2. CPU#2 read Z in its own cache.
+ 3. Both CPU#1 and #2 have Z which value is 1.
+ 4. CPU#1 updates Z to 2.
+ 5. Employed with the < write-back > policy, CPU#1's cache doesn't need to imme-
+    diately update the new value to the main memory.
+ 6. Z in the main memory and CPU#2's cache remains 1.
+ 7. CPU#1 must write 2 back to the main memory, and reload it to CPU#2's cache
+    before CPU#2 start reading Z.
+ // *****
+ a. CPU#1 update Z.
+ b. CPU#1 marks < Exclusive > to the cache line which Z resides.
+ c. CPU#1 allows load and store operations on the cache line.
+ d. CPU#2 needs to read Z.
+ e. CPU#2 marks the cache line as < Shared >
+ f. CPU#1 write 2 into cache line.
+ g. CPU#1 marks the cache line as < Modified >.
+ h. CPU#1 forces CPU#2 to < Invalidate > its cache line.
+ i. CPU#1 needs to backup Z with 2 to the main memory before CPU#2 can reload 2
+    to its cache line.
+================================================================================
 
-/**
- * False Cache Line Sharing - False Sharing
- * ----------------------------------------
- * False sharing is a form of cache trashing caused by a mismatch between the m-
- * emory layout of write-shared data across processors and the reference pattern
- * to the data.
- * It could occur when 2 or more threads in parallel program are assinged to wo-
- * rk with different data elements in the same cache line.
- *
- * Thread#0 and Thread#1 update variables that adjacnet to each other located on
- * the same cache line.
- *
- * Although each thread modifies different variables, the cache line keeps bein-
- * g invalidated every iteration.
- *
- * 1. CPU#1 write a new value.
- * 2. CPU#1 make CPU#0's cache invalidated.
- * 3. CPU#1 causes the < write-back > to the main memory.
- * 4. CPU#0 updates value in its cache line.
- * 5. Invalidation will keep occuring between CPU#0's and #1's caches and the m-
- *    ain memory.
- *
- * As a result, the number of the main memory access increases considerably, and
- * causes great delays because of the high latency in data transfers between le-
- * vels of the memory hierarchy.
- *
- * +------------------+ +------------------+
- * | Thread#0 (CPU#0) | | Thread#1 (CPU#1) |
- * +------------------+ +------------------+
- * +------------------+ +------------------+
- * |[][x][][][][][][] | |[][][][][][y][][] | L1
- * +---^--------------+ +-----------^------+
- *     |                            |
- *      \                          /
- *       +--------+        +------+
- *                |        |
- * +--------------v--------v---------------+
- * |           [][x][][][][y][][]          | L2
- * +--------------------------------------+
- *                     ^
- *                     |
- *                     v 
- * +---------------------------------------+
- * |            [][][][][][][][]           | Memory
- * +---------------------------------------+
- */
+----------------------------------------
+False Cache Line Sharing - False Sharing
+----------------------------------------
+ False sharing is a form of cache trashing caused by a mismatch between the mem-
+ ory layout of write-shared data across processors and the reference pattern to 
+ the data.
+ It could occur when 2 or more threads in parallel program are assinged to work
+  with different data elements in the same cache line.
 
-/**
- * False Sharing Detection
- * -----------------------
- * L2 cache misses are a significant indicator to detect false sharing in a mul-
- * tipleprocessor system.
- *
- * Many L2 cache misses would result in a large amount of data fetching from ma-
- * in memory into L2 cache.
- *
- * A root cause of L2 cache misses could be:
- * #1 A processor requests data that doesn't reside in L2 cache.
- * #2 The corresponding cache lines are marked as < invalid > by data update op-
- *    erations from another processor.
- *
- * CPI demonstrates how many clock cycles are spent for each instruction. It pr-
- * ovides statistics on how efficient a program performs.
- *
- * Because the speed of a CPU is much faster than that of memory, the CPU needs
- * to wait when fetching data from or writing data to memory.
- *
- * In that case, an instruction takes more time to process.
- */
+ Thread#0 and Thread#1 update variables that adjacnet to each other located on
+ the same cache line.
+
+ Although each thread modifies different variables, the cache line keeps being 
+ invalidated every iteration.
+ // ******
+ 1. CPU#1 write a new value.
+ 2. CPU#1 make CPU#0's cache invalidated.
+ 3. CPU#1 causes the < write-back > to the main memory.
+ 4. CPU#0 updates value in its cache line.
+ 5. Invalidation will keep occuring between CPU#0's and #1's caches and the m-
+    ain memory.
+
+ As a result, the number of the main memory access increases considerably, and
+ causes great delays because of the high latency in data transfers between le-
+ vels of the memory hierarchy.
+
+ +------------------+ +------------------+
+ | Thread#0 (CPU#0) | | Thread#1 (CPU#1) |
+ +------------------+ +------------------+
+ +------------------+ +------------------+
+ |[][x][][][][][][] | |[][][][][][y][][] | L1
+ +---^--------------+ +-----------^------+
+     |                            |
+      \                          /
+       +--------+        +------+
+                |        |
+ +--------------v--------v---------------+
+ |           [][x][][][][y][][]          | L2
+ +---------------------------------------+
+                     ^
+                     |
+                     v 
+ +---------------------------------------+
+ |            [][][][][][][][]           | Memory
+ +---------------------------------------+
+================================================================================
+
+-----------------------
+False Sharing Detection
+-----------------------
+ L2 cache misses are a significant indicator to detect false sharing in a multi-
+ pleprocessor system.
+
+ Many L2 cache misses would result in a large amount of data fetching from main
+ memory into L2 cache.
+
+ A root cause of L2 cache misses could be:
+ // ******
+ #1 A processor requests data that doesn't reside in L2 cache.
+ #2 The corresponding cache lines are marked as < invalid > by data update oper-
+    ations from another processor.
+
+ CPI demonstrates how many clock cycles are spent for each instruction. It prov-
+ ides statistics on how efficient a program performs.
+
+ Because the speed of a CPU is much faster than that of memory, the CPU needs
+ to wait when fetching data from or writing data to memory.
+
+ In that case, an instruction takes more time to process.
 
