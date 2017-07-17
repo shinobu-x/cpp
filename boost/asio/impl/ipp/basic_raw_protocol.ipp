@@ -10,7 +10,7 @@ static basic_raw_protocol<Family, FamilyV6, Type, Protocol> v6() {
 
 template <int Family, int FamilyV6, int Type, int Protocol>
 int family() {
-  return Family;
+  return basic_raw_protocol<Family, FamilyV6, Type, Protocol>::family_;
 }
 
 template <int Family, int FamilyV6, int Type, int Protocol>
@@ -20,6 +20,5 @@ int type() {
 
 template <int Family, int FamilyV6, int Type, int Protocol>
 int protocol() {
-  return Protocol;
+  return basic_raw_protocol<Family, FamilyV6, Type, Protocol>::protocol_;
 }
-
