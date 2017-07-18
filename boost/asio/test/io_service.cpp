@@ -22,8 +22,6 @@ void decrement_to_zero(boost::asio::io_service* ios, int* count) {
 
     int before_value = *count;
     ios->post(boost::bind(decrement_to_zero, ios, count));
-
-    // assert(*count == before_value);
   }
 }
 
@@ -33,8 +31,6 @@ void nested_decrement_to_zero(boost::asio::io_service* ios, int* count) {
     --(*count);
 
     ios->dispatch(boost::bind(nested_decrement_to_zero, ios, count));
-
-    // assert(*count == 0);
   }
 }
 
@@ -64,14 +60,14 @@ void do_test() {
   boost::asio::io_service ios;
   int count = 0;
 
-  assert(!ios.stopped() && "Must be stopped");
+  assert(!ios.stopped() && "Must run");
   assert(count == 0 && "Must be 0");
 
 // ******
 
   ios.run();
 
-  assert(ios.stopped() && "Must run now");
+  assert(ios.stopped() && "Must stop");
 
 // ******
 
@@ -89,7 +85,38 @@ void do_test() {
   ios.reset();
 
   boost::asio::io_service::work* w = new boost::asio::io_service::work(ios);
+  ios.post(boost::bind(&boost::asio::io_service::stop, &ios));
+  ios.run();
 
+  assert(ios.stopped() && "Must stop");
+  assert(count == 0 && "Must be 0");
+
+  ios.reset();
+  ios.post(boost::bind(increment, &count));
+
+  delete w;
+
+  assert(!ios.stopped() && "Must run");
+  assert(count == 0 && "Must be 1");
+
+  count = 10;
+  ios.reset();
+  ios.post(boost::bind(decrement_to_zero, &ios, &count));
+
+  assert(!ios.stopped() && "Must run");
+  assert(count == 10 && "Must still be 0");
+
+  ios.run();
+
+  assert(count == 0 && "Must be 0");
+
+  count = 10;
+  ios.reset();
+  ios.post(boost::bind(nested_decrement_to_zero, &ios, &count));
+  ios.run();
+
+  assert(count == 0 && "Must be 0");
+  assert(ios.stopped() && "Must stop");
 }
 auto main() -> decltype(0)
 {
