@@ -65,6 +65,30 @@ void do_test() {
   int count = 0;
 
   assert(!ios.stopped() && "Must be stopped");
+  assert(count == 0 && "Must be 0");
+
+// ******
+
+  ios.run();
+
+  assert(ios.stopped() && "Must run now");
+
+// ******
+
+  ios.reset();
+  ios.post(boost::bind(increment, &count));
+  ios.post(boost::bind(increment, &count));
+  ios.post(boost::bind(increment, &count));
+  ios.post(boost::bind(increment, &count));
+  ios.post(boost::bind(increment, &count));
+  ios.run();
+
+  assert(count == 5 && "Must be 5");
+
+  count = 0;
+  ios.reset();
+
+  boost::asio::io_service::work* w = new boost::asio::io_service::work(ios);
 
 }
 auto main() -> decltype(0)
