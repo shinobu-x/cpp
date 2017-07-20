@@ -3,6 +3,8 @@
 #include <cassert>
 #include <chrono>
 #include <sstream>
+#include <utility>
+
 #include <boost/asio/detail/thread.hpp>
 
 #include <boost/asio/deadline_timer.hpp>
@@ -60,14 +62,13 @@ void do_test() {
   boost::asio::io_service ios;
   int count = 0;
 
-  assert(!ios.stopped() && "Must run");
-  assert(count == 0 && "Must be 0");
+  assert(!ios.stopped());
+  assert(count == 0);
 
 // ******
 
   ios.run();
-
-  assert(ios.stopped() && "Must stop");
+  assert(ios.stopped());
 
 // ******
 
@@ -79,44 +80,64 @@ void do_test() {
   ios.post(boost::bind(increment, &count));
   ios.run();
 
-  assert(count == 5 && "Must be 5");
+  assert(count == 5);
 
   count = 0;
   ios.reset();
-
   boost::asio::io_service::work* w = new boost::asio::io_service::work(ios);
   ios.post(boost::bind(&boost::asio::io_service::stop, &ios));
   ios.run();
-
-  assert(ios.stopped() && "Must stop");
-  assert(count == 0 && "Must be 0");
-
+  assert(ios.stopped());
+  assert(count == 0);
   ios.reset();
   ios.post(boost::bind(increment, &count));
-
   delete w;
-
-  assert(!ios.stopped() && "Must run");
-  assert(count == 0 && "Must be 1");
+  assert(!ios.stopped());
+  assert(count == 0);
 
   count = 10;
   ios.reset();
   ios.post(boost::bind(decrement_to_zero, &ios, &count));
-
-  assert(!ios.stopped() && "Must run");
-  assert(count == 10 && "Must still be 0");
-
+  assert(!ios.stopped());
+  assert(count == 10);
   ios.run();
-
-  assert(count == 0 && "Must be 0");
+  assert(count == 0);
+  assert(ios.stopped());
 
   count = 10;
   ios.reset();
   ios.post(boost::bind(nested_decrement_to_zero, &ios, &count));
   ios.run();
+  assert(count == 0);
+  assert(ios.stopped());
 
-  assert(count == 0 && "Must be 0");
-  assert(ios.stopped() && "Must stop");
+  count = 10;
+  ios.reset();
+  ios.dispatch(boost::bind(nested_decrement_to_zero, &ios, &count));
+  ios.run();
+  assert(ios.stopped());
+  assert(count == 0);
+
+  int count2 = count;
+  ios.reset();
+  ios.post(boost::bind(start_sleep_increments, &ios, &count));
+  ios.post(boost::bind(start_sleep_increments, &ios, &count2));
+  boost::asio::detail::thread thread1(boost::bind(ios_run, &ios));
+  boost::asio::detail::thread thread2(boost::bind(ios_run, &ios));
+  thread1.join();
+  thread2.join();
+  assert(ios.stopped());
+  assert(count == 3);
+  assert(count2 == 3);
+
+  count = 10;
+  boost::asio::io_service ios2;
+  ios.dispatch(ios2.wrap(boost::bind(decrement_to_zero, &ios2, &count)));
+  ios.reset();
+  ios.run();
+  assert(count == 10);
+  ios2.run();
+  assert(count == 0);
 }
 auto main() -> decltype(0)
 {
