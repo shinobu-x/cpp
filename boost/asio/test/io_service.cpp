@@ -138,7 +138,28 @@ void do_test() {
   assert(count == 10);
   ios2.run();
   assert(count == 0);
+
+  int exception_count = 0;
+  ios.reset();
+  ios.post(&throw_exception);
+  ios.post(boost::bind(increment, &count));
+  ios.post(boost::bind(increment, &count));
+  ios.post(&throw_exception);
+  ios.post(boost::bind(increment, &count));
+
+  for (;;)
+    try {
+      ios.run();
+      break;
+    } catch (int) {
+      ++exception_count;
+    }
+
+  assert(ios.stopped());
+  assert(count == 3);
+  assert(exception_count == 2);
 }
+
 auto main() -> decltype(0)
 {
   do_test();
