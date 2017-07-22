@@ -1,24 +1,32 @@
 #include "../hpp/basic_raw_protocol.hpp"
 
-template <int Family, int FamilyV6, int Type, int Protocol>
-static basic_raw_protocol<Family, FamilyV6, Type, Protocol> v4() {
+template <int V4, int V6, int T, int P>
+basic_raw_protocol<V4, V6, T, P> basic_raw_protocol<V4, V6, T, P>::v4() {
+  return basic_raw_protocol(P, V4);
 }
 
-template <int Family, int FamilyV6, int Type, int Protocol>
-static basic_raw_protocol<Family, FamilyV6, Type, Protocol> v6() {
+template <int V4, int V6, int T, int P>
+basic_raw_protocol<V4, V6, T, P> basic_raw_protocol<V4, V6, T, P>::v6() {
+  return basic_raw_protocol(P, V6);
 }
 
-template <int Family, int FamilyV6, int Type, int Protocol>
-int family() {
-  return basic_raw_protocol<Family, FamilyV6, Type, Protocol>::family_;
+template <int V4, int V6, int T, int P>
+int basic_raw_protocol<V4, V6, T, P>::family() const {
+  return basic_raw_protocol<V4, V6, T, P>::family_;
 }
 
-template <int Family, int FamilyV6, int Type, int Protocol>
-int type() {
-  return Type;
+template <int V4, int V6, int T, int P>
+int basic_raw_protocol<V4, V6, T, P>::type() const {
+  return basic_raw_protocol<V4, V6, T, P>::type_;
 }
 
-template <int Family, int FamilyV6, int Type, int Protocol>
-int protocol() {
-  return basic_raw_protocol<Family, FamilyV6, Type, Protocol>::protocol_;
+template <int V4, int V6, int T, int P>
+int basic_raw_protocol<V4, V6, T, P>::protocol() const {
+  return basic_raw_protocol<V4, V6, T, P>::protocol_;
 }
+
+template <int Domain, int DomainV6, int Type, int Protocol>
+basic_raw_protocol<Domain, DomainV6, Type, Protocol>::basic_raw_protocol(
+  int protocol, int family)
+  : protocol_(protocol), family_(family), type_(Type) {}
+
