@@ -7,8 +7,6 @@
 #include <iostream>
 #include <utility>
 
-#include <boost/asio/ip/icmp.hpp>
-
 template <typename T>
 void rs_handler(const boost::system::error_code&, T) {}
 
