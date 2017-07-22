@@ -1,11 +1,16 @@
+#include <boost/asio/detail/config.hpp>
+#include <boost/asio/detail/socket_types.hpp>
 #include <boost/asio/basic_raw_socket.hpp>
+#include <boost/asio/ip/basic_endpoint.hpp>
 #include <boost/asio/ip/basic_resolver.hpp>
-#include <boost/asio/local/basic_endpoint.hpp>
+#include <boost/asio/ip/basic_resolver_iterator.hpp>
+#include <boost/asio/ip/basic_resolver_query.hpp>
 
 template <int Domain, int DomainV6, int Type, int Protocol>
 class basic_raw_protocol {
 public:
-  typedef boost::asio::local::basic_endpoint<basic_raw_protocol> endpoint;
+//  typedef boost::asio::local::basic_endpoint<basic_raw_protocol> endpoint;
+  typedef boost::asio::ip::basic_endpoint<basic_raw_protocol> endpoint;
   typedef boost::asio::basic_raw_socket<basic_raw_protocol> socket;
   typedef boost::asio::ip::basic_resolver<basic_raw_protocol> resolver;
 
