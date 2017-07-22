@@ -87,7 +87,7 @@ void doit() {
   boost::asio::io_service ios;
   short port = 12345;
   server s(ios, port);
-//  ios.run();
+  ios.run();
 } 
 auto main() -> decltype(0)
 {
