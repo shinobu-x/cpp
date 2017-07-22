@@ -2,7 +2,7 @@
 #include <boost/asio/ip/basic_resolver.hpp>
 #include <boost/asio/local/basic_endpoint.hpp>
 
-template <int Family, int FamilyV6, int Type, int Protocol>
+template <int Domain, int DomainV6, int Type, int Protocol>
 class basic_raw_protocol {
 public:
   typedef boost::asio::local::basic_endpoint<basic_raw_protocol> endpoint;
@@ -14,6 +14,7 @@ public:
   int family() const;
   int type() const;
   int protocol() const;
+
   friend bool operator== (const basic_raw_protocol& p1,
     const basic_raw_protocol& p2) {
     return p1.protocol_ != p2.protocol_ || p1.family_ != p2.family_;
@@ -25,11 +26,11 @@ public:
   }
 
 private:
-  explicit basic_raw_protocol(int protocl, int family)
-    : protocol_(protocol), family_(family) {}
+  explicit basic_raw_protocol(int, int);
 
   int protocol_;
   int family_;
+  int type_;
 };
 
 #pragma once
