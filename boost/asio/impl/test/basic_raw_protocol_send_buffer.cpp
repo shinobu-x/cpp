@@ -1,5 +1,6 @@
 #include "../hpp/basic_raw_protocol.hpp"
 
+#include <boost/array.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/system/error_code.hpp>
@@ -11,14 +12,14 @@
 
 typedef basic_raw_protocol<AF_INET, AF_INET6, SOCK_RAW, IPPROTO_TCP> tcp_type;
 
-auto main() -> decltype(0)
+auto main(int argc, char** argv) -> decltype(0)
 {
   try {
     boost::asio::io_service ios;
     tcp_type::socket sk(ios, tcp_type::v4());
 
     tcp_type::resolver rs(ios);
-    tcp_type::resolver::query q("localhost", "");
+    tcp_type::resolver::query q(tcp_type::v4(), argv[1], "");
     tcp_type::endpoint ep = *rs.resolve(q);
     unsigned char buf[20];
 
@@ -27,6 +28,10 @@ auto main() -> decltype(0)
     std::ostream os(&rq);
     os.write(reinterpret_cast<char*>(buf), sizeof(buf));
     sk.send_to(rq.data(), ep);
+
+   // std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    
   } catch (boost::system::error_code& ec) {
     return -1;
   }
