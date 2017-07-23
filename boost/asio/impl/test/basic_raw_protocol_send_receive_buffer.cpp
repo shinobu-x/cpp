@@ -1,11 +1,14 @@
 #include "../hpp/basic_raw_protocol.hpp"
 
+#include <boost/array.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <algorithm>
-#include <ostream>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 typedef basic_raw_protocol<AF_INET, AF_INET6, SOCK_RAW, IPPROTO_TCP> tcp_type;
 
@@ -26,6 +29,9 @@ auto main(int argc, char** argv) -> decltype(0)
     os.write(reinterpret_cast<char*>(buf), sizeof(buf));
     sk.send_to(rq.data(), ep);
 
+   // std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    
   } catch (boost::system::error_code& ec) {
     return -1;
   }
