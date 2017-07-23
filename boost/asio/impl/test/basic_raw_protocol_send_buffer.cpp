@@ -6,9 +6,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <algorithm>
-#include <chrono>
-#include <iostream>
-#include <thread>
+#include <ostream>
 
 typedef basic_raw_protocol<AF_INET, AF_INET6, SOCK_RAW, IPPROTO_TCP> tcp_type;
 
@@ -29,9 +27,6 @@ auto main(int argc, char** argv) -> decltype(0)
     os.write(reinterpret_cast<char*>(buf), sizeof(buf));
     sk.send_to(rq.data(), ep);
 
-   // std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    
   } catch (boost::system::error_code& ec) {
     return -1;
   }
