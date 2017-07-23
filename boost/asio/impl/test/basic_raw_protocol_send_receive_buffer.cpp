@@ -10,31 +10,35 @@
 #include <iostream>
 #include <thread>
 
+#include <cstdlib> /* size_t */
+
 typedef basic_raw_protocol<AF_INET, AF_INET6, SOCK_RAW, IPPROTO_TCP> tcp_type;
 
-auto main(int argc, char** argv) -> decltype(0)
-{
-  try {
-    boost::asio::io_service ios;
-    tcp_type::socket sk(ios, tcp_type::v4());
+void doit(char** argv) {
+  boost::asio::io_service ios;
+  tcp_type::socket sk(ios, tcp_type::v4());
 
+  std::thread sender([&argv, &ios, &sk] {
+    std::cout << std::this_thread::get_id() << '\n';
     tcp_type::resolver rs(ios);
     tcp_type::resolver::query q(tcp_type::v4(), argv[1], "");
     tcp_type::endpoint ep = *rs.resolve(q);
-    unsigned char buf[20];
+    boost::array<char, 1> buf = {{0}};
+    sk.send_to(boost::asio::buffer(buf), ep);
+  });
 
-    std::fill(buf, buf+sizeof(buf), 0xff);
-    boost::asio::streambuf rq;
-    std::ostream os(&rq);
-    os.write(reinterpret_cast<char*>(buf), sizeof(buf));
-    sk.send_to(rq.data(), ep);
+  std::thread receiver([&sk] {
+    std::cout << std::this_thread::get_id() << '\n';
+    boost::array<char, 128> buf;
+    tcp_type::endpoint ep;
+    size_t length = sk.receive_from(boost::asio::buffer(buf), ep);
+    std::cout.write(buf.data(), length);
+  });
 
-   // std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    
-  } catch (boost::system::error_code& ec) {
-    return -1;
-  }
-
-  return 0;
+  sender.join();
+  receiver.join();
+}
+auto main(int argc, char** argv) -> decltype(0)
+{
+  doit(argv);
 }
