@@ -10,6 +10,19 @@ ssion of byte streams.
 Implements a client server architecture.
 
 ------
+Socket
+------
+To the kernel, a socket is an endpoint of communication.
+ * IP Address
+ * Port Number
+ * Protocol(E.g., TCP, UDP)
+
+To an application, a socket is a file descriptor that lets the application read|
+write from|to the network.
+
+Clients and servers communicate with each by reading from and writing to socket.
+
+------
 Server
 ------
 Listening socket:
@@ -27,6 +40,8 @@ Specify the address of the server process.
 E.g.,
 IP address of the server.
 The port number of the process.
+
+================================================================================
 
  +----------------+                  +----------------+
  | Server Process |                  | Client Process |
@@ -76,10 +91,67 @@ The port number of the process.
 
 ================================================================================
 
+  int sk1, sk2;
+  struct sockaddr_in saddr1, saddr2;
+  socklen_t length;
 
+  sk1 = socket(AF_INET, SOCK_STREAM, 0);
 
+  saddr1.sin_family = AF_INET;
+  saddr1.sin_port = htons(12345);
+  saddr1.sin_addr.s_addr = INADDR_ANY;
 
+  bind(sk1, (struct sockaddr*)&saddr1, sizeof(saddr1));
+  listen(sk1, 5);
+
+  /**
+   * connect(sk, (struct sockaddr*)&saddr, sizeof(saddr));
+   */
+
+  sk2 = accept(sk1, (struct sockaddr*)&saddr2, &length);
+  write(sk2, "ABC", 3);
+
+  close(sk2);
+  close(sk1);
 
 ================================================================================
+--------
+socket()
+--------
+It creates a new socket of a certain socket type(e.g., tcp, udp) identified by 
+an iteger number, and allocate system resource to it.
+
+------
+bind()
+------
+It's used on the server side, adn associates a socket with a socket address str-
+ucture(e.g., A specified local port number and IP address).
+
+--------
+listen()
+--------
+It's used on the server side, and causes a bound TCP socket to enter listening 
+state.
+
+---------
+connect()
+---------
+It's used on the client side, and assign a free local port number to a socket.
+In case of TCP socket, it causes an attempt to establish a new TCP connection.
+
+--------
+accept()
+--------
+It's used on the server side.
+It accepts a received incoming attempt to create a new TCP connection from the
+remote client, and creates a new socket associated with the socket address pair
+of this connection.
+
+---------------------
+send() & recv()
+write() & read()
+sendto() & recvfrom()
+---------------------
+Those are used for sending and receiving data to|from a remote socket.
 
 
