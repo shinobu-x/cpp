@@ -1,0 +1,85 @@
+-------------------------
+Connection Oriented Model
+-------------------------
+The connection oriented model is implemented with < Stream Sockets > using the
+TCP protocol.
+
+TCP provides a variety or error correction and performance features for transmi-
+ssion of byte streams.
+
+Implements a client server architecture.
+
+------
+Server
+------
+Listening socket:
+Establish connection to a client.
+
+Connection socket:
+Created at initialization of connection to a client.
+Dedicated socket to the particular client.
+
+------
+Client
+------
+Client socket:
+Specify the address of the server process.
+E.g.,
+IP address of the server.
+The port number of the process.
+
+ +----------------+                  +----------------+
+ | Server Process |                  | Client Process |
+ +----------------+                  +----------------+
+
+    +----------+                       +-----------+
+    | socket() |                       | socket()  |
+    +----+-----+                       +-----+-----+
+         |                                   |
+         v                                   |
+    +----------+                             |
+    | bind()   |                             |
+    +----+-----+                             |
+         |                                   |
+         v                                   |
+    +----------+                             |
+    | listen() |                             |
+    +----+-----+                             |
+         |                                   |
+         v                                   |
+    +----------+                             |
+    | accept() |                             |
+    +----+-----+                             v
+         |          3 way handshake    +-----------+
+  < get a blocked client > <---------> | connect() |
+         |                             +-----+-----+
+         |                                   |
+         v                                   v
+    +----------+                       +-----------+
+ +->| read()   |<----------------------| write()   |<-+
+ |  +----+-----+         Client Requet +-----+-----+  |
+ |       |                                   |        |
+ |       v                                   v        |
+ |  +----------+                       +-----------+  |
+ +--| write()  |---------------------->| read()    |--+
+    +----+-----+ Server Response       +-----+-----+
+         |                                   |
+         v                                   v
+    +----------+    Close Notification +-----------+
+    | read()   |<----------------------| close()   |
+    +----+-----+                       +-----------+
+         |
+         v
+    +----------+
+    | close()  |
+    +----------+
+
+================================================================================
+
+
+
+
+
+================================================================================
+
+
