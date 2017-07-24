@@ -1,6 +1,6 @@
 #include "../hpp/async_result.hpp"
 #include "../hpp/handler_cont_helpers.hpp"
-#include "../hpp/handler_type.hpp"
+// #include "../hpp/handler_type.hpp"
 
 #include <boost/asio/detail/config.hpp>
 #include <boost/asio/detail/atomic_count.hpp>
