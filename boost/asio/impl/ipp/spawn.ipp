@@ -202,7 +202,7 @@ private:
 };
 
 template <typename Handler, typename Function>
-struct spawn_data : private noncopyable {
+struct spawn_data : private boost::asio::detail::noncopyable {
   spawn_data(BOOST_ASIO_MOVE_ARG(Handler) handler,
     bool call_handler, BOOST_ASIO_MOVE_ARG(Function) function)
     : handler_(BOOST_ASIO_MOVE_CAST(Handler)(handler)),
@@ -216,3 +216,81 @@ struct spawn_data : private noncopyable {
   bool call_handler_;
   Function function_;
 };
+
+template <typename Handler, typename Function>
+struct coro_entry_point {
+  void operator() (typename basic_yield_context<Handler>::caller_type& ca) {
+  boost::asio::detail::shared_ptr<
+    spawn_data<Handler, Function> > data(data_);
+#if !defined(BOOST_COROUTINES_UNIDIRECT) && !defined(BOOST_COROUTINES_V2)
+  ca();
+#endif
+  const basic_yield_context<Handler> yield(
+    data->coro_, ca, data->handler_);
+  (data->function_)(yield);
+  if (data->call_handler_)
+    (data->handler_)();
+  }
+
+  boost::asio::detail::shared_ptr<spawn_data<Handler, Function> > data_;
+};
+
+template <typename Handler, typename Function>
+struct spawn_helper {
+  void operator() () {
+    typedef typename basic_yield_context<Handler>::callee_type callee_type;
+    coro_entry_point<Handler, Function> entry_point = { data_ };
+    boost::asio::detail::shared_ptr<callee_type> coro(
+      new callee_type(entry_point, attributes_));
+    data_->coro_ = coro;
+    (*coro)();
+  }
+
+  boost::asio::detail::shared_ptr<spawn_data<Handler, Function> > data_;
+  boost::coroutines::attributes attributes_;
+};
+
+inline void default_spawn_handler() {}
+
+template <typename Handler, typename Function>
+void spawn(BOOST_ASIO_MOVE_ARG(Handler) handler,
+  BOOST_ASIO_MOVE_ARG(Function) function,
+  const boost::coroutines::attributes& attributes) {
+  spawn_helper<Handler, Function> helper;
+  helper.data_.reset(
+    new spawn_data<Handler, Function> (
+      BOOST_ASIO_MOVE_CAST(Handler)(handler), true,
+      BOOST_ASIO_MOVE_CAST(Function)(function)));
+  helper.attributes_ = attributes;
+  boost_asio_handler_invoke_helpers::invoke(helper, helper.data_->handler_);
+}
+
+template <typename Handler, typename Function>
+void spawn(basic_yield_context<Handler> ctx,
+  BOOST_ASIO_MOVE_ARG(Function) function,
+  const boost::coroutines::attributes& attributes) {
+  Handler handler(ctx.handler);
+  spawn_helper<Handler, Function> helper;
+  helper.data_.reset(
+    new spawn_data<Handler, Function> (
+     BOOST_ASIO_MOVE_CAST(Handler)(handler), false,
+     BOOST_ASIO_MOVE_CAST(Function)(function)));
+  helper.attributes_ = attributes;
+  boost_asio_handler_invoke_helpers::invoke(helper, helper.data_->handler_);
+}
+
+template <typename Function>
+void spawn(boost::asio::io_service::strand strand,
+  BOOST_ASIO_MOVE_ARG(Function) function,
+  const boost::coroutines::attributes& attributes) {
+  spawn(strand.wrap(&default_spawn_handler,
+    BOOST_ASIO_MOVE_CAST(Function)(function), attributes));
+}
+
+template <typename Function>
+void spawn(boost::asio::io_service& io_service,
+  BOOST_ASIO_MOVE_ARG(Function) function,
+  const boost::coroutines::attributes& attributes) {
+    spawn(boost::asio::io_service::strand(io_service),
+      BOOST_ASIO_MOVE_CAST(Function)(function), attributes);
+}
