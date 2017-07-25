@@ -200,3 +200,19 @@ private:
   boost::system::error_code* out_ec_;
   boost::system::error_code ec_;
 };
+
+template <typename Handler, typename Function>
+struct spawn_data : private noncopyable {
+  spawn_data(BOOST_ASIO_MOVE_ARG(Handler) handler,
+    bool call_handler, BOOST_ASIO_MOVE_ARG(Function) function)
+    : handler_(BOOST_ASIO_MOVE_CAST(Handler)(handler)),
+      call_handler_(call_handler),
+      function_(BOOST_ASIO_MOVE_CAST(Function)(function)) {}
+
+  boost::asio::detail::weak_ptr<
+    typename basic_yield_context<Handler>::callee_type> coro_;
+  Handler handler_;
+
+  bool call_handler_;
+  Function function_;
+};
