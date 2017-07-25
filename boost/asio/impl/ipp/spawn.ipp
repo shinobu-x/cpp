@@ -114,3 +114,89 @@ inline void asio_handler_invoke(const Function& function,
   boost_asio_handler_invoke_helpers::invoke(
     function, this_handler->handler_);
 }
+
+template <typename Handler, typename ReturnType>
+struct handler_type<basic_yield_context<Handler>, ReturnType()>
+{
+  typedef coro_handler<Handler, void> type;
+};
+
+template <typename Handler, typename ReturnType, typename Arg1>
+struct handler_type<basic_yield_context<Handler>, ReturnType(Arg1)> {
+  typedef handler_type<Handler, Arg1> type;
+};
+
+template <typename Handler, typename ReturnType>
+struct handler_type<basic_yield_context<Handler>,
+  ReturnType(boost::system::error_code)> {
+  typedef coro_handler<Handler, void> type;
+};
+
+template <typename Handler, typename ReturnType, typename Arg2>
+struct handler_type<basic_yield_context<Handler>,
+  ReturnType(boost::system::error_code, Arg2)> {
+  typedef coro_handler<boost::system::error_code, Arg2> type;
+};
+
+template <typename Handler, typename T>
+class async_result<coro_handler<Handler, T> > {
+public:
+  typedef T type;
+
+  explicit async_result(coro_handler<Handler, T>& h)
+    : handler_(h),
+      ca_(h.ca_),
+      ready_(2) {
+    h.ready_ = &ready_;
+    out_ec_ = h.ec_;
+    if (!out_ec_) h.ec_ = &ec_;
+    h.value_ = &value_;
+  }
+
+  type get() {
+    handler_.coro_.reset();
+    if (--ready_ != 0)
+      ca_();
+    if (!out_ec_ && ec_)
+      throw boost::system::system_error(ec_);
+    return BOOST_ASIO_MOVE_CAST(type)(value_);
+  }
+
+private:
+  coro_handler<Handler, T>& handler_;
+  typename basic_yield_context<Handler>::caller_type& ca_;
+  boost::asio::detail::atomic_count ready_;
+  boost::system::error_code* out_ec_;
+  boost::system::error_code ec_;
+  type value_;
+};
+
+template <typename Handler>
+class async_result<coro_handler<Handler, void> > {
+public:
+  typedef void type;
+
+  explicit async_result(coro_handler<Handler, void>& h)
+    : handler_(h),
+      ca_(h.ca_),
+      ready_(2) {
+    h.ready_ = &ready_;
+    out_ec_ = h.ec_;
+    if (!out_ec_) h.ec_ = &ec_;
+  }
+
+  void get() {
+    handler_.coro_.reset();
+    if (--ready_ != 0)
+      ca_();
+    if (!out_ec_ && ec_)
+      throw boost::system::system_error(ec_);
+  }
+
+private:
+  coro_handler<Handler, void>& handler_;
+  typename basic_yield_context<Handler>::caller_type& ca_;
+  boost::asio::detail::atomic_count ready_;
+  boost::system::error_code* out_ec_;
+  boost::system::error_code ec_;
+};
