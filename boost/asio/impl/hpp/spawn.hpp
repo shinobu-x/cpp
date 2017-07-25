@@ -1,3 +1,5 @@
+// #include "wrapped_handler.hpp"
+
 #include <boost/asio/detail/config.hpp>
 #include <boost/coroutine/all.hpp>
 #include <boost/asio/detail/weak_ptr.hpp>
@@ -32,12 +34,13 @@ struct is_continuation_if_running {
     return dispatcher.running_in_this_thread();
   }
 };
-
 /*
 typedef basic_yield_context<
   boost::asio::detail::wrapped_handler<
-    boost::asio::io_service::strand, void(*)(),
-    is_continuation_if_running> > yield_context;
+    boost::asio::io_service::strand, 
+    void(*)(),
+    is_continuation_if_running>
+  > yield_context;
 */
 template <typename Handler, typename Function>
 void spawn(BOOST_ASIO_MOVE_ARG(Function) function,
