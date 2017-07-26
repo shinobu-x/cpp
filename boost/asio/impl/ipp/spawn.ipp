@@ -1,5 +1,5 @@
 #include "../hpp/async_result.hpp"
-#include "../hpp/handler_cont_helpers.hpp"
+// #include "../hpp/handler_cont_helpers.hpp"
 // #include "../hpp/handler_type.hpp"
 
 #include <boost/asio/detail/config.hpp>
@@ -283,8 +283,8 @@ template <typename Function>
 void spawn(boost::asio::io_service::strand strand,
   BOOST_ASIO_MOVE_ARG(Function) function,
   const boost::coroutines::attributes& attributes) {
-  spawn(strand.wrap(&default_spawn_handler,
-    BOOST_ASIO_MOVE_CAST(Function)(function), attributes));
+  spawn(strand.wrap(&default_spawn_handler),
+    BOOST_ASIO_MOVE_CAST(Function)(function), attributes);
 }
 
 template <typename Function>
