@@ -1,9 +1,9 @@
-// #include "wrapped_handler.hpp"
+#include "wrapped_handler.hpp"
 
 #include <boost/asio/detail/config.hpp>
 #include <boost/coroutine/all.hpp>
 #include <boost/asio/detail/weak_ptr.hpp>
-#include <boost/asio/detail/wrapped_handler.hpp>
+// #include <boost/asio/detail/wrapped_handler.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/strand.hpp>
 
@@ -28,20 +28,12 @@ private:
   boost::system::error_code* ec_;
 };
 
-struct is_continuation_if_running {
-  template <typename Dispatcher, typename Handler>
-  bool operator() (Dispatcher& dispatcher, Handler&) const {
-    return dispatcher.running_in_this_thread();
-  }
-};
-/*
+
 typedef basic_yield_context<
-  boost::asio::detail::wrapped_handler<
-    boost::asio::io_service::strand, 
-    void(*)(),
-    is_continuation_if_running>
+  wrapped_handler<
+    boost::asio::io_service::strand, void(*)(), is_continuation_if_running>
   > yield_context;
-*/
+
 template <typename Handler, typename Function>
 void spawn(BOOST_ASIO_MOVE_ARG(Function) function,
   const boost::coroutines::attributes& attributes =
