@@ -4,6 +4,7 @@
 #include <boost/asio/detail/config.hpp>
 // #include <boost/asio/detail/addressof.hpp>
 // #include <boost/asio/handler_continuation_hook.hpp>
+namespace boost_asio_handler_cont_helpers {
 
 template <typename Context>
 inline bool is_continuation(Context& context) {
@@ -15,3 +16,4 @@ inline bool is_continuation(Context& context) {
     boost::asio::detail::addressof(context));
 #endif
 }
+} // boost_asio_handler_cont_helpers
