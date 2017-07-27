@@ -75,5 +75,3 @@ private:
 # define CORO_YIELD CORO_YIELD_IMPL(__LINE__)
 # define CORO_FORK CORO_FORK_IMPL(__LINE__)
 #endif
-
-#pragma once
