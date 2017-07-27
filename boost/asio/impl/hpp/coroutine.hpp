@@ -29,7 +29,7 @@ private:
   bool modified_;
 };
 
-#define CORO_REENTER(c)                        \
+#define BOOST_ASIO_CORO_REENTER(c)             \
   switch (coroutine_ref _coro_value = c)       \
     case -1:                                   \
       if (_coro_value) {                       \
