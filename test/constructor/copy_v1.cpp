@@ -4,7 +4,7 @@
 
 template <typename T>
 struct type_t {
-  type_t(std::vector<T> a) : a_(a) {};
+  type_t(std::vector<T> a) : a_(a) {}
   type_t(type_t const &that){ /** Your own logic **/ }
   ~type_t(){}
 
