@@ -29,7 +29,7 @@ private:
   bool modified_;
 };
 
-#define BOOST_ASIO_CORO_REENTER(c)             \
+#define CORO_REENTER(c)             \
   switch (coroutine_ref _coro_value = c)       \
     case -1:                                   \
       if (_coro_value) {                       \
@@ -69,7 +69,7 @@ private:
     else
 
 #if defined(_MSC_VER)
-# define CORO_YIELD_CORO_YIELD_IMPL(__COUNTER__ + 1)
+# define CORO_YIELD CORO_YIELD_IMPL(__COUNTER__ + 1)
 # define CORO_FORK CORO_FORK_IMPL(__COUNTER__ + 1)
 #else
 # define CORO_YIELD CORO_YIELD_IMPL(__LINE__)
