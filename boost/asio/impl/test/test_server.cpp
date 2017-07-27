@@ -9,7 +9,6 @@
 
 #include "../hpp/tcp.hpp"
 #include "../hpp/yield.hpp"
-#include "../hpp/coroutine.hpp"
 
 class tcp_server : coroutine {
 public:
