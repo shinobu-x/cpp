@@ -70,5 +70,19 @@ auto main() -> decltype(0)
   boost::asio::io_service ios;
   tcp::acceptor acceptor(ios, tcp::endpoint(tcp::v4(), port));
   std::vector<boost::asio::detail::shared_ptr<tcp_server> > servers;
+
+  for (int i = 0; i < max_connections; ++i) {
+    boost::asio::detail::shared_ptr<tcp_server> s(new tcp_server(
+      acceptor, buf_size));
+    servers.push_back(s);
+    (*s)(boost::system::error_code());
+  }
+
+  if (spin)
+    for (;;)
+      ios.poll();
+  else
+    ios.run();
+
   return 0;
 }
