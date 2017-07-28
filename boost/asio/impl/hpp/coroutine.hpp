@@ -19,6 +19,7 @@ class coroutine_ref {
       if (!modified_)
         value_ = -1;
     }
+    operator int () const { return value_; }
     int& operator= (int v) {
       modified_ = true;
       return value_ = v;
@@ -29,7 +30,7 @@ private:
   bool modified_;
 };
 
-#define CORO_REENTER(c)             \
+#define CORO_REENTER(c)                        \
   switch (coroutine_ref _coro_value = c)       \
     case -1:                                   \
       if (_coro_value) {                       \
@@ -37,7 +38,7 @@ private:
         terminate_coroutine:                   \
         _coro_value = -1;                      \
         goto bail_out_of_coroutine;            \
-        bail_out_of_coroutine;                 \
+        bail_out_of_coroutine:                 \
         break;                                 \
       }                                        \
       else case 0:
