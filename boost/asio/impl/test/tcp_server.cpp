@@ -62,5 +62,13 @@ private:
 
 auto main() -> decltype(0)
 {
+  unsigned short port = 12345;
+  int max_connections = 3;
+  std::size_t buf_size = 1024;
+  bool spin = true;
+
+  boost::asio::io_service ios;
+  tcp::acceptor acceptor(ios, tcp::endpoint(tcp::v4(), port));
+  std::vector<boost::asio::detail::shared_ptr<tcp_server> > servers;
   return 0;
 }
