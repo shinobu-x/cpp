@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 
 #include <iostream>
-#include <vector>
+#include <mutex>
 
 class thread_pool {
 private:
@@ -36,11 +36,9 @@ public:
   template <typename Function>
   void do_work(Function work) {
     boost::unique_lock<boost::mutex> l(m_);
-
     if (0 == available_)
       return;
     --available_;
-
     ios_.post(boost::bind(&thread_pool::hander_, this,
       boost::function<void()>(work)));
   }
@@ -57,11 +55,19 @@ private:
   }
 };
 
-void work1() { std::cout << "1" << '\n'; }
+void work1() {
+  std::cout << "1" << '\n';
+}
 
-struct work2 { void operator() (){ std::cout << "2" << '\n'; } };
+struct work2 {
+  void operator() (){
+    std::cout << "2" << '\n';
+  } 
+};
 
-void work3(int) { std::cout << "3" << '\n'; }
+void work3(int) { 
+  std::cout << "3" << '\n';
+}
 
 auto main() -> decltype(0) {
   thread_pool tp(2);
