@@ -8,7 +8,7 @@ public:
     reset_();
   }
 
-  friend std::ostream& operator<< (std::ostream& out, timer const &t) {
+  friend std::ostream& operator<< (std::ostream& out, timer const& t) {
     return out << t.elapsed().count() << "ms";
   }
 
