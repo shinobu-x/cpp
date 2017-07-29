@@ -95,18 +95,18 @@ auto main() -> decltype(0)
 
   std::sort(samples, samples + num_samples);
   std::printf("  0.0%%\t%f\n", samples[0]                           * scale); 
-  std::printf("  0.1%%\t%f\n", samples[num_samples     / factor3]   * scale);
-  std::printf("  1.0%%\t%f\n", samples[num_samples     / factor2]   * scale);
-  std::printf(" 10.0%%\t%f\n", samples[num_samples     / factor1]   * scale);
-  std::printf(" 20.0%%\t%f\n", samples[num_samples * 2 / factor1]   * scale);
-  std::printf(" 30.0%%\t%f\n", samples[num_samples * 3 / factor1]   * scale);
-  std::printf(" 40.0%%\t%f\n", samples[num_samples * 4 / factor1]   * scale);
-  std::printf(" 50.0%%\t%f\n", samples[num_samples * 5 / factor1]   * scale);
-  std::printf(" 60.0%%\t%f\n", samples[num_samples * 6 / factor1]   * scale);
-  std::printf(" 70.0%%\t%f\n", samples[num_samples * 7 / factor1]   * scale);
-  std::printf(" 80.0%%\t%f\n", samples[num_samples * 8 / factor1]   * scale);
-  std::printf(" 90.0%%\t%f\n", samples[num_samples * 9 / factor1]   * scale);
-  std::printf(" 99.0%%\t%f\n", samples[num_samples * 99 / factor2]  * scale);
+  std::printf("  0.1%%\t%f\n", samples[num_samples       / factor3] * scale);
+  std::printf("  1.0%%\t%f\n", samples[num_samples       / factor2] * scale);
+  std::printf(" 10.0%%\t%f\n", samples[num_samples       / factor1] * scale);
+  std::printf(" 20.0%%\t%f\n", samples[num_samples * 2   / factor1] * scale);
+  std::printf(" 30.0%%\t%f\n", samples[num_samples * 3   / factor1] * scale);
+  std::printf(" 40.0%%\t%f\n", samples[num_samples * 4   / factor1] * scale);
+  std::printf(" 50.0%%\t%f\n", samples[num_samples * 5   / factor1] * scale);
+  std::printf(" 60.0%%\t%f\n", samples[num_samples * 6   / factor1] * scale);
+  std::printf(" 70.0%%\t%f\n", samples[num_samples * 7   / factor1] * scale);
+  std::printf(" 80.0%%\t%f\n", samples[num_samples * 8   / factor1] * scale);
+  std::printf(" 90.0%%\t%f\n", samples[num_samples * 9   / factor1] * scale);
+  std::printf(" 99.0%%\t%f\n", samples[num_samples * 99  / factor2] * scale);
   std::printf(" 99.9%%\t%f\n", samples[num_samples * 999 / factor3] * scale);
   std::printf("100.0%%\t%f\n", samples[num_samples - 1]             * scale);
 
