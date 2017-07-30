@@ -1,6 +1,8 @@
 #include <memory>
 #include <utility>
 
+#include <cassert>
+
 struct A {
   mutable unsigned int hash;
   A() : hash(0) {}
@@ -116,7 +118,54 @@ auto main() -> decltype(0) {
   std::mem_fn(&A::f5)(&a, 1, 2, 3, 4, 5);
   std::mem_fn(&A::f5)(spa, 1, 2, 3, 4, 5);
 
+  std::mem_fn(&A::g5)(a, 1, 2, 3, 4, 5);
+  std::mem_fn(&A::g5)(ra, 1, 2, 3, 4, 5);
+  std::mem_fn(&A::g5)(&a, 1, 2, 3, 4, 5);
+  std::mem_fn(&A::g5)(pa, 1, 2, 3, 4, 5);
+  std::mem_fn(&A::g5)(spa, 1 ,2 ,3 ,4 ,5);
 
+  std::mem_fn(&A::f6)(a, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::f6)(&a, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::f6)(spa, 1, 2, 3, 4, 5, 6);
+
+  std::mem_fn(&A::g6)(a, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::g6)(ra, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::g6)(&a, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::g6)(pa, 1, 2, 3, 4, 5, 6);
+  std::mem_fn(&A::g6)(spa, 1, 2, 3, 4, 5, 6);
+
+  std::mem_fn(&A::f7)(a, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::f7)(&a, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::f7)(spa, 1, 2, 3, 4, 5, 6, 7);
+
+  std::mem_fn(&A::g7)(a, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::g7)(ra, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::g7)(&a, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::g7)(pa, 1, 2, 3, 4, 5, 6, 7);
+  std::mem_fn(&A::g7)(spa, 1, 2, 3, 4, 5, 6, 7);
+
+  std::mem_fn(&A::f8)(a, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::f8)(&a, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::f8)(spa, 1, 2, 3, 4, 5, 6, 7, 8);
+
+  std::mem_fn(&A::g8)(a, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::g8)(ra, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::g8)(&a, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::g8)(pa, 1, 2, 3, 4, 5, 6, 7, 8);
+  std::mem_fn(&A::g8)(spa, 1, 2, 3, 4, 5, 6, 7, 8);
+
+  std::mem_fn(&A::f9)(a, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::f9)(&a, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::f9)(spa, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+  std::mem_fn(&A::g9)(a, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::g9)(ra, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::g9)(&a, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::g9)(pa, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  std::mem_fn(&A::g9)(spa, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+  assert(std::mem_fn(&A::hash)(a) == 17610 &&
+    std::mem_fn(&A::hash)(sa) == 2155);
 
   return 0;
 }
