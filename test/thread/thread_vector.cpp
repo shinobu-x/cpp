@@ -44,6 +44,12 @@ void join_all(T& t) {
 
 }
 
+template <typename T>
+void interrupt_all(T& t) {
+  for (typename T::iterator it = t.begin(), end = t.end(); it != end; ++it)
+    it->interrupt();
+}
+
 void do_increment() {
   boost::unique_lock<boost::mutex> l(m);
   ++count;
@@ -81,6 +87,19 @@ auto main() -> decltype(0) {
   assert(count == 10);
   do_reset();
   assert(count == 0);
- 
+
+  {
+    vt ts;
+    ts.reserve(10);
+    for (unsigned i = 0; i < 10; ++i)
+      ts.emplace_back(&do_increment);
+    interrupt_all(ts);
+    join_all(ts);
+  }
+
+  assert(count == 10);
+  do_reset();
+  assert(count == 0);
+
   return 0;
 }
