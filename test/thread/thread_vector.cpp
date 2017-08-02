@@ -4,6 +4,7 @@
 
 #include <cassert>
 
+/*
 class thread_group {
 public:
   thread_group() {}
@@ -32,6 +33,7 @@ private:
   std::list<boost::thread*> threads;
   mutable boost::shared_mutex m;
 };
+*/
 
 int count = 0;
 boost::mutex m;
@@ -40,7 +42,8 @@ template <typename T>
 void join_all(T& t) {
 
   for (typename T::iterator it = t.begin(), end = t.end(); it != end; ++it)
-    it->join();
+    if (it->joinable())
+      it->join();
 
 }
 
