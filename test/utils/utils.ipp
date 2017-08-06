@@ -7,8 +7,8 @@ inline boost::xtime delay(int s, int ms = 0, int ns = 0) {
 
   boost::xtime xt;
 
-  if (boost::TIME_UTC_ != boost::xtime_get(&xt, boost::TIME_UTC_))
-    ERROR("boost::timeout_get != boost::TIME_UTC_");
+//  if (boost::TIME_UTC_ != boost::xtime_get (&xt, boost::TIME_UTC_))
+//    ERROR("boost::timeout_get != boost::TIME_UTC_");
 
   ns += xt.nsec;
   ms += ns / NANOSECONDS_PER_MILLISECOND;
