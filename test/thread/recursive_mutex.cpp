@@ -47,7 +47,7 @@ struct test_lock {
 
 // Test type: Trylock
 template <typename M>
-struct test_trylock {
+struct test_try_lock {
   typedef M mutex_type;
   typedef typename M::scoped_try_lock lock_type;
 
@@ -162,7 +162,7 @@ public:
 
 // Test type: Timed lock
 template <typename M>
-struct test_timedlock {
+struct test_timed_lock {
   typedef M mutex_type;
   typedef typename M::scoped_timed_lock lock_type;
 
@@ -186,8 +186,11 @@ struct test_timedlock {
 
     {
       lock_type l(m, boost::defer_lock);
+      assert(!l);
+    }
+    {
+      lock_type l(m);
       assert(l ? true : false);
-
       // Construct and initialize an xtime for as fast time out
       boost::system_time t =
         boost::get_system_time() + boost::posix_time::milliseconds(100);
@@ -244,16 +247,23 @@ void test_1() {
 
 void test_2() {
   test_lock<boost::try_mutex>()();
-  test_trylock<boost::try_mutex>()();
+  test_try_lock<boost::try_mutex>()();
 }
 
 void test_3() {
   test_lock<boost::timed_mutex>()();
-  test_trylock<boost::timed_mutex>()();
-  test_timedlock<boost::timed_mutex>()();
+  test_try_lock<boost::timed_mutex>()();
+  test_timed_lock<boost::timed_mutex>()();
+}
+
+void test_4() {
+  test_lock<boost::recursive_timed_mutex>()();
+  test_try_lock<boost::recursive_timed_mutex>()();
+  test_timed_lock<boost::recursive_timed_mutex>()();
+  test_recursive_lock<boost::recursive_timed_mutex>()();
 }
 
 auto main() -> decltype(0) {
-  test_1(); test_2();
+  test_1(); test_2(); test_3(); test_4();
   return 0;
 }
