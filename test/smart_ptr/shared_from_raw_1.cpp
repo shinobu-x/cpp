@@ -139,7 +139,7 @@ void test_5() {
 LOG_ERROR;
   }
 
-  p1_2.reset();
+//  p1_2.reset();
 
   boost::shared_ptr<TEST1> p1_3(&p1_1, null_deleter());
   assert(p1_3.get() == &p1_1);
@@ -153,6 +153,6 @@ LOG_ERROR;
 }
 
 auto main() -> decltype(0) {
-  test_1(); test_2(); test_3(); test_4(); test_5();
+  test_1(); test_2(); test_3();  test_4(); test_5();
   return 0;
 }
