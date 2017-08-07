@@ -8,9 +8,7 @@
 
 #include "../macro/config.hpp"
 
-// #if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
-
-const unsigned number_of_thread 200;
+const unsigned number_of_tests = 200;
 
 int func_ex() {
   BOOST_THREAD_LOG << __func__ << BOOST_THREAD_END_LOG;
@@ -22,7 +20,7 @@ int func() {
   return 1;
 }
 
-vod test_1() {
+void test_1() {
   std::cout << __func__ << '\n';
 
   for (unsigned i = 0; i < number_of_tests; ++i)
@@ -36,12 +34,11 @@ vod test_1() {
     } catch (std::exception& e) {
       LOG;
       std::cout << e.what() << '\n';
-      return 1;
+      return;
     } catch (...) {
       LOG;
-      return 2;
+      return;
     }
-  return 0;
 }
 auto main() -> decltype(0) {
   test_1();
