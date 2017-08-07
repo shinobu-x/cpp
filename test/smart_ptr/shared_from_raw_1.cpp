@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "../macro/config.hpp"
+
 class A : public boost::enable_shared_from_raw {
 private:
   int destroyed_;
@@ -56,35 +58,6 @@ struct TEST2 {
 
 struct TEST3 : TEST2, TEST1 {};
 
-void test_2() {
-  boost::shared_ptr<TEST3> p(new TEST3);
-}
-
-void test_3() {
-  TEST1* p1 = new TEST3;
-  boost::shared_ptr<void> p2(p1);
-  assert(p2.get() == p1);
-  assert(p2.use_count() == 1);
-}
-
-struct null_deleter {
-  void operator() (void const*) const {}
-};
-
-void test_4() {
-  boost::shared_ptr<TEST1> p1_1(new TEST1);
-  boost::shared_ptr<TEST1> p1_2(p1_1.get(), null_deleter());
-  assert(p1_2.get() == p1_1.get());
-  assert(p1_2.use_count() == 1);
-}
-
-void test_5() {
-  TEST1 p1_1;
-  boost::shared_ptr<TEST1> p1_2(&p1_1, null_deleter());
-  assert(p1_2.get() == &p1_1);
-  assert(p1_2.use_count() == 1);
-}
-
 void test_1() {
   assert(A::instances == 0);
 
@@ -132,7 +105,54 @@ void test_1() {
   assert(A::instances == 0);
 }
 
+void test_2() {
+  boost::shared_ptr<TEST3> p(new TEST3);
+}
+
+void test_3() {
+  TEST1* p1 = new TEST3;
+  boost::shared_ptr<void> p2(p1);
+  assert(p2.get() == p1);
+  assert(p2.use_count() == 1);
+}
+
+struct null_deleter {
+  void operator() (void const*) const {}
+};
+
+void test_4() {
+  boost::shared_ptr<TEST1> p1_1(new TEST1);
+  boost::shared_ptr<TEST1> p1_2(p1_1.get(), null_deleter());
+  assert(p1_2.get() == p1_1.get());
+  assert(p1_2.use_count() == 1);
+}
+
+void test_5() {
+  TEST1 p1_1;
+  boost::shared_ptr<TEST1> p1_2(&p1_1, null_deleter());
+  assert(p1_2.get() == &p1_1);
+  assert(p1_2.use_count() == 1);
+
+  try {
+    boost::shared_from_raw(p1_2.get());
+  } catch (...) {
+LOG_ERROR;
+  }
+
+  p1_2.reset();
+
+  boost::shared_ptr<TEST1> p1_3(&p1_1, null_deleter());
+  assert(p1_3.get() == &p1_1);
+  assert(p1_3.use_count() == 1);
+
+  try {
+    boost::shared_from_raw(p1_2.get());
+  } catch (...) {
+LOG_ERROR;
+  }
+}
+
 auto main() -> decltype(0) {
-  test_1();
+  test_1(); test_2(); test_3(); test_4(); test_5();
   return 0;
 }
