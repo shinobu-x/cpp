@@ -70,10 +70,52 @@ void test_2() {
   tss_instances = 0;
   tss_total = 0;
 
-  const int num_of_thread = 5;
-  boost_thread_group threads;
+  const int num_of_threads = 5;
+  boost::thread_group threads;
+
+  try {
+    for (int i = 0; i < num_of_threads; ++i)
+      threads.create_thread(&test_1);
+    threads.join_all();
+  } catch (...) {
+    threads.interrupt_all();
+    threads.join_all();
+    throw;
+  }
+
+  std::cout << "tss_instances = " << tss_instances << '\n'
+    << "tss_total = " << tss_total << '\n';
+
+  std::cout.flush();
+
+  assert(tss_instances == 0);
+  assert(tss_total == 5);
+
+  tss_instances = 0;
+  tss_total = 0;
+
+  native_thread_t t1 = create_native_thread();
+  native_thread_t t2 = create_native_thread();
+  native_thread_t t3 = create_native_thread();
+  native_thread_t t4 = create_native_thread();
+  native_thread_t t5 = create_native_thread();
+
+  join_native_thread(t1);
+  join_native_thread(t2);
+  join_native_thread(t3);
+  join_native_thread(t4);
+  join_native_thread(t5);
+
+  std::cout << "tss_instances = " << tss_instances << '\n'
+    << "tss_total = " << tss_total << '\n';
+  std::cout.flush();
+
+  assert(tss_instances == 0);
+  assert(tss_total == 5);
+
+}
 
 auto main() -> decltype(0) {
-  test_1();
+  test_1(); test_2();
   return 0;
 }
