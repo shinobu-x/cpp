@@ -2,6 +2,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 
+#include "../utils/utils.hpp"
+
 boost::mutex m1;
 boost::mutex m2;
 
