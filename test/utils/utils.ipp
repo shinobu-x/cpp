@@ -60,20 +60,46 @@ bool execution_monitor::wait() {
   return done_;
 }
 
-namespace thread_detail_anon {
-template<typename R, typename T>
-thread_member_binder<R, T>::thread_member_binder(T::*func(), T& param) : func_(func), param_(param) {}
-};
+template <typename R, typename T>
+thread_detail_anon::thread_member_binder<R, T>::thread_member_binder(
+  R (T::*func)(), T& param)
+  : func_(func), param_(param) {}
+
+template <typename R, typename T>
+void thread_detail_anon::thread_member_binder<R, T>::operator()() const {
+  (param_.*func_)();
+}
+
+template <typename F>
+thread_detail_anon::indirect_adapter<F>::indirect_adapter(
+  F func, execution_monitor& monitor)
+  : func_(func), monitor_(monitor) {}
+
+template <typename F>
+void thread_detail_anon::indirect_adapter<F>::operator()() const {
+  try {
+    boost::thread t(func_);
+    t.join();
+  } catch (...) {
+    monitor_.finish();
+    throw;
+  }
+}
 
 #define DEFAULT_EXECUTION_MONITOR_TYPE execution_monitor::use_condition
 
 template <typename F>
-void timed_out(F func, int sec,
+void timed_test(F func, int sec,
   execution_monitor::wait_type type = DEFAULT_EXECUTION_MONITOR_TYPE) {
   execution_monitor monitor(type, sec);
-//  thread_detail_anon::indirect_adapter<F> ifunc(func, monitor);
-//  monitor.start();
-//  boost::thread t(ifunc);
+  thread_detail_anon::indirect_adapter<F> ifunc(func, monitor);
+  monitor.start();
+  boost::thread t(ifunc);
+
+  if (monitor.wait())
+    std::cout << "done" << '\n';
+  else
+    std::cout << "error" << '\n';
 //  BOOST_REQUIRE_MESSAGE(monitor.wait(),
 //    "Timed test didn't complete in time, passible deadlock.");
 }

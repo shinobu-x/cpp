@@ -41,12 +41,27 @@ namespace thread_detail_anon {
   template <typename R, typename T>
   class thread_member_binder {
   public:
-    thread_member_binder(R, T&);
+    thread_member_binder(R (T::*func)(), T&);
+    void operator()() const;
+    thread_member_binder(const thread_member_binder&) = delete;
+    thread_member_binder(thread_member_binder&&) = delete;
+    thread_member_binder& operator()(thread_member_binder&&) = delete;
   private:
-    void operator= (thread_member_binder&);
+    void operator=(thread_member_binder&);
     R (T::*func_)();
     T& param_;
-};
+  };
+
+  template <typename F>
+  class indirect_adapter {
+  public:
+    indirect_adapter(F, execution_monitor&);
+    void operator()() const;
+  private:
+    F func_;
+    execution_monitor& monitor_;
+    void operator=(indirect_adapter&);
+  };
 } // namespace
 #pragma once
 #include "utils.ipp"
