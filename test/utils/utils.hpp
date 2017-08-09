@@ -34,5 +34,19 @@ private:
   int sec_;
 };
 
+template <typename F>
+void timed_test(F, int, execution_monitor::wait_type);
+
+namespace thread_detail_anon {
+  template <typename R, typename T>
+  class thread_member_binder {
+  public:
+    thread_member_binder(R, T&);
+  private:
+    void operator= (thread_member_binder&);
+    R (T::*func_)();
+    T& param_;
+};
+} // namespace
 #pragma once
 #include "utils.ipp"
