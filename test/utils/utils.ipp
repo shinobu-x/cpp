@@ -26,3 +26,36 @@ inline bool in_range(const boost::xtime& xt, int s=1) {
   return (boost::xtime_cmp(xt, min) >= 0) &&
     (boost::xtime_cmp(xt, max) <= 0);
 }
+
+execution_monitor::execution_monitor(wait_type type, int sec)
+  : done_(false), type_(type), sec_(sec) {}
+
+void execution_monitor::start() {
+  if (type_ != use_sleep_only)
+    boost::unique_lock<boost::mutex> l(m_);
+  done_ = false;
+}
+
+void execution_monitor::finish() {
+  if (type_ != use_sleep_only)
+    boost::unique_lock<boost::mutex> l(m_);
+    if (type_ == use_condition)
+      cond_.notify_one();
+  done_ = true;
+}
+
+bool execution_monitor::wait() {
+  boost::xtime xt = delay(sec_);
+
+  if (type_ != use_condition)
+    boost::thread::sleep(xt);
+
+  if (type_ != use_sleep_only) {
+    boost::unique_lock<boost::mutex> l(m_);
+    while (type_ == use_condition && !done_)
+      if (!cond_.timed_wait(l, xt))
+        break;
+    return done_;
+  } 
+  return done_;
+}
