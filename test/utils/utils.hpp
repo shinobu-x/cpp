@@ -7,6 +7,7 @@
 
 inline boost::xtime delay(int, int, int); 
 inline bool in_range(const boost::xtime&, int);
+inline void error_msg(char const*, char const*, int);
 
 class execution_monitor {
 public:
@@ -34,8 +35,11 @@ private:
   int sec_;
 };
 
+#define DEFAULT_EXECUTION_MONITOR_TYPE execution_monitor::use_condition
+
 template <typename F>
-void timed_test(F, int, execution_monitor::wait_type);
+void timed_test(F, int, execution_monitor::wait_type =
+  DEFAULT_EXECUTION_MONITOR_TYPE);
 
 namespace thread_detail_anon {
   template <typename R, typename T>

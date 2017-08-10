@@ -27,6 +27,16 @@ inline bool in_range(const boost::xtime& xt, int s=1) {
     (boost::xtime_cmp(xt, max) <= 0);
 }
 
+inline void error_msg(char const* msg, char const* file, int line) {
+  std::cout << "[" << line << "]" << msg << "\n";
+}
+
+#define CHECK_MESSAGE(P, M) \
+  ((P) ? (void)0 : error_msg((M), __FILE__, __LINE__))
+
+#define REQUIRE_MESSAGE(P, M) \
+  CHECK_MESSAGE((P), (M))
+
 execution_monitor::execution_monitor(wait_type type, int sec)
   : done_(false), type_(type), sec_(sec) {}
 
@@ -86,20 +96,13 @@ void thread_detail_anon::indirect_adapter<F>::operator()() const {
   }
 }
 
-#define DEFAULT_EXECUTION_MONITOR_TYPE execution_monitor::use_condition
-
 template <typename F>
 void timed_test(F func, int sec,
-  execution_monitor::wait_type type = DEFAULT_EXECUTION_MONITOR_TYPE) {
+  execution_monitor::wait_type type) {
   execution_monitor monitor(type, sec);
   thread_detail_anon::indirect_adapter<F> ifunc(func, monitor);
   monitor.start();
   boost::thread t(ifunc);
-
-  if (monitor.wait())
-    std::cout << "done" << '\n';
-  else
-    std::cout << "error" << '\n';
-//  BOOST_REQUIRE_MESSAGE(monitor.wait(),
-//    "Timed test didn't complete in time, passible deadlock.");
+  REQUIRE_MESSAGE(monitor.wait(),
+    "Timed test didn't complete in time, passible deadlock.");
 }

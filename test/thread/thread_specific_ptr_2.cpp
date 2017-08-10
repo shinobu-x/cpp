@@ -117,7 +117,13 @@ void test_2() {
 
 }
 
+void test_3() {
+  timed_test(&test_2, 2);
+}
+
+bool tss_void_cleanup_called = false;
+
 auto main() -> decltype(0) {
-  test_1(); test_2();
+  test_1(); test_2(); test_3();
   return 0;
 }
