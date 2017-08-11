@@ -29,6 +29,11 @@ struct default_delete {
   template <class U>
   default_delete(const default_delete<U>&) noexcept {}
   void operator()(T* p) const { delete p; }
+
+   default_delete(const default_delete&) = delete;
+   default_delete& operator= (const default_delete&) = delete;
+   default_delete(default_delete&&) = delete;
+   default_delete& operator= (default_delete&&) = delete;
 };
 } // namespace
 
