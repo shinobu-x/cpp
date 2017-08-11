@@ -53,11 +53,12 @@ void deadline_timer_test() {
   boost::posix_time::ptime start = now();
 
   boost::asio::deadline_timer t1(ios, boost::posix_time::seconds(1));
+  t1.wait();
 
   // The timer must block until after its expiry time.
   boost::posix_time::ptime end = now();
   boost::posix_time::ptime expected_end =
-    end + boost::posix_time::seconds(1);
+    start + boost::posix_time::seconds(1);
   assert(expected_end < end || expected_end == end);
 
   start = now();
@@ -186,12 +187,93 @@ void deadline_timer_test() {
 
   // One of the waits should not have been cancelled, so count have changed.
   // The total time since the timer was created should be more than 3 seconds.
-  assert(count == 3);
+  assert(count == 1);
   end = now();
   expected_end = start + boost::posix_time::seconds(3);
   assert(expected_end < end || expected_end == end);
 }
 
+void timer_handler(const boost::system::error_code&) {}
+
+void deadline_timer_cancel_test() {
+  static boost::asio::io_service ios;
+
+  struct timer {
+    boost::asio::deadline_timer t;
+    timer() : t(ios) {
+      t.expires_at(boost::posix_time::pos_infin);
+    }
+  } timers[50];
+
+  timers[2].t.async_wait(&timer_handler);
+  timers[41].t.async_wait(&timer_handler);
+  for (int i = 10; i < 20; ++i)
+    timers[i].t.async_wait(&timer_handler);
+
+  assert(timers[2].t.cancel() == 1);
+  assert(timers[41].t.cancel() == 1);
+  for (int i = 10; i < 20; ++i)
+    assert(timers[i].t.cancel() == 1);
+}
+
+struct custom_allocation_timer_handler {
+  custom_allocation_timer_handler(int* count) : count_(count) {}
+  void operator()(const boost::system::error_code&) {}
+  int* count_;
+};
+
+void* asio_handler_allocate(std::size_t size,
+  custom_allocation_timer_handler* handler) {
+  ++(*handler->count_);
+  return ::operator new(size);
+}
+
+void asio_handler_deallocate(void* pointer, std::size_t,
+  custom_allocation_timer_handler* handler) {
+  --(*handler->count_);
+  ::operator delete(pointer);
+}
+void deadline_timer_custom_allocation_test() {
+  static boost::asio::io_service ios;
+  struct timer {
+    boost::asio::deadline_timer t;
+    timer() : t(ios) {}
+  } timers[100];
+
+  int allocation_count = 0;
+
+  for (int i = 0; i < 50; ++i) {
+    timers[i].t.expires_at(boost::posix_time::pos_infin);
+    timers[i].t.async_wait(custom_allocation_timer_handler(&allocation_count));
+  }
+
+  for (int i = 50; i < 100; ++i) {
+    timers[i].t.expires_at(boost::posix_time::neg_infin);
+    timers[i].t.async_wait(custom_allocation_timer_handler(&allocation_count));
+  }
+
+  for (int i = 0; i < 50; ++i)
+    timers[i].t.cancel();
+
+  ios.run();
+// #include <iostream>
+// std::cout << allocation_count << '\n';
+  assert(allocation_count == 0);
+}
+
+void test_1() {
+  deadline_timer_test();
+}
+
+void test_2() {
+  deadline_timer_cancel_test();
+}
+
+void test_3() {
+  deadline_timer_custom_allocation_test();
+}
+
 auto main() -> decltype(0) {
+  test_1(); test_2(); test_3();
   return 0;
 }
