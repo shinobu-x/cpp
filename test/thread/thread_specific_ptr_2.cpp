@@ -10,6 +10,11 @@ boost::mutex m2;
 int tss_instances = 0;
 int tss_total = 0;
 
+void tss_reset() {
+  tss_instances = 0;
+  tss_total = 0;
+}
+
 struct tss_value_t {
   tss_value_t() {
     boost::unique_lock<boost::mutex> l(m2);
@@ -69,8 +74,7 @@ void join_native_thread(native_thread_t thread) {
 }
 
 void test_2() {
-  tss_instances = 0;
-  tss_total = 0;
+  tss_reset();
 
   const int num_of_threads = 5;
   boost::thread_group threads;
@@ -93,8 +97,7 @@ void test_2() {
   assert(tss_instances == 0);
   assert(tss_total == 5);
 
-  tss_instances = 0;
-  tss_total = 0;
+  tss_reset();
 
   native_thread_t t1 = create_native_thread();
   native_thread_t t2 = create_native_thread();
@@ -121,9 +124,56 @@ void test_3() {
   timed_test(&test_2, 2);
 }
 
-bool tss_void_cleanup_called = false;
+bool custom_cleanup_called = false;
+
+void custom_cleanup(tss_value_t* d) {
+  delete d;
+  custom_cleanup_called = true;
+}
+
+boost::thread_specific_ptr<tss_value_t> custom_cleanup_test(custom_cleanup);
+
+void test_4() {
+
+  custom_cleanup_test.reset(new tss_value_t());
+
+  for (int i = 0; i < 10; ++i) {
+    int& n = tss_value.get()->value_;
+    *tss_value;
+    if (n != i) {
+      boost::unique_lock<boost::mutex> l(m1);
+      assert(n != i);
+    } 
+    std::cout << n << "\n";
+    ++n; 
+  }
+}
+
+void test_5() {
+  tss_reset();
+
+  const int num_of_threads = 5;
+  boost::thread_group threads;
+
+  try {
+    for (int i = 0; i < num_of_threads; ++i)
+      threads.create_thread(&test_4);
+    threads.join_all();
+  } catch (...) {
+    threads.interrupt_all();
+    threads.join_all();
+    throw;
+  }
+
+  std::cout
+    << "tss_instances = " << tss_instances << '\n'
+    << "tss_total = " << tss_total << '\n';
+
+  assert(tss_instances != 0);
+  assert(tss_total != 0);
+}
 
 auto main() -> decltype(0) {
-  test_1(); test_2(); test_3();
+  test_1(); test_2(); test_3(); test_4(); test_5();
   return 0;
 }
