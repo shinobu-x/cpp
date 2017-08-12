@@ -6,6 +6,8 @@
 
 #include <cassert>
 
+#include "async_result.hpp"
+
 void increment(int* count) {
   ++(*count);
 }
@@ -261,6 +263,43 @@ void deadline_timer_custom_allocation_test() {
   assert(allocation_count == 0);
 }
 
+void io_service_run(boost::asio::io_service* ios) {
+  ios->run();
+}
+
+void deadline_timer_thread_test() {
+  boost::asio::io_service ios;
+  boost::asio::io_service::work w(ios);
+  boost::asio::deadline_timer t1(ios);
+  boost::asio::deadline_timer t2(ios);
+  int count = 0;
+
+  boost::asio::detail::thread t(boost::bind(io_service_run, &ios));
+
+  t2.expires_from_now(boost::posix_time::seconds(2));
+  t2.wait();
+
+  t1.expires_from_now(boost::posix_time::seconds(2));
+  t1.wait();
+
+  t2.expires_from_now(boost::posix_time::seconds(4));
+  t2.wait();
+
+   ios.stop();
+   t.join();
+}
+
+void deadline_timer_async_result_test() {
+  boost::asio::io_service ios;
+  boost::asio::deadline_timer t1(ios);
+
+  t1.expires_from_now(boost::posix_time::seconds(1));
+  // int i = t1.async_wait(archetypes::lazy_handler());
+  // assert(i == 42);
+
+  ios.run();
+}
+
 void test_1() {
   deadline_timer_test();
 }
@@ -271,6 +310,10 @@ void test_2() {
 
 void test_3() {
   deadline_timer_custom_allocation_test();
+}
+
+void test_4() {
+  deadline_timer_thread_test();
 }
 
 auto main() -> decltype(0) {
