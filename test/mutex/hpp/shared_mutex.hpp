@@ -550,3 +550,65 @@ private:
 #endif
 
     void unlock_upgrade_and_lock_shared() {
+      boost::unique_lock<boost::mutex> lk(state_change);
+      state.assert_lock_upgraded();
+      state.upgrade = false;
+      state.exclusive_waiting_blocked = false;
+      release_waiters();
+    }
+
+#ifdef BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSIONS
+  bool try_unlock_shared_and_lock_upgrade() {
+    boost::unique_lock<boost::mutex> lk(state_change);
+    state.assert_lock_shared();
+
+    if (!state.exclusive && !state.exclusive_waiting_blocked &&
+      !state.exclusive_waiting_blocked && !state.upgrade) {
+      state.upgrade = true;
+      return true;
+    }
+
+    return false;
+  }
+
+#ifdef BOOST_THREAD_USES_CHRONO
+  template <class Rep, class Period>
+  bool try_unlock_shared_and_lock_upgrade_for(
+    const boost::chrono::duration<Rep, Period>& rel_time) {
+    return try_unlock_shared_and_lock_upgrade_until(
+      boost::chrono::time_point<Clock, Duration>& abs_time)
+  }
+
+  template <class Clock, class Duration>
+  bool try_unlock_shared_and_lock_upgrade_until(
+    const boost::chrono::time_point<Clock, Duration>& abs_time) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+    boost::this_thread::disable_interruption do_not_disturb;
+#endif
+    boost::unique_lock<boost::mutex> lk(state_change);
+    state.assert_lock_shared();
+
+    if (state.exclusive || state.exclusive_waiting_blocked ||
+      state.upgrade)
+      for (;;) {
+        cv_status status = exlusive_cond.wait_until(lk, abs_time);
+
+        if (!state.exlusive && !state.exclusive_waiting_blocked &&
+          !state.upgrade)
+          break;
+        if (status == cv_status::timeout)
+         return false;
+      }
+
+    state.upgrade = true;
+
+    return true;
+  }
+#endif
+#endif
+}; // class shared_mutex
+  typedef shared_mutex upgrade_mutex;
+} // namespace
+#include <boost/config/abi_suffix.hpp>
+
+#endif
