@@ -11,10 +11,10 @@
 
 #include <cassert>
 
-namespace boost {
 class shared_mutex {
 private:
   class state_data {
+
   public:
     state_data()
       : shared_count(0), exclusive(false), upgrade(false), 
@@ -26,7 +26,7 @@ private:
       assert(shared_count == 0);
     }
 
-    void assert_lock() const {
+    void assert_locked() const {
       assert(exclusive);
       assert(!upgrade);
       assert(shared_count == 0);
@@ -110,16 +110,16 @@ private:
     }
 
     unsigned shared_count;
-    bool exlusive;
+    bool exclusive;
     bool upgrade;
     bool exclusive_waiting_blocked;
   }; // class state_data
 
   state_data state;
   boost::mutex state_change;
-  boost::conditional_variable shared_cond;
-  boost::conditional_variable exclusive_cond;
-  boost::conditional_variable upgrade_cond;
+  boost::condition_variable shared_cond;
+  boost::condition_variable exclusive_cond;
+  boost::condition_variable upgrade_cond;
 
   void release_waiters() {
     exclusive_cond.notify_one();
@@ -196,7 +196,7 @@ private:
       boost::unique_lock<boost::mutex> lk(state_change);
 
       while (!state.can_lock_shared())
-        if (cv_status::timeout == shared_cond.wait_until(lk, abs_time))
+        if (boost::cv_status::timeout == shared_cond.wait_until(lk, abs_time))
           return false;
 
       state.lock_shared();
@@ -244,7 +244,7 @@ private:
       while (state.shared_count || state.exclusive) {
         state.exclusive_waiting_blocked = true;
 
-        if (!exclusive_cond.timed_wait(lk, timeout) {
+        if (!exclusive_cond.timed_wait(lk, timeout)) {
           if (state.shared_count || state.exclusive) {
             state.exclusive_waiting_blocked = false;
             release_waiters();
@@ -280,7 +280,8 @@ private:
       while (state.shared_count || state.exclusive) {
         state.exclusive_waiting_blocked = true;
 
-        if (cv_status::timeout == exclusive_cond.wait_until(lk, abs_time)) {
+        if (boost::cv_status::timeout ==
+          exclusive_cond.wait_until(lk, abs_time)) {
           if (state.shared_count || state.exclusive) {
             state.exclusive_waiting_blocked = false;
             release_waiters();
@@ -335,8 +336,8 @@ private:
       boost::this_thread::disable_interruption do_not_disturb;
 #endif
       boost::unique_lock<boost::mutex> lk(state_change);
-      while (state.exlusive || state.exclusive_waiting_blocked ||
-        state.up)
+      while (state.exclusive || state.exclusive_waiting_blocked ||
+        state.upgrade)
         if (!shared_cond.timed_wait(lk, timeout)) {
           if (state.exclusive || state.exclusive_waiting_blocked ||
             state.upgrade)
@@ -368,6 +369,7 @@ private:
       const boost::chrono::time_point<Clock, Duration>& abs_time) {
 #if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
       boost::this_thread::disable_interruption do_not_disturb;
+#endif
       boost::unique_lock<boost::mutex> lk(state_change);
 
       while (state.exclusive || state.exclusive_waiting_blocked ||
@@ -427,22 +429,22 @@ private:
     }
 
     void unlock_and_lock_upgrade() {
-      boost::unique_lock<boost::mutex> lk(state_chnange);
+      boost::unique_lock<boost::mutex> lk(state_change);
       state.assert_locked();
       state.exclusive = false;
       state.upgrade = true;
       state.lock_shared();
       state.exclusive_waiting_blocked = false;
-      state.assert_lock_upgraded();
+      state.assert_lock_upgrade();
       release_waiters();
     }
 
     bool try_unlock_upgrade_and_lock() {
       boost::unique_lock<boost::mutex> lk(state_change);
-      state.assert_lock_upgraded();
+      state.assert_lock_upgrade();
 
       if (!state.exclusive && !state.exclusive_waiting_blocked && 
-        state.upgrade && state.shared == 1) {
+        state.upgrade && state.shared_count == 1) {
         state.shared_count = 0;
         state.exclusive = true;
         state.upgrade = false;
@@ -456,7 +458,7 @@ private:
 #ifdef BOOST_THREAD_USES_CHRONO
     template <class Rep, class Period>
     bool try_unlock_upgrade_and_lock_for(
-      bonst boost::chrono::duration<Rep, Period>& rel_time) {
+      boost::chrono::duration<Rep, Period>& rel_time) {
       return try_unlock_upgrade_and_lock_until(
         boost::chrono::steady_clock::now + rel_time);
     }
@@ -471,11 +473,11 @@ private:
 
       if (state.shared_count != 1)
         for (;;) {
-          cv_status status = shared_cond.wait_until(lk, abs_time);
+          boost::cv_status status = shared_cond.wait_until(lk, abs_time);
 
           if (state.shared_count == 1)
             break;
-          if (status == cv_status::timeout)
+          if (status == boost::cv_status::timeout)
             return false;
         }
 
@@ -551,64 +553,61 @@ private:
 
     void unlock_upgrade_and_lock_shared() {
       boost::unique_lock<boost::mutex> lk(state_change);
-      state.assert_lock_upgraded();
+      state.assert_lock_upgrade();
       state.upgrade = false;
       state.exclusive_waiting_blocked = false;
       release_waiters();
     }
 
 #ifdef BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSIONS
-  bool try_unlock_shared_and_lock_upgrade() {
-    boost::unique_lock<boost::mutex> lk(state_change);
-    state.assert_lock_shared();
+    bool try_unlock_shared_and_lock_upgrade() {
+      boost::unique_lock<boost::mutex> lk(state_change);
+      state.assert_lock_shared();
 
-    if (!state.exclusive && !state.exclusive_waiting_blocked &&
-      !state.exclusive_waiting_blocked && !state.upgrade) {
-      state.upgrade = true;
-      return true;
-    }
-
-    return false;
-  }
-
-#ifdef BOOST_THREAD_USES_CHRONO
-  template <class Rep, class Period>
-  bool try_unlock_shared_and_lock_upgrade_for(
-    const boost::chrono::duration<Rep, Period>& rel_time) {
-    return try_unlock_shared_and_lock_upgrade_until(
-      boost::chrono::time_point<Clock, Duration>& abs_time)
-  }
-
-  template <class Clock, class Duration>
-  bool try_unlock_shared_and_lock_upgrade_until(
-    const boost::chrono::time_point<Clock, Duration>& abs_time) {
-#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
-    boost::this_thread::disable_interruption do_not_disturb;
-#endif
-    boost::unique_lock<boost::mutex> lk(state_change);
-    state.assert_lock_shared();
-
-    if (state.exclusive || state.exclusive_waiting_blocked ||
-      state.upgrade)
-      for (;;) {
-        cv_status status = exlusive_cond.wait_until(lk, abs_time);
-
-        if (!state.exlusive && !state.exclusive_waiting_blocked &&
-          !state.upgrade)
-          break;
-        if (status == cv_status::timeout)
-         return false;
+      if (!state.exclusive && !state.exclusive_waiting_blocked &&
+        !state.exclusive_waiting_blocked && !state.upgrade) {
+        state.upgrade = true;
+        return true;
       }
 
-    state.upgrade = true;
+      return false;
+    }
 
-    return true;
-  }
+#ifdef BOOST_THREAD_USES_CHRONO
+    template <class Rep, class Period>
+    bool try_unlock_shared_and_lock_upgrade_for(
+      const boost::chrono::duration<Rep, Period>& rel_time) {
+      return try_unlock_shared_and_lock_upgrade_until(
+        boost::chrono::time_point<Clock, Duration>& abs_time)
+    }
+
+    template <class Clock, class Duration>
+    bool try_unlock_shared_and_lock_upgrade_until(
+      const boost::chrono::time_point<Clock, Duration>& abs_time) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+      boost::this_thread::disable_interruption do_not_disturb;
+#endif
+      boost::unique_lock<boost::mutex> lk(state_change);
+      state.assert_lock_shared();
+
+      if (state.exclusive || state.exclusive_waiting_blocked ||
+        state.upgrade)
+        for (;;) {
+          cv_status status = exlusive_cond.wait_until(lk, abs_time);
+
+          if (!state.exlusive && !state.exclusive_waiting_blocked &&
+            !state.upgrade)
+            break;
+          if (status == cv_status::timeout)
+           return false;
+        }
+
+      state.upgrade = true;
+
+      return true;
+    }
 #endif
 #endif
 }; // class shared_mutex
-  typedef shared_mutex upgrade_mutex;
-} // namespace
+typedef shared_mutex upgrade_mutex;
 #include <boost/config/abi_suffix.hpp>
-
-#endif
