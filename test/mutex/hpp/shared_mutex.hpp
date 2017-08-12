@@ -179,4 +179,99 @@ private:
 #endif
 #ifdef BOOST_THREAD_USES_CHRONO
     template <class Rep, class Period>
-    bool try
+    bool try_lock_shared_for(
+      const boost::chrono::duration<Rep, Period>& rel_time) {
+      return try_lock_shared_until(
+        boost::chrono::steady_clock::now() + rel_time);
+    }
+
+    template <class Clock, class Duration>
+    bool try_lock_shared_until(
+      const boost::chrono::time_point<Clock, Duration>& abs_time) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+      boost::this_thread::disable_interruption do_not_disturb;
+#endif
+      boost::unique_lock<boost::mutex> lk(state_change);
+
+      while (!state.can_lock_shared())
+        if (cv_status::timeout == shared_cond.wait_until(lk, abs_time))
+          return false;
+
+      state.lock_shared();
+      return true;
+    }
+#endif
+
+    void unlock_shared() {
+      boost::unique_lock<boost::mutex> lk(state_change);
+      state.assert_lock_shared();
+      state.unlock_shared();
+
+      if (!state.more_shared())
+        if (state.upgrade) {
+          state.upgrade = false;
+          state.exclusive = true;
+          upgrade_cond.notify_one();
+        } else
+          state.exclusive_waiting_blocked = false;
+
+      release_waiters();
+
+    }
+
+    void lock() {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+      boost::this_thread::disable_interruption do_not_disturb;
+#endif
+      boost::unique_lock<boost::mutex> lk(state_change);
+
+      while (state.shared_count || state.exclusive) {
+        state.exclusive_waiting_blocked = true;
+        exclusive_cond.wait(lk);
+      }
+      state.exclusive = true;
+    }
+
+#if defined BOOST_THREAD_USES_DATETIME
+    bool timed_lock(boost::system_time const& timeout) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+      boost::this_thread::disable_interruption do_not_disturb;
+#endif
+      boost::unique_lock<boost::mutex> lk(state_change);
+
+      while (state.shared_count || state.exclusive) {
+        state.exclusive_waiting_blocked = true;
+
+        if (!exclusive_cond.timed_wait(lk, timeout) {
+          if (state.shared_count || state.exclusive) {
+            state.exclusive_waiting_blocked = false;
+            release_waiters();
+            return false;
+          }
+          break;
+        }
+      }
+      state.exclusive = true;
+      return false;
+    }
+
+    template <typename TimeDuration>
+    bool timed_lock(TimeDuration const& relative_time) {
+      return timed_lock(boost::get_system_time() + relative_time);
+    }
+#endif
+#ifdef BOOST_THREAD_USES_CHRONO
+    template <class Rep, class Period>
+    bool try_lock_for(const boost::chrono::duration<Rep, Period>& rel_time) {
+      return try_lock_until(boost::chrono::steady_clock::now() + rel_time);
+    }
+
+    template <class Clock, class Duration>
+    bool try_lock_until(
+      const boost::chrono::time_point<Clock, Duration>& abs_time) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+      boost::this_thread::disable_interruption do_not_disturb;
+#endif
+      boost::unique_lock<boost::mutex> lk(state_change);
+
+      while 
