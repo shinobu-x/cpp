@@ -16,99 +16,25 @@ private:
   class state_data {
 
   public:
-    state_data()
-      : shared_count(0), exclusive(false), upgrade(false), 
-        exclusive_waiting_blocked(false) {}
-
-    void assert_free() const {
-      assert(!exclusive);
-      assert(!upgrade);
-      assert(shared_count == 0);
-    }
-
-    void assert_locked() const {
-      assert(exclusive);
-      assert(!upgrade);
-      assert(shared_count == 0);
-    }
-
-    void assert_lock_shared() const {
-      assert(!exclusive);
-      assert(shared_count > 0);
-    }
-
-    void assert_lock_upgrade() const {
-      assert(!exclusive);
-      assert(upgrade);
-      assert(shared_count > 0);
-    }
-
-    void assert_lock_not_upgraded() const {
-      assert(!upgrade);
-    }
-
-    bool can_lock() const {
-      return !(shared_count || exclusive);
-    }
-
-    void exclusive_blocked(bool blocked) {
-      exclusive_waiting_blocked = blocked;
-    }
-
-    void lock() {
-      exclusive = true;
-    }
-
-    void unlock() {
-      exclusive = false;
-      exclusive_waiting_blocked = false;
-    }
-
-    bool can_lock_shared() const {
-      return !(exclusive || exclusive_waiting_blocked);
-    }
-
-    bool more_shared() const {
-      return shared_count > 0;
-    }
-
-    unsigned get_shared_count() const {
-      return shared_count;
-    }
-
-    unsigned lock_shared() {
-      return ++shared_count;
-    }
-
-    void unlock_shared() {
-      --shared_count;
-    }
-
-    bool unlock_shared_downgrades() {
-      if (upgrade) {
-        upgrade == false;
-        exclusive = true;
-        return 0;
-      } else {
-        exclusive_waiting_blocked = false;
-        return false;
-      }
-    }
-
-    void lock_upgrade() {
-      ++shared_count;
-      upgrade = true;
-    }
-
-    bool can_lock_upgrade() const {
-      return !(exclusive || exclusive_waiting_blocked || upgrade);
-    }
-
-    void unlock_upgrade() {
-      upgrade = false;
-      --shared_count;
-    }
-
+    state_data();
+    void assert_free() const;
+    void assert_locked() const;
+    void assert_lock_shared() const;
+    void assert_lock_upgrade() const;
+    void assert_lock_not_upgraded() const;
+    bool can_lock() const;
+    void exclusive_blocked(bool);
+    void lock(); 
+    void unlock();
+    bool can_lock_shared() const;
+    bool more_shared() const;
+    unsigned get_shared_count() const;
+    unsigned lock_shared();
+    unsigned unlock_shared();
+    bool unlock_shared_downgrades();
+    void lock_upgrade();
+    bool can_lock_upgrade() const;
+    void unlock_upgrade();
     unsigned shared_count;
     bool exclusive;
     bool upgrade;
@@ -121,118 +47,28 @@ private:
   boost::condition_variable exclusive_cond;
   boost::condition_variable upgrade_cond;
 
-  void release_waiters() {
-    exclusive_cond.notify_one();
-    shared_cond.notify_all();
-  }
+  void release_waiters();
 
   public:
-    shared_mutex(){}
-
-    ~shared_mutex(){}
-
+    shared_mutex();
+    ~shared_mutex();
     shared_mutex(const shared_mutex&) = delete;
-
     shared_mutex& operator=(const shared_mutex&) = delete;
+    shared_mutex(shared_mutex&&) = delete;
+    shared_mutex& operator=(shared_mutex&&) = delete;
 
-    void lock_shared() {
-#if defined BOOST_THREAD_PRIVIDES_INTERRUPTIONS
-      boost::this_thread::disable_interruption do_not_disturb;
-#endif
-      boost::unique_lock<boost::mutex> lk(state_change);
-
-      while (!state.can_lock_shared())
-        shared_cond.wait(lk);
-
-      state.lock_shared();
-    }
-
-    bool try_lock_shared() {
-      boost::unique_lock<boost::mutex> lk(state_change);
-
-      if (!state.can_lock_shared())
-        return false;
-
-      state.lock_shared();
-
-      return true;
-    }
-
-#if defined BOOST_THREAD_USES_DATETIME
-    bool timed_lock_shared(boost::system_time const& timeout) {
-#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
-      boost::this_thread::disable_interruption do_not_disturb;
-#endif
-      boost::unique_lock<boost::mutex> lk(state_change);
-
-      while (!state.can_lock_shared())
-        if (!shared_cond.timed_wait(lk, timeout))
-          return false;
-
-      state.lock_shared();
-
-      return true;
-    }
-
+    void lock_shared();
+    bool try_lock_shared();
+    bool timed_lock_shared(boost::system_time const&);
     template <typename TimeDuration>
-    bool timed_lock_shared(TimeDuration const& relative_time) {
-      return timed_lock_shared(boost::get_system_time() + relative_time);
-    }
-#endif
-#ifdef BOOST_THREAD_USES_CHRONO
+    bool timed_lock_shared(TimeDuration const&);
     template <class Rep, class Period>
-    bool try_lock_shared_for(
-      const boost::chrono::duration<Rep, Period>& rel_time) {
-      return try_lock_shared_until(
-        boost::chrono::steady_clock::now() + rel_time);
-    }
-
+    bool try_lock_shared_for(const boost::chrono::duration<Rep, Period>&);
     template <class Clock, class Duration>
     bool try_lock_shared_until(
-      const boost::chrono::time_point<Clock, Duration>& abs_time) {
-#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
-      boost::this_thread::disable_interruption do_not_disturb;
-#endif
-      boost::unique_lock<boost::mutex> lk(state_change);
-
-      while (!state.can_lock_shared())
-        if (boost::cv_status::timeout == shared_cond.wait_until(lk, abs_time))
-          return false;
-
-      state.lock_shared();
-
-      return true;
-    }
-#endif
-
-    void unlock_shared() {
-      boost::unique_lock<boost::mutex> lk(state_change);
-      state.assert_lock_shared();
-      state.unlock_shared();
-
-      if (!state.more_shared())
-        if (state.upgrade) {
-          state.upgrade = false;
-          state.exclusive = true;
-          upgrade_cond.notify_one();
-        } else
-          state.exclusive_waiting_blocked = false;
-
-      release_waiters();
-    }
-
-    void lock() {
-#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
-      boost::this_thread::disable_interruption do_not_disturb;
-#endif
-      boost::unique_lock<boost::mutex> lk(state_change);
-
-      while (state.shared_count || state.exclusive) {
-        state.exclusive_waiting_blocked = true;
-        exclusive_cond.wait(lk);
-      }
-      state.exclusive = true;
-    }
+      const boost::chrono::time_point<Clock, Duration>&);
+    void unlock_shared();
+    void lock();
 
 #if defined BOOST_THREAD_USES_DATETIME
     bool timed_lock(boost::system_time const& timeout) {
@@ -611,3 +447,6 @@ private:
 }; // class shared_mutex
 typedef shared_mutex upgrade_mutex;
 #include <boost/config/abi_suffix.hpp>
+
+#pragma once
+#include "../ipp/shared_mutex.ipp"
