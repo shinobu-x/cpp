@@ -201,3 +201,81 @@ void shared_mutex::lock() {
 
   state.exclusive = true;
 }
+
+#if defined BOOST_THREAD_USES_DATETIME
+bool shared_mutex::timed_lock(boost::system_time const& timeout) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+  boost::this_thread::disable_interruption do_not_disturb;
+#endif
+  boost::unique_lock<boost::mutex> lk(state_change);
+
+  while (state.shared_count || state.exclusive) {
+    state.exclusive_waiting_blocked = true;
+
+    if (!exclusive_cond.timed_wait(lk, timeout)) {
+      if (state.shared_count || state.exclusive) {
+        state.exclusive_waiting_blocked = false;
+        release_waiters();
+        return false;
+      }
+      break;
+    }
+  }
+  state.exclusive = true;
+
+  return false;
+}
+#endif
+#ifdef BOOST_THREAD_USES_CHRONO
+template <class Rep, class Period>
+bool shared_mutex::try_lock_for(
+  const boost::chrono::duration<Rep, Period>& rel_time) {
+  return try_lock_until(boost::chrono::steady_clock::now() + rel_time);
+}
+
+template <class Clock, class Duration>
+bool shared_mutex::try_lock_until(
+  const boost::chrono::time_point<Clock, Duration>& abs_time) {
+#if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+  boost::this_thread::disable_interruption do_not_disturb;
+#endif
+  boost::unique_lock<boost::mutex> lk(state_change);
+
+  while (state.shared_count || state.exclusive) {
+    state.exclusive_waiting_blocked = true;
+
+    if (boost::cv_status::timeout == exclusive_cond.wait_until(lk, abs_time)) {
+      if (state.shared_count || state.exclusive) {
+        state.exclusive_waiting_blocked = false;
+        release_waiters();
+        return false;
+      }
+      break;
+    }
+  }
+
+  state.exclusive = true;
+
+  return true;
+}
+#endif
+
+bool shared_mutex::try_lock() {
+  boost::unique_lock<boost::mutex> lk(state_change);
+
+  if (state.shared_count || state.exclusive)
+    return false;
+  else {
+    state.exclusive = true;
+    return true;
+  }
+}
+
+void shared_mutex::unlock() {
+  boost::unique_lock<boost::mutex> lk(state_change);
+  state.assert_locked();
+  state.exclusive = false;
+  state.exclusive_waiting_blocked = false;
+  state.assert_free();
+  release_waiters();
+}
