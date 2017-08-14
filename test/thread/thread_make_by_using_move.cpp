@@ -12,7 +12,6 @@ std::thread make_thread(std::thread::id* that_id) {
 }
 
 auto main() -> decltype(0) {
-  std::thread_specific_ptr<int> t;
   std::thread::id this_id;
   std::thread that_thread = make_thread(&this_id);
   std::thread::id that_id = that_thread.get_id();

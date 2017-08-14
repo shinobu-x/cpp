@@ -15,19 +15,21 @@ void test_1() {
     for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(boost::bind(
         &wait_for_flag::wait_without_predicate, &data));
+
     {
       boost::unique_lock<boost::mutex> l(data.m_);
       data.flag_ = true;
       data.cond_.notify_all();
-      assert(data.woken_ == number_of_threads);
     }
+      threads.join_all();
+      assert(data.woken_ == number_of_threads);
   } catch (...) {
     threads.join_all();
     throw;
   }
 
 }
-/*
+
 // Test condition notify all wakes from wait with predicate
 void test_2() {
   wait_for_flag data;
@@ -36,14 +38,13 @@ void test_2() {
   try {
     for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(boost::bind(
-        &wait_for_flag::wait_with_predicate, data));
+        &wait_for_flag::wait_with_predicate, &data));
 
     {
       boost::unique_lock<boost::mutex> l(data.m_);
       data.flag_ = true;
       data.cond_.notify_all();
     }
-
     threads.join_all();
     assert(data.woken_ == number_of_threads);
   } catch (...) {
@@ -60,14 +61,13 @@ void test_3() {
   try {
     for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(boost::bind(
-        &wait_for_flag::timed_wait_without_predicate, data));
+        &wait_for_flag::timed_wait_without_predicate, &data));
 
     {
       boost::unique_lock<boost::mutex> l(data.m_);
       data.flag_ = true;
       data.cond_.notify_all();
     }
-
     threads.join_all();
     assert(data.woken_ == number_of_threads);
   } catch (...) {
@@ -75,7 +75,8 @@ void test_3() {
     throw;
   }
 }
-*/
+
 auto main() -> decltype(0) {
+  test_1(); test_2(); test_3();
   return 0;
 }
