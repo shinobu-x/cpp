@@ -1,9 +1,8 @@
-#include <boost/bind.hpp>
-#include <boost/thread.hpp>
-
 #include <cassert>
 
+#include "../thread/thread_only.hpp"
 #include "../thread/condition_test_common.hpp"
+#include "../utils/utils.hpp"
 
 unsigned const number_of_threads = 5;
 
@@ -15,8 +14,7 @@ void test_1() {
   try {
     for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(boost::bind(
-        &wait_for_flag::wait_without_predicate, data));
-
+        &wait_for_flag::wait_without_predicate, &data));
     {
       boost::unique_lock<boost::mutex> l(data.m_);
       data.flag_ = true;
@@ -29,7 +27,7 @@ void test_1() {
   }
 
 }
-
+/*
 // Test condition notify all wakes from wait with predicate
 void test_2() {
   wait_for_flag data;
@@ -56,13 +54,13 @@ void test_2() {
 
 // Test condition notify all wakes from timed out
 void test_3() {
-  wiat_for_flag data;
+  wait_for_flag data;
   boost::thread_group threads;
 
   try {
-    for (unsigned i = 0; i < number_of_test_threads; ++i)
+    for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(boost::bind(
-        &wait_for_flag::timed_wiat_without_predicate, data));
+        &wait_for_flag::timed_wait_without_predicate, data));
 
     {
       boost::unique_lock<boost::mutex> l(data.m_);
@@ -77,7 +75,7 @@ void test_3() {
     throw;
   }
 }
-
+*/
 auto main() -> decltype(0) {
   return 0;
 }
