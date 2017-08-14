@@ -13,6 +13,11 @@ struct wait_for_flag {
   wait_for_flag()
     : flag_(false), woken_(0) {}
 
+  wait_for_flag(const wait_for_flag&) = delete;
+  wait_for_flag(wait_for_flag&&) = delete;
+  wait_for_flag& operator=(const wait_for_flag&) = delete;
+  wait_for_flag& operator=(wait_for_flag&&) = delete;
+
   struct check_flag {
     check_flag(bool const& flag)
       : flag_(flag) {}
