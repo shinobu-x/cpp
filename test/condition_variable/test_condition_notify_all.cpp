@@ -27,6 +27,7 @@ void test_1() {
     threads.join_all();
     throw;
   }
+
 }
 
 // Test condition notify all wakes from wait with predicate

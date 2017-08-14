@@ -71,5 +71,6 @@ struct wait_for_flag {
       check_flag(flag_)) && flag_)
       ++woken_;
   }
+
 };
 
