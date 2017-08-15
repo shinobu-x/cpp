@@ -88,6 +88,7 @@ void test_2() {
     assert(false);
   } catch (err&) {
   } catch (...) {
+    assert(false);
   }
 }
   
