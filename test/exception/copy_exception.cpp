@@ -3,6 +3,8 @@
 #include <boost/thread.hpp>
 #include <boost/detail/atomic_count.hpp>
 
+#include <cassert>
+
 typedef boost::error_info<struct tag_answer, int> answer;
 boost::detail::atomic_count exc_count(0);
 
@@ -52,11 +54,46 @@ void producer(future& f) {
 }
 
 void consumer() {
-  future p;
+  future f;
   boost::thread th(boost::bind(&producer, boost::ref(f)));
 
-  try
+  try {
+    f.get_exception();
+  } catch (err& e) {
+    int const* ans = boost::get_error_info<answer>(e);
+    assert(ans && *ans == 42);
+  }
 
+  th.join();
+}
+
+void consume() {
+  for (int i = 0; i < 100; ++i)
+    consumer();
+}
+void test_1() {
+  boost::thread_group threads;
+
+  for (int i = 0; i < 50; ++i)
+    threads.create_thread(&consume);
+
+  threads.join_all();
+}
+
+void test_2() {
+  boost::exception_ptr p = boost::copy_exception(err());
+
+  try {
+    rethrow_exception(p);
+    assert(false);
+  } catch (err&) {
+  } catch (...) {
+  }
+}
+  
 auto main() -> decltype(0) {
+  assert(++exc_count == 1);
+  test_1(); test_2();
+  assert(!--exc_count);
   return 0;
 }
