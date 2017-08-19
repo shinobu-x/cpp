@@ -423,3 +423,5 @@ namespace {
   };
   
 } // namespace
+
+#include <boost/container/detail/config_end.hpp>
