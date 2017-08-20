@@ -188,3 +188,5 @@ unsigned int propagation_test_allocator<T,
 } // namespace
 
 #include <boost/container/detail/config_end.hpp>
+
+#pragma once
