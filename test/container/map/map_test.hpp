@@ -193,6 +193,44 @@ namespace {
       for (int i = 0; i < max_elem; ++i)
         new(&aux_vect2[i])std_value_type(
           std_key_type(i/2), std_mapped_type(i/2));
+
+      int_pair_type aux_vect3[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(i/2);
+        int_type i2(i/2);
+        new(&aux_vect3[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      ::boost::movelib::unique_ptr<boost_map> const ptr_boost_map =
+        ::boost::movelib::make_unique<boost_map>(
+          boost::make_move_iterator(&aux_vect1[0]),
+          boost::make_move_iterator(&aux_vect1[0] + max_elem),
+          typename boost_map::allocator_type());
+
+      ::boost::movelib::unique_ptr<std_map> const ptr_std_map =
+        ::boost::movelib::make_unique<std_map>(
+          &aux_vect2[0],
+          &aux_vect2[0] + max_elem,
+          typename std_map::key_compare());
+
+      if (!check_equal_containers(*ptr_boost_map, *ptr_std_map0))
+        return 1;
+
+      ::boost::movelib::unique_ptr<boost_multimap> const ptr_boost_multimap =
+        ::boost::movelib::make_unique<boost_multimap>(
+          boost::make_move_iterator(&aux_vect3[0]),
+          boost::make_move_iterator(&aux_vect3[0] + max_elem),
+          typename boost_map::allocator_type());
+
+      ::boost::movelib::unique_ptr<std_multimap> const ptr_std_multimap =
+        ::boost::movelib::make_unique<std_multimap>(
+          &aux_vect2[0],
+          &aux_vect2[0] + max_elem,
+          typename std_map::key_compare());
+
+      if (!check_equal_containers(*ptr_boost_multimap, *ptr_std_multimap))
+        return 1;
+    }
           
       
 } // namespace
