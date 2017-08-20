@@ -381,6 +381,32 @@ namespace {
         boost_map_t2[::boost::move(i0)] = ::boost::move(i1);
       }
       {
-   
-      
+        int_type i1(1);
+        boost_map_t2[int_type(0)] = ::boost::move(i1);
+      }
+
+      if (!check_equal_containers(boost_map_t2, std_map_t2))
+        return 1;
+    }
+    {
+      int_pair_type aux_vect1[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(i);
+        int_type i2(i);
+        new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      int_pair_type aux_vect2[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(i);
+        int_type i2(i);
+        new(&aux_vect2[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      for (int i = 0; i < max_elem; ++i) {
+        boost_map.insert(boost::move(aux_vect1[i]));
+        std_map.insert(std_pair_type(i, i));
+        boost_multimap.insert(boost::move(aux_vect2[i]));
+        std_multimap.insert(std_pair_type(i, i));
+      }  
 } // namespace
