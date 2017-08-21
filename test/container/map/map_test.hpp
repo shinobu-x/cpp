@@ -408,5 +408,159 @@ namespace {
         std_map.insert(std_pair_type(i, i));
         boost_multimap.insert(boost::move(aux_vect2[i]));
         std_multimap.insert(std_pair_type(i, i));
-      }  
+      }
+
+      if (!check_equal_pair_containers(boost_map, std_map))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multimap, std_multimap))
+        return 1;
+
+      typename boost_map::iterator it = boost_map_t.begin();
+      typename boost_map::const_iterator cit = it;
+      (void)cit;
+
+      boost_map_t.erase(boost_map_t.begin());
+      std_map_t.erase(std_map_t.begin());
+      boost_multimap_t.erase(boost_multimap_t.begin());
+      std_multimap_t.erase(std_multimap_t.begin());
+
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multi_map_t, std_multimap_t))
+        return 1;
+
+      boost_map_t.erase(boost_map_t.begin());
+      std_map_t.erase(std_map_t.begin());
+      boost_multimap_t.erase(boost_multimap_t.begin());
+      std_multimap_t.erase(std_multimap_t.begin());
+
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
+        return 1;
+
+      boost_map tmp_boost_map1;
+      std_map tmp_std_map1;
+      boost_multimap tmp_boost_multimap1;
+      std_multimap tmp_std_multimap1;
+      boost_map_t.swap(tmp_boost_map1);
+      std_map_t.swap(tmp_std_map1);
+      boost_multimap_t.swap(tmp_boost_multimap1);
+      std_multimap_t.swap(tmp_std_multimap1);
+      boost_map_t.swap(tmp_boost_map1);
+      std_map_t.swap(tmp_std_map1);
+      boost_multimap_t.swap(tmp_boost_multimap1);
+      std_multimap_t.swap(tmp_std_multimap1);
+
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
+        return 1;
+    }
+    {
+      int_pair_type aux_vect1[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+      int_pair_type aux_vect2[max_elem];
+      for (int i 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect2[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      boost_map_t.insert(
+        boost::make_move_iterator(&aux_vect1[0]),
+        boost::make_move_iterator(&aux_vect1[0] + max_elem));
+
+      boost_multimap_t.insert(
+        boost::make_move_iterator(&aux_vect2[0]),
+        boost::make_move_iterator(&aux_vect2[0] + max_elem));
+
+      for (int i = 0; i != max_elem; ++i) {
+        std_pair_type std_pair_type(-1, -1);
+        std_map_t.insert(std_pair_type);
+        std_multimap_t.insert(std_pair_type);
+      }
+
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
+        return 1;
+    }
+    {
+      int_pair_type aux_vect1[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      int_pair_type aux_vect2[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect2[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      int_pair_type aux_vect3[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect3[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      int_pair_type aux_vect4[max_elem];
+      for (int i = 0; i < max_elem; ++i) {
+        int_type i1(-1);
+        int_type i2(-1);
+        new(&aux_vect4[i])int_pair_type(boost::move(i1), boost::move(i2));
+      }
+
+      boost_map_t.insert(
+        boost::make_move_iterator(&aux_vect1[0]),
+        boost::make_move_iterator(&aux_vect1[0] + max_elem));
+      boost_map_t.insert(
+        boost::make_move_iterator(&aux_vect2[0]),
+        boost::make_move_iterator(&aux_vect2[0] + max_elem));
+      boost_multimap_t.insert(
+        boost::make_move_iterator(&aux_vect3[0]),
+        boost::make_move_iterator(&aux_vect3[0] + max_elem));
+      boost_multimap_t.insert(
+        boost::make_move_iterator(&aux_vect4[0]),
+        boost::make_move_iterator(&aux_vect4[0] + max_elem));
+
+      for (int i = 0; i != max_elem; ++i) {
+        std_pair_type std_pair_type(-1, -1);
+        std_map_t.insert(std_pair_type);
+        std_multimap_t.insert(std_pair_type);
+        std_map_t.insert(std_pair_type);
+        std_multimap_t.insert(std_pair_type);
+      }
+
+      boost_map_t.erase(boost_map_t.begin()->first);
+      std_map_t.erase(std_map_t.begin()->first);
+      boost_multimap_t.erase(boost_multimap_t.begin()->first);
+      std_multimap_t.erase(std_multimap_t.begin()->first);
+
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
+        return 1;
+
+      if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
+        return 1;
+    }
+    {
+      int_pair_type aux_vect1[max_elem];
+      int_type i1(i);
+      int_type i2(i);
+      new(&aux_avect1[i])int_pair_type(
+        boost::move(i1), boost::move(i2));
+
 } // namespace
