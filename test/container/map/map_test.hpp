@@ -1094,9 +1094,9 @@ namespace {
         }
 #endif
         {
-          map_type m0(ordered_unique_range, &value, &value);
-          map_type m1(ordered_unique_range, &value, &value, comp);
-          map_type m2(ordered_unique_range, &value, &value, comp, alloc);
+          map_type m1(ordered_unique_range, &value, &value);
+          map_type m2(ordered_unique_range, &value, &value, comp);
+          map_type m3(ordered_unique_range, &value, &value, comp, alloc);
         }
       }
 
@@ -1107,8 +1107,40 @@ namespace {
         value_type value;
 
         {
-        
-    
+          multimap_type m1;
+          multimap_type m2(comp);
+          multimap_type m3(alloc);
+          multimap_type m4(comp, alloc);
+        }
+        {
+          multimap_type m1(&value, &value);
+          multimap_type m2(&value, &value, comp);
+          multimap_type m3(&value, &value, alloc);
+          multimap_type m4(&value, &value, comp, alloc);
+        }
+#if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
+        {
+          std::initializer_list<value, value> il;
+          multimap_type m1(il);
+          multimap_type m2(il, comp);
+          multimap_type m3(il, alloc);
+          multimap_type m4(il, comp, alloc);
+        }
+        {
+          std::initializer_list<value, value> il;
+          multimap_type m1(ordered_range, il);
+          multimap_type m2(ordered_range, il, comp);
+          multimap_type m3(ordered_range, il, comp, alloc);
+        }
+#endif
+        {
+          multimap_t m1(ordered_range, &value, &value);
+          multimap_t m2(ordered_range, &value, &value, comp);
+          multimap_t m3(ordered_range, &value, &value, comp, alloc);
+        }
+      }
 
-// 879
+      return true;
+    }
+  }
 } // namespace
