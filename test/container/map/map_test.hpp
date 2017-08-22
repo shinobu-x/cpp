@@ -956,23 +956,159 @@ namespace {
             int_type i2(i);
             new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i1));
           }
-        }
-        {
+
           int_pair_type aux_vect2[max_elem];
           for (int i = 0; i < max_elem; ++i) {
             int_type i1(max_elem/2+i);
             int_type i2(max_elem-i);
             new(&aux_vect2[i])int_pair_type(boost::move(i1), boost::move(i2));
           }
-        }
-        {
+
           int_pair_type aux_vect3[max_elem];
           for (int i = 0; i < max_elem; ++i) {
             int_type i1(max_elem*2/2+i);
-            int_type i2(max_elem-i);
+            int_type i2(max_elem*2+i);
             new(&aux_vect3[i])int_pair_type(boost::move(i1), boost::move(i2));
           }
+
+          boost_multimap_t.insert(
+            boost::make_move_iterator(&aux_vect1[0]),
+            boost::make_move_iterator(&aux_vect1[0] + max_elem));
+
+          boost_multimap2.insert(
+            boost::make_move_iterator(&aux_vect2[0]),
+            boost::make_move_iterator(&aux_vect2[0] + max_elem));
+
+          boost_map2.insert(
+            boost::make_move_iterator(&aux_vect3[0]),
+            boost::make_move_iterator(&aux_vect3[0] + max_elem));
         }
+
+        for (int i = 0; i < max_elem; ++i)
+          std_multimap_t.insert(std_pair_type(i, i));
+
+        for (int i = 0; i < max_elem; ++i)
+          std_multimap_t.insert(std_pair_type(max_elem/2+i, max_elem-i));
+
+        boost_multimap_t.merge(boost::move(boost_multimap2));
+
+        if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
+          return 1;
+
+        for (int i = 0; i < max_elem; ++i)
+          std_multimap_t.insert(std_pair_type(max_elem*2/2+i, max_elem*2+i));
+
+        boost_multimap_t.merge(boost::move(boost_multimap2));
+
+        if (!check_equal_pair_containers(boost_multimap_t, std_multimap))
+          return 1;
+      }
+
+      if (map_test_copyable<boost_map, std_map, boost_multimap, std_multimap>(
+        boost::containers::container_detail::bool_<
+          is_copyable<int_type>::value>()))
+        return 1;
+
+      return 0;
+    }
+    template <typename map_type>
+    bool test_map_support_for_initialization_list_for() {
+#if !defined(BOOST_NO_CX11_HDR_INITIALIZER_LIST)
+      const std::initializer_list<
+        std::pair<typename map_type::value_type::first_type,
+        typename map_type::mapped_type> > il =
+        {
+          std::make_pair(1, 2),
+          std::make_pair(3, 4)
+        };
+
+      const map_type expected_map(il.begin(), il.end());
+      {
+        const map_type il1 = il;
+
+        if (il1 != expected_map)
+          return false;
+
+        map_type il3(il, typename map_type::key_compare(),
+        typename map_type::allocator_type());
+
+        if (il2 !- expected_map)
+          return false;
+
+        const map_type il_ordered(ordered_unique_range, il);
+
+        if (il_ordered != expected_map)
+          return false;
+
+        map_type il_assign = { std::make_pair(99, 100) };
+        il_assign = il;
+
+        if (il_assign != expected_map)
+          return false;
+      }
+      {
+        map_type il;
+        il1.insert(il);
+        if (il1 != expected_map)
+          return false;
+      }
+
+      return true;
+#endif
+      return true;
+    }
+
+    template <typename map_type, typename multimap_type>
+    bool instantiate_constructors() {
+      {
+        typedef typename map_type::value_type value_type;
+        typename map_type::key_compare comp;
+        typename map_type::allocator_type alloc;
+        value_type value;
+
+        {
+          map_type m1;
+          map_type m2(comp);
+          map_type m3(alloc);
+          map_type m4(comp, alloc);
+        }
+        {
+          map_type m1(&value, &value);
+          map_type m2(&value, &value, comp);
+          map_type m3(&value, &value, alloc);
+          map_type m4(&value, &value, comp, alloc);
+        }
+#if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
+        {
+          std::initializer_list<value_type> li;
+          map_type m1(il);
+          map_type m2(il, comp);
+          map_type m3(il, alloc);
+          map_type m4(il, comp, alloc);
+        }
+        {
+          std::initializer_list<value_type> il;
+          map_type m1(ordered_unique_range, il);
+          map_type m2(ordered_unique_range, il, comp);
+          map_type m3(ordered_unique_range, il, comp, alloc);
+        }
+#endif
+        {
+          map_type m0(ordered_unique_range, &value, &value);
+          map_type m1(ordered_unique_range, &value, &value, comp);
+          map_type m2(ordered_unique_range, &value, &value, comp, alloc);
+        }
+      }
+
+      {
+        typedef typename multimap_type::value_type value_type;
+        typename multimap_type::key_compare comp;
+        typename multimap_type::allocator_type alloc;
+        value_type value;
+
+        {
+        
+    
 
 // 879
 } // namespace
