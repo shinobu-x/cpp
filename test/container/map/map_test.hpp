@@ -130,7 +130,7 @@ namespace {
     typedef typename std_map::value_type std_value_type;
     typedef typename std_map::key_type std_key_type;
     typedef typename std_map::mapped_type std_mapped_type;
-/*
+
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -182,8 +182,7 @@ namespace {
       if (!check_equal_containers(*ptr_boost_multimap, *ptr_std_multimap))
         return 1;
     }
-*/
-/*
+
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -234,7 +233,7 @@ namespace {
       if (!check_equal_containers(*ptr_boost_multimap, *ptr_std_multimap))
         return 1;
     }
-*/
+
     ::boost::movelib::unique_ptr<boost_map> const ptr_boost_map =
       ::boost::movelib::make_unique<boost_map>();
     ::boost::movelib::unique_ptr<std_map> const ptr_std_map =
@@ -248,7 +247,7 @@ namespace {
     std_map& std_map_t = *ptr_std_map;
     boost_multimap& boost_multimap_t = *ptr_boost_multimap;
     std_multimap& std_multimap_t = *ptr_std_multimap;
-/*
+
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -309,7 +308,7 @@ namespace {
         new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i2));
       }
 
-      for (int i = 0; i < max_elem; ++i) {
+      for (int i = 0; i < max_elem; ++i) 
         new(&aux_vect2[i])std_value_type(std_key_type(i), std_mapped_type(i));
 
       for (int i = 0; i < max_elem; ++i) {
@@ -393,8 +392,7 @@ namespace {
       if (!check_equal_containers(boost_map_t2, std_map_t2))
         return 1;
     }
-*/
-/*
+
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -468,8 +466,6 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -504,8 +500,6 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -567,8 +561,6 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
     {
       int_pair_type aux_vect1[max_elem];
       for (int i = 0; i < max_elem; ++i) {
@@ -742,8 +734,7 @@ namespace {
             return 1;
       }
     }
-*/
-/*
+
     {
       boost_map_t.clear();
       std_map_t.clear();
@@ -769,8 +760,8 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
+
+
     {
       boost_map_t.clear();
       std_map_t.clear();
@@ -815,8 +806,8 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
+
+
     {
       boost_map_t.clear();
       std_map_t.clear();
@@ -899,8 +890,8 @@ namespace {
       if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
         return 1;
     }
-*/
-/*
+
+
     {
       ::boost::movelib::unique_ptr<boost_map> const ptr_boost_map2 =
         ::boost::movelib::make_unique<boost_map>();
@@ -922,7 +913,7 @@ namespace {
         for (int i = 0; i < max_elem; ++i) {
           int_type i1(i);
           int_type i2(i);
-          new(&aux_vect2[i])int_pair_type(boost::move(i1), boost::move(i2));
+          new(&aux_vect1[i])int_pair_type(boost::move(i1), boost::move(i2));
         }
 
         int_pair_type aux_vect2[max_elem];
@@ -1032,7 +1023,7 @@ namespace {
         return 1;
       
     }
-*/
+
     if (map_test_copyable<boost_map, std_map, boost_multimap, std_multimap>(
       boost::container::container_detail::bool_<
         is_copyable<int_type>::value>()))
@@ -1076,7 +1067,7 @@ namespace {
         return false;
     }
     {
-      map_type il;
+      map_type il1;
       il1.insert(il);
       if (il1 != expected_map)
         return false;
@@ -1109,7 +1100,7 @@ namespace {
       }
 #if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
       {
-        std::initializer_list<value_type> li;
+        std::initializer_list<value_type> il;
         map_type m1(il);
         map_type m2(il, comp);
         map_type m3(il, alloc);
@@ -1117,15 +1108,17 @@ namespace {
       }
       {
         std::initializer_list<value_type> il;
-        map_type m1(ordered_unique_range, il);
-        map_type m2(ordered_unique_range, il, comp);
-        map_type m3(ordered_unique_range, il, comp, alloc);
+        map_type m1(boost::container::ordered_unique_range, il);
+        map_type m2(boost::container::ordered_unique_range, il, comp);
+        map_type m3(boost::container::ordered_unique_range, il, comp, alloc);
       }
 #endif
       {
-        map_type m1(ordered_unique_range, &value, &value);
-        map_type m2(ordered_unique_range, &value, &value, comp);
-        map_type m3(ordered_unique_range, &value, &value, comp, alloc);
+        map_type m1(boost::container::ordered_unique_range, &value, &value);
+        map_type m2(
+          boost::container::ordered_unique_range, &value, &value, comp);
+        map_type m3(
+          boost::container::ordered_unique_range, &value, &value, comp, alloc);
       }
     }
 
@@ -1149,23 +1142,24 @@ namespace {
       }
 #if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
       {
-        std::initializer_list<value, value> il;
+        std::initializer_list<value_type> il;
         multimap_type m1(il);
         multimap_type m2(il, comp);
         multimap_type m3(il, alloc);
         multimap_type m4(il, comp, alloc);
       }
       {
-        std::initializer_list<value, value> il;
-        multimap_type m1(ordered_range, il);
-        multimap_type m2(ordered_range, il, comp);
-        multimap_type m3(ordered_range, il, comp, alloc);
+        std::initializer_list<value_type> il;
+        multimap_type m1(boost::container::ordered_range, il);
+        multimap_type m2(boost::container::ordered_range, il, comp);
+        multimap_type m3(boost::container::ordered_range, il, comp, alloc);
       }
 #endif
       {
-        multimap_t m1(ordered_range, &value, &value);
-        multimap_t m2(ordered_range, &value, &value, comp);
-        multimap_t m3(ordered_range, &value, &value, comp, alloc);
+        multimap_type m1(boost::container::ordered_range, &value, &value);
+        multimap_type m2(boost::container::ordered_range, &value, &value, comp);
+        multimap_type m3(
+          boost::container::ordered_range, &value, &value, comp, alloc);
       }
     }
 
