@@ -106,11 +106,11 @@ bool node_type_test() {
 
     {
       movable_int mvi1(1);
-      moveable_int mvi2(2);
-      moveable_int mvi3(3);
-      moveable_int mvi11(11);
-      moveable_int mvi12(12);
-      moveable_int mvi13(13);
+      movable_int mvi2(2);
+      movable_int mvi3(3);
+      movable_int mvi11(11);
+      movable_int mvi12(12);
+      movable_int mvi13(13);
       src.try_emplace(boost::move(mvi1), boost::move(mvi11));
       src.try_emplace(boost::move(mvi2), boost::move(mvi12));
       src.try_emplace(boost::move(mvi3), boost::move(mvi13));
@@ -121,20 +121,19 @@ bool node_type_test() {
 
     map_t dst;
     {
-      moveable_int mvi3(3);
-      moveable_int mvi33(33);
+      movable_int mvi3(3);
+      movable_int mvi33(33);
       dst.try_emplace(boost::move(mvi3), boost::move(mvi33));
     }
    
-    if (dst.size != 1)
+    if (dst.size() != 1)
       return false;
 
-    const moveable_int mvi1(1);
-    const moveable_int mvi2(2);
-    const moveable_int mvi3(3);
-    const moveable_int mvi11(11);
-    const moveable_int mvi12(12);
-    const moveable_int mvi13(13);
+    const movable_int mvi1(1);
+    const movable_int mvi2(2);
+    const movable_int mvi3(3);
+    const movable_int mvi33(33);
+    const movable_int mvi13(13);
 
     map_t::insert_return_type r;
 
@@ -142,8 +141,8 @@ bool node_type_test() {
     if (!(r.position == dst.end() && r.inserted == false && r.node.empty()))
       return false;
 
-    r = dst.insert(src.extract(src.find(mvi1)))
-    if (!(r.position == dst.find(mvi1) && r.inserted == true && r.node.empty())
+    r = dst.insert(src.extract(src.find(mvi1)));
+    if (!(r.position == dst.find(mvi1) && r.inserted == true && r.node.empty()))
       return false;
 
     r = dst.insert(dst.begin(), src.extract(mvi2));
@@ -159,6 +158,82 @@ bool node_type_test() {
          r.node.key() == mvi3 && r.node.mapped() == mvi13))
       return false;
   }
+
+  {
+    typedef boost::container::multimap<movable_int, movable_int> multimap_t;
+    multimap_t src;
+    {
+      movable_int mvi1(1);
+      movable_int mvi2(2);
+      movable_int mvi3(3);
+      movable_int mvi3bits(3);
+      movable_int mvi11(11);
+      movable_int mvi12(12);
+      movable_int mvi13(13);
+      movable_int mvi23(23);
+
+      src.emplace(boost::move(mvi1), boost::move(mvi11));
+      src.emplace(boost::move(mvi2), boost::move(mvi12));
+      src.emplace(boost::move(mvi3), boost::move(mvi13));
+      src.emplace_hint(src.begin(), boost::move(mvi3bits), boost::move(mvi23));
+    }
+
+    if (src.size() != 4)
+      return false;
+
+    multimap_t dst;
+    {
+      movable_int mvi3(3);
+      movable_int mvi33(33);
+      dst.emplace(boost::move(mvi3), boost::move(mvi33));
+    }
+
+    if (dst.size() != 1)
+      return false;
+
+    const movable_int mvi1(1);
+    const movable_int mvi2(2);
+    const movable_int mvi3(3);
+    const movable_int mvi4(4);
+    const movable_int mvi33(33);
+    const movable_int mvi13(13);
+    const movable_int mvi23(23);
+
+    multimap_t::iterator it;
+
+    multimap_t::node_type nt(src.extract(mvi3));
+    it = dst.insert(dst.begin(), boost::move(nt));
+    if (!(it->first == mvi3 && it->second == mvi23 && dst.find(mvi3) == it &&
+      nt.empty()))
+      return false;
+
+    nt = src.extract(src.find(mvi1));
+    it = dst.insert(boost::move(nt));
+    if (!(it->first == mvi1 && nt.empty()))
+      return false;
+
+    nt = src.extract(mvi2);
+    it = dst.insert(boost::move(nt));
+    if (!(it->first == mvi2 && nt.empty()))
+      return false;
+
+    it = dst.insert(src.extract(mvi3));
+    if (!(it->first == mvi3 && it->second == mvi13 &&
+      it == --multimap_t::iterator(dst.upper_bound(mvi3)) && nt.empty()))
+      return false;
+
+    it = dst.insert(src.extract(mvi4));
+    if (!(it == dst.end()))
+      return false;
+
+    if (!src.empty())
+      return false;
+
+    if (dst.size() != 5)
+      return false;
+  }
+
+  return true;
 
 } // node_type_test
 
