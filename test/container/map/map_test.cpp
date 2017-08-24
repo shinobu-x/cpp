@@ -37,6 +37,8 @@ namespace boost { namespace container {
 
 class recursive_map;
 class recursive_multimap;
+template <class void_allocator,
+  boost::container::tree_type_enum tree_type_value>
 struct get_allocator_map;
 struct boost_container_map;
 struct boost_container_multimap;
@@ -239,18 +241,92 @@ bool node_type_test() {
 
 namespace {
 template <>
-struct alloc_propagate_base<boost_container_map>{
+struct alloc_propagate_base<boost_container_map> {
   template <class T, class allocator_t>
   struct apply {
-    typedef typename boost::container::allocator_traits<allocator_t>::
-      template portable_rebind_alloc<
-        std::pair<const T, T> >::type alloc_t;
+    typedef typename boost::container::allocator_traits<allocator_t>::template
+      portable_rebind_alloc<std::pair<const T, T> >::type alloc_t;
+
+    typedef boost::container::multimap<T, T, std::less<T>, alloc_t> type;
+  };
+};
+
+template <>
+struct alloc_propagate_base<boost_container_multimap> {
+  template <class T, class allocator_t>
+  struct apply {
+    typedef typename boost::container::allocator_traits<allocator_t>::template
+      portable_rebind_alloc<std::pair<const T, T> >::type alloc_t;
 
     typedef boost::container::multimap<T, T, std::less<T>, alloc_t> type;
   };
 };
 } // namespace
 
-auto main() -> decltype(0) {
+template <class void_allocator,
+  boost::container::tree_type_enum tree_type_value>
+struct get_allocator_map {
+  template <class value_type>
+  struct apply {
+    typedef boost::container::map<value_type,
+      value_type,
+      std::less<value_type>,
+      typename boost::container::allocator_traits<void_allocator>::template
+        portable_rebind_alloc<std::pair<
+          const value_type,
+          value_type> >::type,
+          typename boost::container::tree_assoc_options<
+            boost::container::tree_type<tree_type_value> >::type
+        > map_type;
+
+    typedef boost::container::multimap<value_type,
+      value_type,
+      std::less<value_type>,
+      typename boost::container::allocator_traits<void_allocator>::template
+        portable_rebind_alloc<std::pair<
+          const value_type,
+          value_type> >::type,
+          typename boost::container::tree_assoc_options<
+            boost::container::tree_type<tree_type_value> >::type
+        > multimap_type;
+  };
+};
+
+template <class void_allocator,
+  boost::container::tree_type_enum tree_type_value>
+int test_map_variants() {
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<int>::map_type map_t;
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<movable_int>::map_type movable_map_t;
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<copyable_int>::map_type copyable_map_t;
+
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<int>::multimap_type multimap_t;
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<movable_int>::multimap_type movable_multimap_t;
+  typedef typename get_allocator_map<void_allocator, tree_type_value>::template
+    apply<copyable_int>::multimap_type copyable_multimap_t;
+
+  typedef std::map<int, int> std_map_t;
+  typedef std::multimap<int, int> std_multimap_t;
+
+  if (0 != map_test<
+    map_t, std_map_t, multimap_t, std_multimap_t>())
+    return 1;
+
+  if (0 != map_test<
+    movable_map_t, std_map_t, movable_multimap_t, std_multimap_t>())
+    return 1;
+
+  if (0 != map_test<
+    copyable_map_t, std_map_t, copyable_multimap_t, std_multimap_t>())
+    return 1;
+
   return 0;
 }
+
+auto main() -> decltype(0) {
+  return 0;
+}       
