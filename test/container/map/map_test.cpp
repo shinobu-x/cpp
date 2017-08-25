@@ -327,6 +327,41 @@ int test_map_variants() {
   return 0;
 }
 
+void test_merge_from_different_comparison() {
+  boost::container::map<int, int> map1;
+  boost::container::map<int, int, std::greater<int> > map2;
+  map1.merge(map2);
+}
+
 auto main() -> decltype(0) {
+  { // Recursive container instantiation
+    boost::container::map<recursive_map, recursive_map> map_t;
+    boost::container::multimap<recursive_map, recursive_map> multimap_t;
+  }
+
+  { // Allocator argument container
+    boost::container::map<int, int> map_t((
+      boost::container::map<int, int>::allocator_type()));
+    boost::container::multimap<int, int> multimap_t((
+      boost::container::multimap<int, int>::allocator_type()));
+  }
+
+  { // Test move semantics
+    test_move<boost::container::map<recursive_map, recursive_map> >();
+    test_move<boost::container::multimap<recursive_map, recursive_map> >();
+  }
+
+  { // Test std::pair value type as tree has workarounds to make old std::pair
+    // implementations movable that can break things
+    boost::container::map<pair_t, pair_t> a;
+    std::pair<const pair_t, pair_t> b;
+    a.insert(b);
+    a.emplace(b);
+  }
+
+  if (test_map_variants<std::allocator<void>,
+    boost::container::red_black_tree>()) {
+     return 1;
+  }
   return 0;
 }       

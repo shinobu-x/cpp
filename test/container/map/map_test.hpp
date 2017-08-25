@@ -670,10 +670,10 @@ namespace {
             std_pair_type(i, i));
         }
 
-        if (!check_equal_pair(boost_map_t, std_map_t))
+        if (!check_equal_pair_containers(boost_map_t, std_map_t))
           return 1;
 
-        if (!check_equal_pair(boost_multimap_t, std_multimap_t))
+        if (!check_equal_pair_containers(boost_multimap_t, std_multimap_t))
           return 1;
 
         map_test_rebalanceable(boost_map_t,
@@ -783,7 +783,7 @@ namespace {
       }
 
       for (int i = 0; i < max_elem; ++i) {
-        boost_map_t.insert_of_assign(boost::move(aux_vect1[i].first),
+        boost_map_t.insert_or_assign(boost::move(aux_vect1[i].first),
           boost::move(aux_vect1[i].second));
         std_map_t[i] = i;
       }
@@ -795,7 +795,7 @@ namespace {
         return 1;
 
       for (int i = 0; i < max_elem; ++i) {
-        boost_map_t.insert_of_assign(boost::move(aux_vect2[i].first),
+        boost_map_t.insert_or_assign(boost::move(aux_vect2[i].first),
           boost::move(aux_vect2[i].second));
         std_map_t[i] = max_elem - 1;
       }
@@ -959,7 +959,7 @@ namespace {
 
       boost_map_t.merge(boost::move(boost_multimap2));
 
-      if (!check_equal_pair_contaners(boost_map_t, std_map_t))
+      if (!check_equal_pair_containers(boost_map_t, std_map_t))
         return 1;
 
       boost_map2.clear();
