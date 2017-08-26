@@ -155,7 +155,7 @@ namespace {
         ::boost::movelib::make_unique<boost_map>(
           boost::make_move_iterator(&aux_vect1[0]),
           boost::make_move_iterator(&aux_vect1[0] + max_elem),
-          boost_map::key_compare());
+          typename boost_map::key_compare());
 
       ::boost::movelib::unique_ptr<std_map> const ptr_std_map =
         ::boost::movelib::make_unique<std_map>(
@@ -258,7 +258,7 @@ namespace {
 
       typedef typename std_map::value_type std_value_type;
       typedef typename std_map::key_type std_key_type;
-      typedef typename std_map::mapped_key std_mapped_type;
+      typedef typename std_map::mapped_type std_mapped_type;
       std_value_type aux_vect2[max_elem];
       for (int i = 0; i < max_elem; ++i)
         new(&aux_vect2[i])std_value_type(
@@ -654,7 +654,7 @@ namespace {
         {
           int_type i1(i);
           boost_map_t.insert(boost_map_t.upper_bound(
-            boost::move(i1), boost::move(int_pair)));
+            boost::move(i1)), boost::move(int_pair));
           std_map_t.insert(std_map_t.upper_bound(i), std_pair_type(i, i));
         }
         {

@@ -7,7 +7,7 @@
 #include <iostream>
 // #include <typeinfo>
 
-namespace {
+// namespace {
   class emplace_int {
     BOOST_MOVABLE_BUT_NOT_COPYABLE(emplace_int)
 
@@ -298,6 +298,117 @@ namespace {
   }
 
   template <class container_type>
+  bool test_emplace_front(boost::container::container_detail::false_) {
+    return true;
+  }
+
+  template <class container_type>
+  bool test_emplace_before(boost::container::container_detail::true_) {
+    static emplace_int expected [10];
+    {
+      new(&expected[0]) emplace_int();
+      new(&expected[1]) emplace_int(1);
+      new(&expected[3]) emplace_int();
+
+      container_type c;
+      c.emplace(c.cend(), 1);
+      c.emplace(c.cbegin());
+
+      if (!test_expected_container(c, &expected[0], 2))
+        return false;
+
+      if (!test_expected_container(c, &expected[0], 3))
+        return false;
+    }
+    {
+      new(&expected[0]) emplace_int();
+      new(&expected[1]) emplace_int(1);
+      new(&expected[2]) emplace_int(1, 2);
+      new(&expected[3]) emplace_int(1, 2, 3);
+      new(&expected[4]) emplace_int(1, 2, 3, 4);
+      new(&expected[5]) emplace_int(1, 2, 3, 4, 5);
+
+      container_type c;
+
+      c.emplace(c.cbegin(), 1, 2, 3, 4, 5);
+      c.emplace(c.cbegin(), 1, 2, 3, 4);
+      c.emplace(c.cbegin(), 1, 2, 3);
+      c.emplace(c.cbegin(), 1, 2);
+      c.emplace(c.cbegin(), 1);
+
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      c.clear();
+
+      typename container_type::container_iterator it = c.emplace(c.cend());
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      it = c.emplace(++it, 1);
+      if (!test_expected_container(c, &expected[0], 2))
+        return false;
+
+      it = c.emplace(++it, 1, 2);
+      if (!test_expected_container(c, &expected[0], 3))
+        return false;
+
+      it = c.emplace(++it, 1, 2, 3);
+      if (!test_expected_container(c, &expected[0], 4))
+        return false;
+
+      it = c.empalce(++it, 1, 2, 3, 4);
+      if (!test_expected_container(c, &expected[0], 5))
+        return false;
+
+      it = c.emplace(++it, 1, 2, 3, 4, 5);
+      if (!test_expected_container(c, &expected[0], 6))
+        return false;
+
+      c.clear();
+
+      c.emplace(c.cbegin());
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      it = c.emplace(c.cend(), 1, 2, 3, 4, 5);
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      if (!test_expected_container(c, &expected[5], 1, 1))
+        return false;
+
+      it = c.emplace(it, 1, 2, 3, 4);
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      if (!test_expected_container(c, &expected[4], 2, 1))
+        return false;
+
+      it = c.emplace(it, 1, 2, 3);
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      if (!test_expected_container(c, &expected[3], 3, 1))
+        return false;
+
+      it = c.emplace(it, 1, 2);
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      if (!test_expected_container(c, &expected[2], 4, 1))
+        return false;
+
+      it = c.emplace(it, 1);
+      if (!test_expected_container(c, &expected[0], 6))
+        return false;
+    }
+
+    return true;
+
+  }
+
+  template <class container_type>
   bool test_emplace_before(boost::container::container_detail::false_) {
     return true;
   }
@@ -438,6 +549,52 @@ namespace {
   }
 
   template <class container_type>
+  bool test_emplace_assoc(boost::container::container_detail::false_) {
+    return true;
+  }
+
+  template <class container_type>
+  bool test_emplace_hint(boost::container::container_detail::true_) {
+    static emplace_int expected[10];
+    new(&expected[0]) emplace_int();
+    new(&expected[1]) emplace_int(1);
+    new(&expected[2]) emplace_int(1, 2);
+    new(&expected[3]) emplace_int(1, 2, 3);
+    new(&expected[4]) emplace_int(1, 2, 3, 4);
+    new(&expected[5]) emplace_int(1, 2, 3, 4, 5);
+
+    {
+      container_type c;
+      typename container_type::const_iterator it;
+
+      it = c.emplace_hint(c.begin());
+      if (!test_expected_container(c, &expected[0], 1))
+        return false;
+
+      it = c.emplace_hint(it, 1);
+      if (!test_expected_container(c, &expected[0], 2))
+        return false;
+
+      it = c.emplace_hint(it, 1, 2);
+      if (!test_expected_container(c, &expected[0], 3))
+        return false;
+
+      it = c.emplace_hint(it, 1, 2, 3);
+      if (!test_expected_container(c, &expected[0], 4))
+        return false;
+
+      it = c.emplace_hint(it, 1, 2, 3, 4);
+      if (!test_expected_container(c, &expected[0], 5))
+        return false;
+
+      it = c.emplace_hint(it, 1, 2, 3, 4, 5);
+      if (!test_expected_container(c, &expected[0], 6))
+        return false;
+    }
+
+    return true;
+  }
+  template <class container_type>
   bool test_emplace_hint(boost::container::container_detail::false_) {
     return true;
   }
@@ -476,6 +633,41 @@ namespace {
   }
 
   template <class container_type>
+  bool test_emplace_assoc_pair(boost::container::container_detail::true_) {
+    return true;
+  }
+
+  template <class container_type>
+  bool test_emplace_hint_pair(boost::container::container_detail::true_) {
+    new(&expected_pair[0].first) emplace_int();
+    new(&expected_pair[0].second) emplace_int();
+    new(&expected_pair[1].first) emplace_int(1);
+    new(&expected_pair[1].second) emplace_int(1);
+    new(&expected_pair[2].first) emplace_int(2);
+    new(&expected_pair[2].second) emplace_int(2);
+
+    {
+      container_type c;
+      typename container_type::const_iterator it;
+
+      it = c.emplace_hint(c.begin());
+      if (!test_expected_container(c, &expected_pair[0], 1))
+        return false;
+
+      it = c.emplace_hint(it, 1, 1);
+      if (!test_expected_container(c, &expected_pair[0], 2))
+        return false;
+
+      it = c.emplace_hint(it, 2, 2);
+      if (!test_expected_container(c, &expected_pair[0], 3))
+        return false;
+    }
+
+    return true;
+
+  }
+
+  template <class container_type>
   bool test_emplace_hint_pair(boost::container::container_detail::false_) {
     return true;
   }
@@ -495,37 +687,37 @@ namespace {
       emplace_active<option, EMPLACE_BACK>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_front<container_type>(
       emplace_active<option, EMPLACE_FRONT>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_before<container_type>(
       emplace_active<option, EMPLACE_BEFORE>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_after<container_type>(
       emplace_active<option, EMPLACE_AFTER>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_assoc<container_type>(
       emplace_active<option, EMPLACE_ASSOC>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_hint<container_type>(
       emplace_active<option, EMPLACE_HINT>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_assoc_pair<container_type>(
       emplace_active<option, EMPLACE_ASSOC_PAIR>()))
       return false;
 
-    if (!test_emplace_back<container_type>(
+    if (!test_emplace_hint_pair<container_type>(
       emplace_active<option, EMPLACE_HINT_PAIR>()))
       return false;
 
     return true;
   }
 
-} // namespace
+// } // namespace
 
 #include <boost/container/detail/config_end.hpp>

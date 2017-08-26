@@ -64,7 +64,7 @@ namespace {
     }
 
     friend bool operator!=(const movable_int& l, const movable_int& r) {
-      return l.m_int_ == r.m_int_;
+      return l.m_int_ != r.m_int_;
     }
 
     friend bool operator<(const movable_int& l, const movable_int& r) {
@@ -85,6 +85,14 @@ namespace {
 
     friend bool operator==(int l, const movable_int &r) {
       return l == r.get_int();
+    }
+
+    friend bool operator!=(const movable_int& l, int r) {
+      return l.get_int() != r;
+    }
+
+    friend bool operator!=(int l, const movable_int& r) {
+      return l != r.get_int();
     }
 
   private:
@@ -203,6 +211,14 @@ namespace {
       return l == r.get_int();
     }
 
+    friend bool operator!=(const movable_and_copyable_int& l, int r) {
+      return l.m_int_ != r;
+    }
+
+    friend bool operator!=(int l, const movable_and_copyable_int& r) {
+      return l != r.m_int_;
+    }
+
     private:
       int m_int_;
   }; // class movable_and_copyable_int
@@ -301,6 +317,14 @@ namespace {
       return l == r.get_int();
     }
 
+    friend bool operator!=(const copyable_int& l, int r) {
+      return l.get_int() != r;
+    }
+
+    friend bool operator!=(int l, const copyable_int& r) {
+      return l != r.get_int();
+    }
+
     private:
     int m_int_;
   }; // class copyable_int
@@ -379,6 +403,14 @@ namespace {
 
     friend bool operator==(int l, const non_movable_and_copyable_int& r) {
       return l == r.get_int();
+    }
+
+    friend bool operator!=(const non_movable_and_copyable_int& l, int r) {
+      return l.get_int() == r;
+    }
+
+    friend bool operator!=(int l, const non_movable_and_copyable_int& r) {
+      return l != r.get_int();
     }
 
   private:

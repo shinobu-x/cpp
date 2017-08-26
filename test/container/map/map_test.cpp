@@ -2,6 +2,7 @@
 #include <boost/container/map.hpp>
 #include <boost/container/adaptive_pool.hpp>
 
+#include <cassert>
 #include <map>
 
 // #include "print_container.hpp"
@@ -334,12 +335,12 @@ void test_merge_from_different_comparison() {
 }
 
 auto main() -> decltype(0) {
-  { // Recursive container instantiation
+  { // Test recursive container instantiation
     boost::container::map<recursive_map, recursive_map> map_t;
     boost::container::multimap<recursive_map, recursive_map> multimap_t;
   }
 
-  { // Allocator argument container
+  { // Test allocator argument container
     boost::container::map<int, int> map_t((
       boost::container::map<int, int>::allocator_type()));
     boost::container::multimap<int, int> multimap_t((
@@ -359,9 +360,44 @@ auto main() -> decltype(0) {
     a.emplace(b);
   }
 
-  if (test_map_variants<std::allocator<void>,
-    boost::container::red_black_tree>()) {
-     return 1;
+  { // Test allocator implementations
+    /* std::allocator */
+    bool r = test_map_variants<std::allocator<void>,
+      boost::container::red_black_tree>();
+    assert(r);
+
+    /* boost::container::adaptive_pool */
+    r = test_map_variants<boost::container::adaptive_pool<void>,
+      boost::container::red_black_tree>();
+    assert(r);
   }
+
+  { // Test implementations
+    /* AVL */
+    bool r = test_map_variants<std::allocator<void>,
+      boost::container::avl_tree>();
+    assert(r);
+
+    /* SCAPEGOAT TREE */
+    r = test_map_variants<std::allocator<void>,
+      boost::container::scapegoat_tree>();
+    assert(r);
+
+    /* SPLAY TREE */
+    r = test_map_variants<std::allocator<void>,
+      boost::container::splay_tree>();
+    assert(r);
+  }
+
+  { // Test emplace
+    const emplace_options map_options = (emplace_options)(
+      EMPLACE_HINT_PAIR | EMPLACE_ASSOC_PAIR);
+
+    bool r = test_emplace<boost::container::multimap<
+      emplace_int, emplace_int>, map_options>();
+
+
+  }
+
   return 0;
 }       
