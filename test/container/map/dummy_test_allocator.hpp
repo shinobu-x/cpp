@@ -82,8 +82,8 @@ namespace {
         swaps_(0) {}
 
     propagation_test_allocator(const propagation_test_allocator& x)
-      : id_(x.id_), ctr_copies_(0), ctr_moves_(0),
-        assign_copies_(x.assign_copies_ + 1), assign_moves_(x.assign_moves_), 
+      : id_(x.id_), ctr_copies_(x.ctr_copies_+1), ctr_moves_(x.ctr_moves_),
+        assign_copies_(x.assign_copies_), assign_moves_(x.assign_moves_), 
         swaps_(x.swaps_) {}
 
     template <class U>
@@ -100,7 +100,7 @@ namespace {
 
     propagation_test_allocator(BOOST_RV_REF(propagation_test_allocator) x)
       : id_(x.id_),
-        ctr_copies_(x.cstr_copies_), ctr_moves_(x.ctr_moves_ + 1),
+        ctr_copies_(x.ctr_copies_), ctr_moves_(x.ctr_moves_ + 1),
         assign_copies_(x.assign_copies_), assign_moves_(x.assign_moves_),
         swaps_(x.swaps_) {}
 
@@ -130,7 +130,7 @@ namespace {
       unique_id_ = id;
     }
 
-    T* allocate(T* p, std::size_t n) {
+    T* allocate(std::size_t n) {
       return (T*)::new char[sizeof(T)*n];
     }
 
@@ -164,7 +164,7 @@ namespace {
       l.swap(r);
     }
 
-  private:
+//  private:
     unsigned int id_;
     unsigned int ctr_copies_;
     unsigned int ctr_moves_;

@@ -5,7 +5,8 @@
 #include <boost/move/utility_core.hpp>
 
 #include <iostream>
-// #include <typeinfo>
+
+// #include "../../macro/config.hpp"
 
 // namespace {
   class emplace_int {
@@ -189,13 +190,11 @@
 
   template <class container_type>
   bool test_emplace_back(boost::container::container_detail::false_) {
-    return false;
+    return true;
   }
 
   template <class container_type>
   bool test_emplace_front(boost::container::container_detail::true_) {
-//    std::cout << "Starting test_emplace_front.\n"
-//      << typeid(container_type).name() << '\n';
 
     static emplace_int expected[10];
 
@@ -415,8 +414,6 @@
 
   template <class container_type>
   bool test_emplace_after(boost::container::container_detail::true_) {
-//    std::cout << "Starting test_emplace_after.\n"
-//      << " Class: " << typeid(container_type).name() << '\n';
 
     static emplace_int expected[10];
 
@@ -505,8 +502,6 @@
 
   template <class container_type>
   bool test_emplace_assoc(boost::container::container_detail::true_) {
-//    std::cout << "Starting test_emplace_assoc.\n"
-//      << "Class: " << typeid(container_type).name() << '\n';
 
     static emplace_int expected[10];
     new(&expected[0]) emplace_int();
@@ -601,28 +596,27 @@
 
   template <class container_type>
   bool test_emplace_assoc_pair(boost::container::container_detail::false_) {
-//    std::cout << "Starting test_emplace_assoc_pair.\n"
-//      << "Class: "  << typeid(container_type).name() << '\n';
 
     new(&expected_pair[0].first) emplace_int();
     new(&expected_pair[0].second) emplace_int();
-    new(&expected_pair[1].first) emplace_int();
-    new(&expected_pair[1].second) emplace_int();
-    new(&expected_pair[2].first) emplace_int();
-    new(&expected_pair[2].second) emplace_int();
+    new(&expected_pair[1].first) emplace_int(1);
+    new(&expected_pair[1].second) emplace_int(1);
+    new(&expected_pair[2].first) emplace_int(2);
+    new(&expected_pair[2].second) emplace_int(2);
 
     {
       container_type c;
       typename container_type::const_iterator ci;
-      ci = c.emplace_hint(c.begin());
+      ci = c.emplace();
+
       if (!test_expected_container(c, &expected_pair[0], 1))
         return false;
 
-      ci = c.emplace_hint(ci, 1, 1);
+      ci = c.emplace(1, 1);
       if (!test_expected_container(c, &expected_pair[0], 2))
         return false;
 
-      ci = c.emplace_hint(ci, 2, 2);
+      ci = c.emplace(2, 2);
       if (!test_expected_container(c, &expected_pair[0], 3))
         return false;
 
@@ -683,6 +677,7 @@
 
   template <class container_type, emplace_options option>
   bool test_emplace() {
+
     if (!test_emplace_back<container_type>(
       emplace_active<option, EMPLACE_BACK>()))
       return false;

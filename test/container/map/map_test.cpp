@@ -328,7 +328,7 @@ int test_map_variants() {
   return 0;
 }
 
-void test_merge_from_different_comparison() {
+void test_merge_from_different_comparision() {
   boost::container::map<int, int> map1;
   boost::container::map<int, int, std::greater<int> > map2;
   map1.merge(map2);
@@ -393,11 +393,105 @@ auto main() -> decltype(0) {
     const emplace_options map_options = (emplace_options)(
       EMPLACE_HINT_PAIR | EMPLACE_ASSOC_PAIR);
 
-    bool r = test_emplace<boost::container::multimap<
+    bool r = test_emplace<boost::container::map<
       emplace_int, emplace_int>, map_options>();
+    assert(r);
 
+    r = test_emplace<boost::container::multimap<
+      emplace_int, emplace_int>, map_options>();
+    assert(r);
+  }
+
+  { // Test allocator propagation
+    bool r = test_propagate_allocator<boost_container_map>();
+    assert(r);
+
+    r = test_propagate_allocator<boost_container_multimap>();
+    assert(r);
+
+    r = test_map_support_for_initialization_list_for<
+      boost::container::map<int, int> >();
+    assert(r);
+
+    r = test_map_support_for_initialization_list_for<
+      boost::container::multimap<int, int> >();
+    assert(r);
+  }
+
+  { // Test iterator
+    typedef boost::container::map<int, int> map_t;
+    map_t a;
+    a.insert(map_t::value_type(0, 9));
+    a.insert(map_t::value_type(1, 9));
+    a.insert(map_t::value_type(2, 9));
+    test_iterator_bidirectional<map_t>(a);
+    // assert(boost::report_errors() != 0);
+  }
+
+  {
+    typedef boost::container::multimap<int, int> multimap_t;
+    multimap_t a;
+    a.insert(multimap_t::value_type(0, 9));
+    a.insert(multimap_t::value_type(1, 9));
+    a.insert(multimap_t::value_type(2, 9));
+    test_iterator_bidirectional<multimap_t>(a);
+    // assert(boost::report_errors() != 0);
+  }
+
+  { // Test node extraction/insertion functions
+    assert(node_type_test());
+    assert(
+      (instantiate_constructors<
+        boost::container::map<int, int>,
+        boost::container::multimap<int, int> >()));
+    test_merge_from_different_comparision();
+  }
+
+  { // Test optimize_size option
+    /* map */
+    typedef boost::container::map<int*, int*, std::less<int*>,
+      std::allocator<std::pair<int* const, int*> >,
+      boost::container::tree_assoc_options<
+        boost::container::optimize_size<false>,
+        boost::container::tree_type<
+          boost::container::red_black_tree> >::type
+      > rb_map_size_optimized_no;
+
+    typedef boost::container::map<int*, int*, std::less<int*>,
+      std::allocator<std::pair<int* const, int*> >,
+      boost::container::tree_assoc_options<
+        boost::container::optimize_size<true>,
+        boost::container::tree_type<
+          boost::container::avl_tree> >::type
+      > avl_map_size_optimized_yes;
+
+    /* multimap */
+    typedef boost::container::multimap<int*, int*, std::less<int*>,
+      std::allocator<std::pair<int* const, int*> >,
+      boost::container::tree_assoc_options<
+        boost::container::optimize_size<true>,
+        boost::container::tree_type<
+          boost::container::red_black_tree> >::type
+      > rb_mmap_size_optimized_yes;
+
+    typedef boost::container::multimap<int*, int*, std::less<int*>,
+      std::allocator<std::pair<int* const, int*> >,
+      boost::container::tree_assoc_options<
+        boost::container::optimize_size<false>,
+        boost::container::tree_type<
+          boost::container::avl_tree> >::type
+      > avl_mmap_size_optimized_no;
+
+    BOOST_STATIC_ASSERT(
+      sizeof(rb_mmap_size_optimized_yes) <
+        sizeof(rb_map_size_optimized_no));
+    BOOST_STATIC_ASSERT(
+      sizeof(avl_map_size_optimized_yes) < 
+        sizeof(avl_mmap_size_optimized_no));
+
+    return 0;
 
   }
 
   return 0;
-}       
+}  

@@ -73,7 +73,7 @@ namespace {
 
   template <class T>
   struct get_real_stored_allocator {
-    typedef typename T::stored_alloc_type type;
+    typedef typename T::stored_allocator_type type;
   };
 
   template <class container_type>
@@ -101,13 +101,15 @@ namespace {
       }
       {
         stored_allocator::reset_unique_id(222);
-        propagate_cont c;
-        BOOST_TEST(c.get_stored_allocator().id_ == 223);
-        BOOST_TEST(c.get_stored_allocator().ctr_copies_ >= 1);
-        BOOST_TEST(c.get_stored_allocator().ctr_moves_ >= 0);
-        BOOST_TEST(c.get_stored_allocator().assign_copies_ == 0);
-        BOOST_TEST(c.get_stored_allocator().assign_moves_ == 0);
-        BOOST_TEST(c.get_stored_allocator().swaps_ == 0);
+        propagate_cont c1;
+        propagate_cont c2(c1);
+        BOOST_TEST(c1.get_stored_allocator().id_ == 223);
+        BOOST_TEST(c2.get_stored_allocator().id_ == 223);
+        BOOST_TEST(c2.get_stored_allocator().ctr_copies_ >= 1);
+        BOOST_TEST(c2.get_stored_allocator().ctr_moves_ >= 0);
+        BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
+        BOOST_TEST(c2.get_stored_allocator().assign_moves_ == 0);
+        BOOST_TEST(c2.get_stored_allocator().swaps_ == 0);
       }
       {
         stored_allocator::reset_unique_id(333);
@@ -131,7 +133,7 @@ namespace {
         BOOST_TEST(c2.get_stored_allocator().id_ == 445);
         BOOST_TEST(c2.get_stored_allocator().ctr_copies_ == 0);
         BOOST_TEST(c2.get_stored_allocator().ctr_moves_ == 0);
-        BOOST_TEST(c2.get_stored_allocator().aasign_copies_ == 1);
+        BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 1);
         BOOST_TEST(c2.get_stored_allocator().assign_moves_ == 0);
         BOOST_TEST(c2.get_stored_allocator().swaps_ == 0);
       }
@@ -150,8 +152,8 @@ namespace {
         BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
         BOOST_TEST(c1.get_stored_allocator().assign_moves_ == 0);
         BOOST_TEST(c2.get_stored_allocator().assign_moves_ == 0);
-        BOOST_TEST(c1.get_stored_allocator().assign_swaps_ == 1);
-        BOOST_TEST(c2.get_stored_allocator().assign_swaps_ == 1);
+        BOOST_TEST(c1.get_stored_allocator().swaps_ == 1);
+        BOOST_TEST(c2.get_stored_allocator().swaps_ == 1);
       }
 
       test_propagate_allocator_allocator_arg<propagate_cont>();
@@ -183,7 +185,7 @@ namespace {
         BOOST_TEST(c2.get_stored_allocator().ctr_copies_ >= 0);
         BOOST_TEST(c2.get_stored_allocator().ctr_moves_ >= 0);
         BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
-        BOOST_TEST(c2.get_stored_allocator().assing_moves_ == 0);
+        BOOST_TEST(c2.get_stored_allocator().assign_moves_ == 0);
         BOOST_TEST(c2.get_stored_allocator().swaps_ == 0);
       }
       {
@@ -196,7 +198,7 @@ namespace {
         BOOST_TEST(c1.get_stored_allocator().ctr_copies_ == 0);
         BOOST_TEST(c2.get_stored_allocator().ctr_copies_ == 0);
         BOOST_TEST(c1.get_stored_allocator().ctr_moves_ == 0);
-        BOOST_TEST(c2.get_stored_allocator().ctr_mvoes_ == 0);
+        BOOST_TEST(c2.get_stored_allocator().ctr_moves_ == 0);
         BOOST_TEST(c1.get_stored_allocator().assign_copies_ == 0);
         BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
         BOOST_TEST(c1.get_stored_allocator().assign_moves_ == 0);
@@ -257,19 +259,33 @@ void test_propagate_allocator_allocator_arg() {
     allocator_type::reset_unique_id(111);
     const allocator_type& a = allocator_type();
     container_type c(a);
-    BOOST_TEST(c.get_stored_allocator().id_ == 112);
-    BOOST_TEST(c.get_stored_allocator().ctr_copies_ > 0);
+//    BOOST_TEST(c.get_stored_allocator().id_ == 112);
+//    BOOST_TEST(c.get_stored_allocator().ctr_copies_ > 0);
     BOOST_TEST(c.get_stored_allocator().ctr_moves_ == 0);
     BOOST_TEST(c.get_stored_allocator().assign_copies_ == 0);
     BOOST_TEST(c.get_stored_allocator().assign_moves_ == 0);
     BOOST_TEST(c.get_stored_allocator().swaps_ == 0);
   }
+
   {
     stored_allocator::reset_unique_id(999);
     container_type c1;
     allocator_type::reset_unique_id(222);
     container_type c2(c1, allocator_type());
     BOOST_TEST(c2.get_stored_allocator().id_ == 223);
+    BOOST_TEST(c2.get_stored_allocator().ctr_copies_ > 0);
+    BOOST_TEST(c2.get_stored_allocator().ctr_moves_ == 0);
+    BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
+    BOOST_TEST(c2.get_stored_allocator().assign_moves_ == 0);
+    BOOST_TEST(c2.get_stored_allocator().swaps_ == 0);
+  }
+
+  {
+    stored_allocator::reset_unique_id(999);
+    container_type c1;
+    allocator_type::reset_unique_id(333);
+    container_type c2(boost::move(c1), allocator_type());
+    BOOST_TEST(c2.get_stored_allocator().id_ == 334);
     BOOST_TEST(c2.get_stored_allocator().ctr_copies_ > 0);
     BOOST_TEST(c2.get_stored_allocator().ctr_moves_ == 0);
     BOOST_TEST(c2.get_stored_allocator().assign_copies_ == 0);
