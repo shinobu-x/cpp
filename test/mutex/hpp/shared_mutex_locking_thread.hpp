@@ -1,10 +1,12 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
-#include <boost/thread/shared_mutex.hpp>
+// #include <boost/thread/shared_mutex.hpp>
+
+#include "shared_mutex.hpp"
 
 template <typename lock_t>
 class locking_thread {
-  boost::shared_mutex rw_mutex_;
+  boost::shared_mutex& rw_mutex_;
   unsigned& unblocked_count_;
   boost::condition_variable& unblocked_condition_;
   unsigned& simultaneous_running_count_;
