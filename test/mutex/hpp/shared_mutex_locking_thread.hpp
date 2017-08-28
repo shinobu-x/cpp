@@ -5,7 +5,7 @@
 
 template <typename lock_t>
 class locking_thread {
-  boost::shared_mutex rw_mutex_;
+  shared_mutex rw_mutex_;
   unsigned& unblocked_count_;
   boost::condition_variable& unblocked_condition_;
   unsigned& simultaneous_running_count_;
@@ -14,7 +14,7 @@ class locking_thread {
   boost::mutex& finish_mutex_;
 
 public:
-  locking_thread(boost::shared_mutex& rw_mutex,
+  locking_thread(shared_mutex& rw_mutex,
     unsigned& unblocked_count,
     boost::mutex& unblocked_count_mutex,
     boost::condition_variable& unblocked_condition,
@@ -29,11 +29,6 @@ public:
       simultaneous_running_count_(simultaneous_running_count),
       max_simultaneous_running_(max_simultaneous_running) {}
 
-  locking_thread(const locking_thread&) = delete;
-  locking_thread(locking_thread&&) = delete;
-  locking_thread& operator=(const locking_thread&) = delete;
-  locking_thread& operator=(locking_thread&&) = delete;
- 
   void operator()() {
     lock_t l(rw_mutex_);
 

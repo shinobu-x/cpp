@@ -93,10 +93,6 @@ void shared_mutex::state_data::unlock_upgrade() {
   --shared_count;
 }
 
-shared_mutex::shared_mutex(){}
-
-shared_mutex::~shared_mutex(){}
-
 void shared_mutex::lock_shared() {
 #if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
   boost::this_thread::disable_interruption do_not_disturb;

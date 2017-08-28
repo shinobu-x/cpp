@@ -50,12 +50,9 @@ private:
   void release_waiters();
 
   public:
-    shared_mutex();
-    ~shared_mutex();
-    shared_mutex(const shared_mutex&) = delete;
-    shared_mutex& operator=(const shared_mutex&) = delete;
-    shared_mutex(shared_mutex&&) = delete;
-    shared_mutex& operator=(shared_mutex&&) = delete;
+    BOOST_THREAD_NO_COPYABLE(shared_mutex)
+    shared_mutex() {}
+    ~shared_mutex() {}
 
     void lock_shared();
     bool try_lock_shared();

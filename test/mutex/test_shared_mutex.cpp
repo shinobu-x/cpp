@@ -3,11 +3,6 @@
 
 #include "hpp/shared_mutex_locking_thread.hpp"
 
-#define CHECK_LOCKED_VALUE_EQUAL(mutex_name, value, expected_value ) { \
-  boost::unique_lock<boost::mutex> l(mutex_name);                      \
-  BOOST_CHECK_EQUAL(value, expected_value);                            \
-}
-
 // Test multiple readers
 void test_1() {
   unsigned const number_of_threads = 10;
@@ -21,14 +16,14 @@ void test_1() {
   boost::mutex finish_mutex;
   boost::unique_lock<boost::mutex> finsih_lock(finish_mutex);
 
-  try {
+//  try {
     for (unsigned i = 0; i < number_of_threads; ++i)
       threads.create_thread(
-        locking_thread<boost::shared_lock<shared_mutex> > (
+        locking_thread<boost::shared_lock<shared_mutex> >(
           rwm_mutex, unblocked_count, unblocked_count_mutex,
           unblocked_condition, finish_mutex, simultaneous_running_count,
           max_simultaneous_running));
-
+/*
     {
       boost::unique_lock<boost::mutex> unblocked_count(unblocked_count_mutex);
       while (unblocked_count < number_of_threads)
@@ -41,14 +36,14 @@ void test_1() {
     finish_lock.unlock();
 
     threads.join_all();
-  } catch (...) {
-    threads.interrupt_all();
+*/
+//  } catch (...) {
+/*    threads.interrupt_all();
     threads.join_all();
     throw;
-  }
+*/
+//  }
 
-  CHECK_LOCKED_VALUE_EQUAL(
-    unblocked_count_mutex, max_simultaneous_running, number_of_threads);
 }
 
 auto main() -> decltype(0) {
