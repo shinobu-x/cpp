@@ -1,11 +1,10 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
-
-#include "shared_mutex.hpp"
+#include <boost/thread/shared_mutex.hpp>
 
 template <typename lock_t>
 class locking_thread {
-  shared_mutex rw_mutex_;
+  boost::shared_mutex rw_mutex_;
   unsigned& unblocked_count_;
   boost::condition_variable& unblocked_condition_;
   unsigned& simultaneous_running_count_;
@@ -14,7 +13,7 @@ class locking_thread {
   boost::mutex& finish_mutex_;
 
 public:
-  locking_thread(shared_mutex& rw_mutex,
+  locking_thread(boost::shared_mutex& rw_mutex,
     unsigned& unblocked_count,
     boost::mutex& unblocked_count_mutex,
     boost::condition_variable& unblocked_condition,
@@ -23,11 +22,12 @@ public:
     unsigned& max_simultaneous_running) :
       rw_mutex_(rw_mutex),
       unblocked_count_(unblocked_count),
-      unblocked_count_mutex_(unblocked_count_mutex),
       unblocked_condition_(unblocked_condition),
-      finish_mutex_(finish_mutex),
       simultaneous_running_count_(simultaneous_running_count),
-      max_simultaneous_running_(max_simultaneous_running) {}
+      max_simultaneous_running_(max_simultaneous_running),
+      unblocked_count_mutex_(unblocked_count_mutex),
+      finish_mutex_(finish_mutex) {}
+
 
   void operator()() {
     lock_t l(rw_mutex_);
@@ -48,12 +48,13 @@ public:
       --simultaneous_running_count_;
     }
   }
+
 private:
-  void operator=(locking_thread);
+  void operator=(locking_thread&);
 };
 
 class simple_writing_thread {
-  shared_mutex& rwm_mutex_;
+  boost::shared_mutex& rwm_mutex_;
   boost::mutex& finish_mutex_;
   boost::mutex& unblocked_mutex_;
   unsigned& unblocked_count_;
@@ -61,7 +62,7 @@ class simple_writing_thread {
   void operator=(simple_writing_thread&);
 
 public:
-  simple_writing_thread(shared_mutex& rwm_mutex,
+  simple_writing_thread(boost::shared_mutex& rwm_mutex,
     boost::mutex& finish_mutex,
     boost::mutex& unblocked_mutex,
     unsigned& unblocked_count) :
@@ -71,7 +72,7 @@ public:
       unblocked_count_(unblocked_count) {}
 
     void operator()() {
-      boost::unique_lock<shared_mutex> l(rwm_mutex_);
+      boost::unique_lock<boost::shared_mutex> l(rwm_mutex_);
 
       {
         boost::unique_lock<boost::mutex> unblocked_lock(unblocked_mutex_);
@@ -83,7 +84,7 @@ public:
 };
 
 class simple_reading_thread {
-  shared_mutex& rwm_mutex_;
+  boost::shared_mutex& rwm_mutex_;
   boost::mutex& finish_mutex_;
   boost::mutex& unblocked_mutex_;
   unsigned& unblocked_count_;
@@ -91,7 +92,7 @@ class simple_reading_thread {
   void operator=(simple_reading_thread&);
 
 public:
-  simple_reading_thread(shared_mutex& rwm_mutex,
+  simple_reading_thread(boost::shared_mutex& rwm_mutex,
     boost::mutex& finish_mutex,
     boost::mutex& unblocked_mutex,
     unsigned& unblocked_count) :
@@ -101,7 +102,7 @@ public:
       unblocked_count_(unblocked_count) {}
 
   void operator()() {
-    boost::shared_lock<shared_mutex> l(rwm_mutex_);
+    boost::shared_lock<boost::shared_mutex> l(rwm_mutex_);
 
     {
       boost::unique_lock<boost::mutex> unblocked_lock(unblocked_mutex_);
@@ -111,3 +112,4 @@ public:
     boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
   }
 }; 
+
