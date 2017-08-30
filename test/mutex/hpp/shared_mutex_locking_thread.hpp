@@ -1,5 +1,6 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
+#include <boost/thread/lock_types.hpp>
 
 #include "shared_mutex.hpp"
 
@@ -113,29 +114,3 @@ public:
     boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
   }
 }; 
-
-class simple_upgrade_thread {
-  shared_mutex& rwm_mutex_;
-  boost::mutex& finish_mutex_;
-  boost::mutex& unblocked_mutex_;
-  unsigned& unblocked_count_;
-
-  void operator=(simple_upgrade_thread);
-
-public:
-  simple_upgrade_thread(shared_mutex& rwm_mutex, boost::mutex& finish_mutex,
-    boost::mutex& unblocked_mutex, unsigned& unblocked_count) :
-    rwm_mutex_(rwm_mutex), finish_mutex_(finish_mutex),
-    unblocked_mutex_(unblocked_mutex), unblocked_count_(unblocked_count) {}
-
-  void operator()() {
-    boost::upgrade_lock<boost::mutex> rwm_lock(rwm_mutex_);
-
-    {
-      boost::unique_lock<boost::mutex> unblocked_lock(unblocked_mutex);
-      ++unblocked_count_;
-    }
-
-    boost::unique_lock<boost::mutex> finish_lock(finish_mutex);
-  }
-};
