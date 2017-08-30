@@ -68,7 +68,7 @@ public:
     boost::mutex& finish_mutex,
     boost::mutex& unblocked_mutex,
     unsigned& unblocked_count) :
-      rwm_mutex_(rwm_mutex_),
+      rwm_mutex_(rwm_mutex),
       finish_mutex_(finish_mutex),
       unblocked_mutex_(unblocked_mutex),
       unblocked_count_(unblocked_count) {}
@@ -83,6 +83,7 @@ public:
 
       boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
     }
+
 };
 
 class simple_reading_thread {
