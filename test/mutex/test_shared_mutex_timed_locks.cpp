@@ -170,6 +170,34 @@ void test_4() {
   writer.join();
 }
 
+// Test timed lock succeeds if no lock held
+void test_5() {
+  shared_mutex rwm_mutex;
+  boost::mutex finish_mutex;
+  boost::mutex unblocked_mutex;
+
+  boost::system_time const start = boost::get_system_time();
+  boost::system_time const timeout1 =
+    start + boost::posix_time::milliseconds(500);
+  boost::posix_time::milliseconds const timeout_resolution(50);
+//  bool timed_lock_succeeded = rwm_mutex.timed_lock(timeout1);
+
+  assert(boost::get_system_time() < timeout1);
+  assert(timed_lock_succeeded);
+
+  if (timed_lock_succeeded)
+    rwm_mutex.unlock();
+
+  boost::posix_time::milliseconds const wait_duration(500);
+  boost::system_time const timeout2 = boost::get_system_time() + wait_duration;
+//  timed_lock_succeeded = rwm_mutex.timed_lock(wait_duration);
+
+  assert(boost::get_system_time() < timeout2);
+  assert(timed_lock_succeeded);
+
+  if (timed_lock_succeeded)
+    rwm_mutex.unlock();
+}
 auto main() -> decltype(0) {
   // test_3();
   return 0;
