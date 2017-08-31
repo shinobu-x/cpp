@@ -101,6 +101,7 @@ void test_3() {
   boost::system_time const start = boost::get_system_time();
   boost::system_time const timeout1 =
     start + boost::posix_time::milliseconds(500);
+  boost::posix_time::milliseconds const timeout_resolution(50);
   bool timed_lock_succeeded = rwm_mutex.timed_lock_shared(timeout1);
 
   assert(boost::get_system_time() < timeout1);
@@ -123,7 +124,53 @@ void test_3() {
   reader.join();
 }
 
+// Test timed lock times out if write lock held
+void test_4() {
+  shared_mutex rwm_mutex;
+  boost::mutex finish_mutex;
+  boost::mutex unblocked_mutex;
+  unsigned unblocked_count = 0;
+  boost::unique_lock<boost::mutex> finish_lock(finish_mutex);
+  boost::thread writer(
+    simple_writing_thread(
+      rwm_mutex,
+      finish_mutex,
+      unblocked_mutex,
+      unblocked_count));
+
+  boost::thread::sleep(delay(1));
+
+  CHECK_LOCKED_VALUE_EQUAL(unblocked_mutex, unblocked_count, 1u);
+
+  boost::system_time const start = boost::get_system_time();    
+  boost::system_time const timeout1 =  
+    start + boost::posix_time::milliseconds(500);
+  boost::posix_time::milliseconds const timeout_resolution(50); 
+  bool timed_lock_succeeded = rwm_mutex.timed_lock_shared(timeout1);
+
+  assert(
+    (timeout1 - timeout_resolution) < boost::get_system_time());
+  assert(!timed_lock_succeeded);
+
+  if (timed_lock_succeeded)
+    rwm_mutex.unlock();
+
+  boost::posix_time::milliseconds const wait_duration(500);
+  boost::system_time const timeout2 = boost::get_system_time() + wait_duration;
+  timed_lock_succeeded = rwm_mutex.timed_lock_shared(wait_duration);
+
+  assert(
+    (timeout2 - timeout_resolution) < boost::get_system_time());
+  assert(!timed_lock_succeeded);
+
+  if (timed_lock_succeeded)
+    rwm_mutex.unlock();
+
+  finish_lock.unlock();
+  writer.join();
+}
+
 auto main() -> decltype(0) {
-  // test_2()
+  // test_3();
   return 0;
 }
