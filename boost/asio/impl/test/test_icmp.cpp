@@ -10,7 +10,7 @@
 #include "io_control_command.hpp"
 
 void connect_handler(const boost::system::error_code&) {}
-void send_handler(const boost::system::error_code&) {}
+void send_handler(const boost::system::error_code&, std::size_t) {}
 void receive_handler(const boost::system::error_code&, std::size_t) {}
 
 void test_1() {
@@ -151,6 +151,99 @@ void test_1() {
 
     s1.io_control(io_control_command);
     s1.io_control(io_control_command, ec);
+
+    bool non_blocking1 = s1.non_blocking();
+    (void)non_blocking1;
+    s1.non_blocking(true);
+    s1.non_blocking(false, ec);
+
+    bool non_blocking2 = s1.native_non_blocking();
+    (void) non_blocking2;
+    s1.native_non_blocking(true);
+    s1.native_non_blocking(false, ec);
+
+    boost::asio::ip::icmp::endpoint ep1 = s1.local_endpoint();
+    boost::asio::ip::icmp::endpoint ep2 = s1.local_endpoint(ec);
+    boost::asio::ip::icmp::endpoint ep3 = s1.remote_endpoint();
+    boost::asio::ip::icmp::endpoint ep4 = s1.remote_endpoint(ec);
+
+    s1.shutdown(boost::asio::socket_base::shutdown_both);
+    s1.shutdown(boost::asio::socket_base::shutdown_both, ec);
+
+    s1.send(boost::asio::buffer(mutable_char_buffer));
+    s1.send(boost::asio::buffer(const_char_buffer));
+    s1.send(boost::asio::null_buffers());
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags);
+    s1.send(boost::asio::null_buffers(), in_flags);
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags, ec);
+    s1.send(boost::asio::null_buffers(), in_flags, ec);
+
+    s1.async_send(boost::asio::buffer(mutable_char_buffer), &send_handler);
+    s1.async_send(boost::asio::buffer(const_char_buffer), &send_handler);
+    s1.async_send(boost::asio::null_buffers(), &send_handler);
+    s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, &send_handler);
+    s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, &send_handler);
+    s1.async_send(boost::asio::null_buffers(), in_flags, &send_handler);
+
+    int l3 = s1.async_send(boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l3;
+    int l4 = s1.async_send(boost::asio::buffer(const_char_buffer), lazy);
+    (void)l4;
+    int l5 = s1.async_send(boost::asio::null_buffers(), lazy);
+    (void)l5;
+    int l6 = s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, lazy);
+    (void)l6;
+    int l7 = s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, lazy);
+    int l8 = s1.async_send(boost::asio::null_buffers(), in_flags, lazy);
+
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0));
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0));
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0));
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0));
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0));
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0));
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::icmp::endpoint(
+        boost::asio::ip::icmp::v4(), 0), in_flags, ec);
+
+
+
 
   } catch (std::exception) {}
 }
