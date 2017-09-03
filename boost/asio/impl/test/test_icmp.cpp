@@ -14,7 +14,7 @@ void send_handler(const boost::system::error_code&) {}
 void receive_handler(const boost::system::error_code&, std::size_t) {}
 
 void test_1() {
-//  try {
+  try {
     boost::asio::io_service ios;
     char mutable_char_buffer[128] = "";
     const char const_char_buffer[128] = "";
@@ -114,7 +114,45 @@ void test_1() {
     s1.bind(boost::asio::ip::icmp::endpoint(
       boost::asio::ip::icmp::v6(), 0), ec);
 
-//  } catch (std::exception) {}
+    s1.connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v4(), 0));
+    s1.connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v4(), 0), ec);
+    s1.connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v6(), 0));
+    s1.connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v6(), 0), ec);
+
+    s1.async_connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v4(), 0), &connect_handler);
+    s1.async_connect(boost::asio::ip::icmp::endpoint(
+      boost::asio::ip::icmp::v6(), 0), &connect_handler);
+
+    int l1 = s1.async_connect(
+      boost::asio::ip::icmp::endpoint(boost::asio::ip::icmp::v4(), 0), lazy);
+    (void)l1;
+    int l2 = s1.async_connect(
+      boost::asio::ip::icmp::endpoint(boost::asio::ip::icmp::v6(), 0), lazy);
+    (void)l2;
+
+    s1.set_option(settable_socket_option1);
+    s1.set_option(settable_socket_option1, ec);
+    s1.set_option(settable_socket_option2);
+    s1.set_option(settable_socket_option2, ec);
+    s1.set_option(settable_socket_option3);
+    s1.set_option(settable_socket_option3, ec);
+
+    s1.get_option(gettable_socket_option1);
+    s1.get_option(gettable_socket_option1, ec);
+    s1.get_option(gettable_socket_option2);
+    s1.get_option(gettable_socket_option2, ec);
+    s1.get_option(gettable_socket_option3);
+    s1.get_option(gettable_socket_option3, ec);
+
+    s1.io_control(io_control_command);
+    s1.io_control(io_control_command, ec);
+
+  } catch (std::exception) {}
 }
 
 auto main() -> decltype(0) {
