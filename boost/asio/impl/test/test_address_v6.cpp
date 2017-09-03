@@ -197,8 +197,73 @@ void test_2() {
   assert(!mcast_org_local_address.is_v4_compatible());
   assert(!mcast_site_local_address.is_v4_compatible());
 
+  assert(!unspecified_address.is_multicast());
+  assert(!loopback_address.is_multicast());
+  assert(!link_local_address.is_multicast());
+  assert(!v4_mapped_address.is_multicast());
+  assert(!v4_compat_address.is_multicast());
+  assert(mcast_global_address.is_multicast());
+  assert(mcast_link_local_address.is_multicast());
+  assert(mcast_node_local_address.is_multicast());
+  assert(mcast_org_local_address.is_multicast());
+  assert(mcast_site_local_address.is_multicast());
 
+  assert(!unspecified_address.is_multicast_global());
+  assert(!loopback_address.is_multicast_global());
+  assert(!link_local_address.is_multicast_global());
+  assert(!v4_mapped_address.is_multicast_global());
+  assert(!v4_compat_address.is_multicast_global());
+  assert(mcast_global_address.is_multicast_global());
+  assert(!mcast_link_local_address.is_multicast_global());
+  assert(!mcast_node_local_address.is_multicast_global());
+  assert(!mcast_org_local_address.is_multicast_global());
+  assert(!mcast_site_local_address.is_multicast_global());
 
+  assert(!unspecified_address.is_multicast_link_local());
+  assert(!loopback_address.is_multicast_link_local());
+  assert(!link_local_address.is_multicast_link_local());
+  assert(!v4_mapped_address.is_multicast_link_local());
+  assert(!v4_compat_address.is_multicast_link_local());
+  assert(!mcast_global_address.is_multicast_link_local());
+  assert(mcast_link_local_address.is_multicast_link_local());
+  assert(!mcast_node_local_address.is_multicast_link_local());
+  assert(!mcast_org_local_address.is_multicast_link_local());
+  assert(!mcast_site_local_address.is_multicast_link_local());
+
+  assert(!unspecified_address.is_multicast_node_local());
+  assert(!loopback_address.is_multicast_node_local());
+  assert(!link_local_address.is_multicast_node_local());
+  assert(!v4_mapped_address.is_multicast_node_local());
+  assert(!v4_compat_address.is_multicast_node_local());
+  assert(!mcast_global_address.is_multicast_node_local());
+  assert(!mcast_link_local_address.is_multicast_node_local());
+  assert(mcast_node_local_address.is_multicast_node_local());
+  assert(!mcast_org_local_address.is_multicast_node_local());
+  assert(!mcast_site_local_address.is_multicast_node_local());
+
+  assert(!unspecified_address.is_multicast_org_local());
+  assert(!loopback_address.is_multicast_org_local());
+  assert(!link_local_address.is_multicast_org_local());
+  assert(!v4_mapped_address.is_multicast_org_local());
+  assert(!v4_compat_address.is_multicast_org_local());
+  assert(!mcast_global_address.is_multicast_org_local());
+  assert(!mcast_link_local_address.is_multicast_org_local());
+  assert(!mcast_node_local_address.is_multicast_org_local());
+  assert(mcast_org_local_address.is_multicast_org_local());
+  assert(!mcast_site_local_address.is_multicast_org_local());
+
+  assert(!unspecified_address.is_multicast_site_local());
+  assert(!loopback_address.is_multicast_site_local());
+  assert(!link_local_address.is_multicast_site_local());
+  assert(!v4_mapped_address.is_multicast_site_local());
+  assert(!v4_compat_address.is_multicast_site_local());
+  assert(!mcast_global_address.is_multicast_site_local());
+  assert(!mcast_link_local_address.is_multicast_site_local());
+  assert(!mcast_node_local_address.is_multicast_site_local());
+  assert(!mcast_org_local_address.is_multicast_site_local());
+  assert(mcast_site_local_address.is_multicast_site_local());
+
+  assert(boost::asio::ip::address_v6::loopback().is_loopback());
 }
 
 auto main() -> decltype(0) {
