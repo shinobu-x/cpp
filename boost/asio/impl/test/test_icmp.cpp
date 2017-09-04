@@ -359,10 +359,82 @@ void test_1() {
     s1.async_receive(
       boost::asio::null_buffers(), in_flags, &receive_handler);
 
-  } catch (std::exception) {}
+    int l21 = s1.async_receive(boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l21;
+    int l22 = s1.async_receive(boost::asio::null_buffers(), lazy);
+    (void)l22;
+    int l23 = s1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), in_flags, lazy);
+    (void)l23;
+    int l24 = s1.async_receive(boost::asio::null_buffers(), in_flags, lazy);
+    (void)l24;
+
+    boost::asio::ip::icmp::endpoint ep;
+    s1.receive_from(boost::asio::buffer(mutable_char_buffer), ep);
+    s1.receive_from(boost::asio::null_buffers(), ep);
+    s1.receive_from(boost::asio::buffer(mutable_char_buffer), ep, in_flags);
+    s1.receive_from(boost::asio::null_buffers(), ep, in_flags);
+    s1.receive_from(boost::asio::buffer(mutable_char_buffer), ep, in_flags, ec);
+    s1.receive_from(boost::asio::null_buffers(), ep, in_flags, ec);
+
+    int l25 = s1.async_receive_from(
+      boost::asio::buffer(mutable_char_buffer), ep, lazy);
+    (void)l25;
+    int l26 = s1.async_receive_from(
+      boost::asio::null_buffers(), ep, lazy);
+    (void)l26;
+    int l27 = s1.async_receive_from(
+      boost::asio::buffer(mutable_char_buffer), ep, in_flags, lazy);
+    (void)l27;
+    int l28 = s1.async_receive_from(
+      boost::asio::null_buffers(), ep, in_flags, lazy);
+    (void)l28;
+  } catch (std::exception&) {}
+}
+
+namespace {
+void resolve_handler(const boost::system::error_code&,
+  boost::asio::ip::icmp::resolver::iterator) {}
+}
+
+void test_2() {
+  try {
+    boost::asio::io_service ios;
+    lazy_handler lazy;
+    boost::system::error_code ec;
+    boost::asio::ip::icmp::resolver::query q(
+      boost::asio::ip::icmp::v4(), "localhost", "0");
+    boost::asio::ip::icmp::endpoint ep(
+      boost::asio::ip::address_v4::loopback(), 0);
+
+    boost::asio::ip::icmp::resolver res(ios);
+
+    boost::asio::io_service& ios_ref = res.get_io_service();
+    (void)ios_ref;
+
+    res.cancel();
+
+    boost::asio::ip::icmp::resolver::iterator it1 = res.resolve(q);
+    (void)it1;
+    boost::asio::ip::icmp::resolver::iterator it2 = res.resolve(q, ec);
+    (void)it2;
+    boost::asio::ip::icmp::resolver::iterator it3 = res.resolve(ep);
+    (void)it3;
+    boost::asio::ip::icmp::resolver::iterator it4 = res.resolve(ep, ec);
+    (void)it4;
+
+    res.async_resolve(q, &resolve_handler);
+    int l1 = res.async_resolve(q, lazy);
+    (void)l1;
+
+    res.async_resolve(ep, &resolve_handler);
+    int l2 = res.async_resolve(ep, lazy);
+    (void)l2;
+
+  } catch (std::exception&) {}
 }
 
 auto main() -> decltype(0) {
-  test_1();
+  test_1(); test_2();
   return 0;
 }
