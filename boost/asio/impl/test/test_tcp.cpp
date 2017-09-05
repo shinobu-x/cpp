@@ -302,6 +302,42 @@ void test_3() {
     s1.write_some(mutable_buffers, ec);
     s1.write_some(const_buffers, ec);
     s1.write_some(boost::asio::null_buffers(), ec);
+    s1.async_write_some(
+      boost::asio::buffer(mutable_char_buffer), &write_some_handler);
+    s1.async_write_some(
+      boost::asio::buffer(const_char_buffer), &write_some_handler);
+    s1.async_write_some(mutable_buffers, &write_some_handler);
+    s1.async_write_some(const_buffers, &write_some_handler);
+    s1.async_write_some(boost::asio::null_buffers(), &write_some_handler);
+    int l19 = s1.async_write_some(
+      boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l19;
+    int l20 = s1.async_write_some(
+      boost::asio::buffer(const_char_buffer), lazy);
+    (void)l20;
+    int l21 = s1.async_write_some(mutable_buffers, lazy);
+    (void)l21;
+    int l22 = s1.async_write_some(const_buffers, lazy);
+    (void)l22;
+    int l23 = s1.async_write_some(boost::asio::null_buffers(), lazy);
+    (void)l23;
+    s1.read_some(boost::asio::buffer(mutable_char_buffer));
+    s1.read_some(mutable_buffers);
+    s1.read_some(boost::asio::null_buffers());
+    s1.read_some(boost::asio::buffer(mutable_char_buffer), ec);
+    s1.read_some(mutable_buffers, ec);
+    s1.read_some(boost::asio::null_buffers(), ec);
+    s1.async_read_some(
+      boost::asio::buffer(mutable_char_buffer), &read_some_handler);
+    s1.async_read_some(mutable_buffers, &read_some_handler);
+    s1.async_read_some(boost::asio::null_buffers(), &read_some_handler);
+    int l24 = s1.async_read_some(
+      boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l24;
+    int l25 = s1.async_read_some(mutable_buffers, lazy);
+    (void)l25;
+    int l26 = s1.async_read_some(boost::asio::null_buffers(), lazy);
+    (void)l26;
   } catch (std::exception&) {}
 }
 
