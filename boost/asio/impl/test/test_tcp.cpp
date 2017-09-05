@@ -341,7 +341,66 @@ void test_3() {
   } catch (std::exception&) {}
 }
 
+namespace {
+static const char write_data[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+void handle_read_noop(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == 0);
+}
+
+void handle_write_noop(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == 0);
+}
+
+void handle_read(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == sizeof(write_data));
+}
+
+void handle_write(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == sizeof(write_data));
+}
+
+void handle_read_cancel(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(ec == boost::asio::error::operation_aborted);
+  assert(bytes_transferred == 0);
+}
+
+void handle_read_eof(const boost::system::error_code& ec,
+  size_t bytes_transferred, bool* called) {
+  *called = true;
+  assert(ec == boost::asio::error::eof);
+  assert(bytes_transferred == 0);
+}
+} // namespace
+
+void test_4() {
+  boost::asio::io_service ios;
+  boost::asio::ip::tcp::acceptor ap(ios,
+    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+  boost::asio::ip::tcp::endpoint server_endpoint = ap.local_endpoint();
+  server_endpoint.address(boost::asio::ip::address_v4::loopback());
+  boost::asio::ip::tcp::socket client_socket(ios);
+  boost::asio::ip::tcp::socket server_socket(ios);
+  client_socket.connect(server_endpoint);
+  ap.accept(server_socket);
+}
+
 auto main() -> decltype(0) {
-  test_1(); test_2(); test_3();
+  test_1(); test_2(); test_3(); test_4();
   return 0;
 }
