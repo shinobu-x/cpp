@@ -178,6 +178,130 @@ void test_3() {
       boost::asio::ip::tcp::v4(), 0), &connect_handler);
     s1.async_connect(boost::asio::ip::tcp::endpoint(
       boost::asio::ip::tcp::v6(), 0), &connect_handler);
+    int l1 = s1.async_connect(boost::asio::ip::tcp::endpoint(
+      boost::asio::ip::tcp::v4(), 0), lazy);
+    (void)l1;
+    int l2 = s1.async_connect(boost::asio::ip::tcp::endpoint(
+      boost::asio::ip::tcp::v6(), 0), lazy);
+    (void)l2;
+    s1.set_option(settable_socket_option1);
+    s1.set_option(settable_socket_option1, ec);
+    s1.set_option(settable_socket_option2);
+    s1.set_option(settable_socket_option2, ec);
+    s1.set_option(settable_socket_option3);
+    s1.set_option(settable_socket_option3, ec);
+    s1.get_option(gettable_socket_option1);
+    s1.get_option(gettable_socket_option1, ec);
+    s1.get_option(gettable_socket_option2);
+    s1.get_option(gettable_socket_option2, ec);
+    s1.get_option(gettable_socket_option3);
+    s1.get_option(gettable_socket_option3, ec);
+    s1.io_control(io_control_command);
+    s1.io_control(io_control_command, ec);
+    bool non_blocking1 = s1.non_blocking();
+    (void)non_blocking1;
+    s1.non_blocking(true);
+    s1.non_blocking(false, ec);
+    bool non_blocking2 = s1.native_non_blocking();
+    (void)non_blocking2;
+    s1.native_non_blocking(true);
+    s1.native_non_blocking(false, ec);
+    boost::asio::ip::tcp::endpoint ep1 = s1.local_endpoint();
+    boost::asio::ip::tcp::endpoint ep2 = s1.local_endpoint(ec);
+    boost::asio::ip::tcp::endpoint ep3 = s1.remote_endpoint();
+    boost::asio::ip::tcp::endpoint ep4 = s1.remote_endpoint(ec);
+    s1.shutdown(boost::asio::socket_base::shutdown_both);
+    s1.shutdown(boost::asio::socket_base::shutdown_both, ec);
+    s1.send(boost::asio::buffer(mutable_char_buffer));
+    s1.send(boost::asio::buffer(const_char_buffer));
+    s1.send(mutable_buffers);
+    s1.send(const_buffers);
+    s1.send(boost::asio::null_buffers());
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags);
+    s1.send(mutable_buffers, in_flags);
+    s1.send(const_buffers, in_flags);
+    s1.send(boost::asio::null_buffers(), in_flags);
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags, ec);
+    s1.send(mutable_buffers, in_flags, ec);
+    s1.send(const_buffers, in_flags, ec);
+    s1.send(boost::asio::null_buffers(), in_flags, ec);
+    s1.async_send(boost::asio::buffer(mutable_char_buffer), &send_handler);
+    s1.async_send(boost::asio::buffer(const_char_buffer), &send_handler);
+    s1.async_send(mutable_buffers, &send_handler);
+    s1.async_send(const_buffers, &send_handler);
+    s1.async_send(boost::asio::null_buffers(), &send_handler);
+    s1.async_send(boost::asio::null_buffers(), &send_handler);
+    s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, &send_handler);
+    s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, &send_handler);
+    s1.async_send(mutable_buffers, in_flags, &send_handler);
+    s1.async_send(const_buffers, in_flags, &send_handler);
+    s1.async_send(boost::asio::null_buffers(), in_flags, &send_handler);
+    int l3 = s1.async_send(boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l3;
+    int l4 = s1.async_send(boost::asio::buffer(const_char_buffer), lazy);
+    (void)l4;
+    int l5 = s1.async_send(mutable_buffers, lazy);
+    (void)l5;
+    int l6 = s1.async_send(const_buffers, lazy);
+    (void)l6;
+    int l7 = s1.async_send(boost::asio::null_buffers(), lazy);
+    (void)l7;
+    int l8 = s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, lazy);
+    (void)l8;
+    int l9 = s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, lazy);
+    (void)l9;
+    int l10 = s1.async_send(mutable_buffers, in_flags, lazy);
+    (void)l10;
+    int l11 = s1.async_send(const_buffers, in_flags, lazy);
+    (void)l11;
+    int l12 = s1.async_send(boost::asio::null_buffers(), in_flags, lazy);
+    (void)l12;
+    s1.receive(boost::asio::buffer(mutable_char_buffer));
+    s1.receive(mutable_buffers);
+    s1.receive(boost::asio::null_buffers());
+    s1.receive(boost::asio::buffer(mutable_char_buffer), in_flags);
+    s1.receive(mutable_buffers, in_flags);
+    s1.receive(boost::asio::null_buffers(), in_flags);
+    s1.receive(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    s1.receive(mutable_buffers, in_flags, ec);
+    s1.receive(boost::asio::null_buffers(), in_flags, ec);
+    s1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), &receive_handler);
+    s1.async_receive(mutable_buffers, &receive_handler);
+    s1.async_receive(boost::asio::null_buffers(), &receive_handler);
+    s1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), in_flags, &receive_handler);
+    s1.async_receive(mutable_buffers, in_flags, &receive_handler);
+    s1.async_receive(boost::asio::null_buffers(), in_flags, &receive_handler);
+    int l13 = s1.async_receive(boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l13;
+    int l14 = s1.async_receive(mutable_buffers, lazy);
+    (void)l14;
+    int l15 = s1.async_receive(boost::asio::null_buffers(), lazy);
+    (void)l15;
+    int l16 = s1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), in_flags, lazy);
+    (void)l16;
+    int l17 = s1.async_receive(mutable_buffers, in_flags, lazy);
+    (void)l17;
+    int l18 = s1.async_receive(boost::asio::null_buffers(), in_flags, lazy);
+    (void)l18;
+    s1.write_some(boost::asio::buffer(mutable_char_buffer));
+    s1.write_some(boost::asio::buffer(const_char_buffer));
+    s1.write_some(mutable_buffers);
+    s1.write_some(const_buffers);
+    s1.write_some(boost::asio::null_buffers());
+    s1.write_some(boost::asio::buffer(mutable_char_buffer), ec);
+    s1.write_some(boost::asio::buffer(const_char_buffer), ec);
+    s1.write_some(mutable_buffers, ec);
+    s1.write_some(const_buffers, ec);
+    s1.write_some(boost::asio::null_buffers(), ec);
   } catch (std::exception&) {}
 }
 
