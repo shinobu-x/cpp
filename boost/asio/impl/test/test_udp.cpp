@@ -88,6 +88,139 @@ void test_1() {
     (void)available2;
     s1.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
     s1.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v6(), 0));
+    s1.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0), ec);
+    s1.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v6(), 0), ec);
+    s1.connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
+    s1.connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v6(), 0));
+    s1.connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0), ec);
+    s1.connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v6(), 0), ec);
+    int l1 = s1.async_connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0), lazy);
+    (void)l1;
+    int l2 = s1.async_connect(
+      boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v6(), 0), lazy);
+    (void)l2;
+    s1.set_option(settable_socket_option1);
+    s1.set_option(settable_socket_option1, ec);
+    s1.set_option(settable_socket_option2);
+    s1.set_option(settable_socket_option2, ec);
+    s1.set_option(settable_socket_option3);
+    s1.set_option(settable_socket_option3, ec);
+    s1.get_option(gettable_socket_option1);
+    s1.get_option(gettable_socket_option1, ec);
+    s1.get_option(gettable_socket_option2);
+    s1.get_option(gettable_socket_option2, ec);
+    s1.get_option(gettable_socket_option3);
+    s1.get_option(gettable_socket_option3, ec);
+    s1.io_control(io_control_command);
+    s1.io_control(io_control_command, ec);
+    bool non_blocking1 = s1.non_blocking();
+    (void)non_blocking1;
+    s1.non_blocking(true);
+    s1.non_blocking(false, ec);
+    bool non_blocking2 = s1.native_non_blocking();
+    (void)non_blocking2;
+    s1.native_non_blocking(true);
+    s1.native_non_blocking(false, ec);
+    boost::asio::ip::udp::endpoint ep1 = s1.local_endpoint();
+    boost::asio::ip::udp::endpoint ep2 = s1.local_endpoint(ec);
+    boost::asio::ip::udp::endpoint ep3 = s1.remote_endpoint();
+    boost::asio::ip::udp::endpoint ep4 = s1.remote_endpoint(ec);
+    s1.shutdown(boost::asio::socket_base::shutdown_both);
+    s1.shutdown(boost::asio::socket_base::shutdown_both, ec);
+    s1.send(boost::asio::buffer(mutable_char_buffer));
+    s1.send(boost::asio::buffer(const_char_buffer));
+    s1.send(boost::asio::null_buffers());
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags);
+    s1.send(boost::asio::null_buffers(), in_flags);
+    s1.send(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    s1.send(boost::asio::buffer(const_char_buffer), in_flags, ec);
+    s1.send(boost::asio::null_buffers(), in_flags, ec);
+    s1.async_send(boost::asio::buffer(mutable_char_buffer), &send_handler);
+    s1.async_send(boost::asio::buffer(const_char_buffer), &send_handler);
+    s1.async_send(boost::asio::null_buffers(), &send_handler);
+    s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, &send_handler);
+    s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, &send_handler);
+    s1.async_send(
+      boost::asio::null_buffers(), in_flags, &send_handler);
+    int l3 = s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), lazy);
+    (void)l3;
+    int l4 = s1.async_send(
+      boost::asio::buffer(const_char_buffer), lazy);
+    (void)l4;
+    int l5 = s1.async_send(boost::asio::null_buffers(), lazy);
+    (void)l5;
+    int l6 = s1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, lazy);
+    (void)l6;
+    int l7 = s1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, lazy);
+    (void)l7;
+    int l8 = s1.async_send(boost::asio::null_buffers(), in_flags, lazy);
+    (void)l8;
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0));
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0));
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0));
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0));
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0));
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0));
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v4(), 0), in_flags);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+       boost::asio::ip::udp::v6(), 0), in_flags);
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0), in_flags, ec);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0), in_flags, ec);
+    s1.send_to(boost::asio::buffer(mutable_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0), in_flags, ec);
+    s1.send_to(boost::asio::buffer(const_char_buffer),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0), in_flags, ec);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v4(), 0), in_flags, ec);
+    s1.send_to(boost::asio::null_buffers(),
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::udp::v6(), 0), in_flags, ec);
+
   } catch (std::exception&) {}
 
 }
