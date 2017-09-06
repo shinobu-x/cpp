@@ -398,9 +398,203 @@ void test_4() {
   boost::asio::ip::tcp::socket server_socket(ios);
   client_socket.connect(server_endpoint);
   ap.accept(server_socket);
+  bool read_noop_completed = false;
+  client_socket.async_read_some(boost::asio::mutable_buffers_1(0, 0),
+    boost::bind(handle_read_noop, _1, _2, &read_noop_completed));
+  ios.run();
+  assert(read_noop_completed);
+  bool write_noop_completed = false;
+  client_socket.async_write_some(boost::asio::mutable_buffers_1(0, 0),
+    boost::bind(handle_write_noop, _1, _2, &write_noop_completed));
+  ios.reset();
+  ios.run();
+  assert(write_noop_completed);
+  char read_buffer[sizeof(write_data)];
+  bool read_completed = false;
+  boost::asio::async_read(client_socket,
+    boost::asio::buffer(read_buffer),
+    boost::bind(handle_read, _1, _2, &read_completed));
+  bool write_completed = false;
+  boost::asio::async_write(server_socket,
+    boost::asio::buffer(write_data),
+    boost::bind(handle_write, _1, _2, &write_completed));
+  ios.reset();
+  ios.run();
+  assert(read_completed);
+  assert(write_completed);
+  assert(memcmp(read_buffer, write_data, sizeof(write_data)) == 0);
+  bool read_cancel_completed = false;
+  boost::asio::async_read(server_socket,
+    boost::asio::buffer(read_buffer),
+    boost::bind(handle_read_cancel, _1, _2, &read_cancel_completed));
+  ios.reset();
+  ios.poll();
+  assert(!read_cancel_completed);
+  server_socket.cancel();
+  ios.reset();
+  ios.poll();
+  assert(read_cancel_completed);
+  bool read_eof_completed = false;
+  boost::asio::async_read(client_socket,
+    boost::asio::buffer(read_buffer),
+    boost::bind(handle_read_eof, _1, _2, &read_eof_completed));
+  server_socket.close();
+  ios.reset();
+  ios.run();
+  assert(read_eof_completed);
 }
 
+namespace {
+void accept_handler(const boost::system::error_code&) {}
+} // namespace
+
+void test_5() {
+  try {
+    boost::asio::io_service ios;
+    boost::asio::ip::tcp::socket peer_socket(ios);
+    boost::asio::ip::tcp::endpoint peer_endpoint;
+    settable_socket_option<void> settable_socket_option1;
+    settable_socket_option<int> settable_socket_option2;
+    settable_socket_option<double> settable_socket_option3;
+    gettable_socket_option<void> gettable_socket_option1;
+    gettable_socket_option<int> gettable_socket_option2;
+    gettable_socket_option<double> gettable_socket_option3;
+    io_control_command io_control_command;
+    lazy_handler lazy;
+    boost::system::error_code ec;
+    boost::asio::ip::tcp::acceptor ap1(ios);
+    boost::asio::ip::tcp::acceptor ap2(ios, boost::asio::ip::tcp::v4());
+    boost::asio::ip::tcp::acceptor ap3(ios, boost::asio::ip::tcp::v6());
+    boost::asio::ip::tcp::acceptor ap4(ios,
+      boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+    boost::asio::ip::tcp::acceptor ap5(ios,
+      boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), 0));
+#if !defined(BOOST_ASIO_WINDOWS_RUNTIME)
+    boost::asio::ip::tcp::acceptor::native_handle_type native_acceptor1 =
+      ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    boost::asio::ip::tcp::acceptor ap6(ios,
+      boost::asio::ip::tcp::v4(), native_acceptor1);
+#endif
+#if defined(BOOST_ASIO_HAS_MOVE)
+    boost::asio::ip::tcp::acceptor ap7(std::move(ap5));
+#endif
+#if defined(BOOST_ASIO_HAS_MOVE)
+    ap1 = boost::asio::ip::tcp::acceptor(ios);
+    ap1 = std::move(ap2);
+#endif
+    boost::asio::io_service& ios_ref = ap1.get_io_service();
+    (void)ios_ref;
+    ap1.open(boost::asio::ip::tcp::v4());
+    ap1.open(boost::asio::ip::tcp::v6());
+    ap1.open(boost::asio::ip::tcp::v4(), ec);
+    ap1.open(boost::asio::ip::tcp::v6(), ec);
+#if !defined(BOOST_ASIO_WINDOWS_RUNTIME)
+    boost::asio::ip::tcp::acceptor::native_handle_type native_acceptor2 =
+      ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    ap1.assign(boost::asio::ip::tcp::v4(), native_acceptor2);
+    boost::asio::ip::tcp::acceptor::native_handle_type native_acceptor3 =
+      ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    ap1.assign(boost::asio::ip::tcp::v4(), native_acceptor3, ec);
+#endif
+    bool is_open = ap1.is_open();
+    (void)is_open;
+    ap1.close();
+    ap1.close(ec);
+    boost::asio::ip::tcp::acceptor::native_type native_acceptor4 = ap1.native();
+    (void)native_acceptor4;
+    boost::asio::ip::tcp::acceptor::native_handle_type native_acceptor5 =
+      ap1.native_handle();
+    (void)native_acceptor5;
+    ap1.cancel();
+    ap1.cancel(ec);
+    ap1.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+    ap1.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), 0));
+    ap1.bind(
+      boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0), ec);
+    ap1.bind(
+      boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), 0), ec);
+    ap1.set_option(settable_socket_option1);
+    ap1.set_option(settable_socket_option1, ec);
+    ap1.set_option(settable_socket_option2);
+    ap1.set_option(settable_socket_option2, ec);
+    ap1.set_option(settable_socket_option3);
+    ap1.set_option(settable_socket_option3, ec);
+    ap1.get_option(gettable_socket_option1);
+    ap1.get_option(gettable_socket_option1, ec);
+    ap1.get_option(gettable_socket_option2);
+    ap1.get_option(gettable_socket_option2, ec);
+    ap1.get_option(gettable_socket_option3);
+    ap1.get_option(gettable_socket_option3, ec);
+    ap1.io_control(io_control_command);
+    ap1.io_control(io_control_command, ec);
+    bool non_blocking1 = ap1.non_blocking();
+    (void)non_blocking1;
+    ap1.non_blocking(true);
+    ap1.non_blocking(false, ec);
+    bool non_blocking2 = ap1.native_non_blocking();
+    (void)non_blocking2;
+    ap1.native_non_blocking(true);
+    ap1.native_non_blocking(false, ec);
+    boost::asio::ip::tcp::endpoint ep1 = ap1.local_endpoint();
+    boost::asio::ip::tcp::endpoint ep2 = ap1.local_endpoint(ec);
+    ap1.accept(peer_socket);
+    ap1.accept(peer_socket, ec);
+    ap1.accept(peer_socket, peer_endpoint);
+    ap1.accept(peer_socket, peer_endpoint, ec);
+    ap1.async_accept(peer_socket, &accept_handler);
+    ap1.async_accept(peer_socket, peer_endpoint, &accept_handler);
+    int l1 = ap1.async_accept(peer_socket, lazy);
+    (void)l1;
+    int l2 = ap1.async_accept(peer_socket, peer_endpoint, lazy);
+    (void)l2;
+
+  } catch (std::exception&) {}
+}
+
+namespace {
+void handle_accept(const boost::system::error_code& ec) {
+  assert(!ec);
+}
+void handle_connect(const boost::system::error_code& ec) {
+  assert(!ec);
+}
+
+void test_6() {
+  boost::asio::io_service ios;
+  boost::asio::ip::tcp::acceptor ap(ios,
+    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+  boost::asio::ip::tcp::endpoint server_endpoint = ap.local_endpoint();
+  server_endpoint.address(boost::asio::ip::address_v4::loopback());
+  boost::asio::ip::tcp::socket client_socket(ios);
+  boost::asio::ip::tcp::socket server_socket(ios);
+  client_socket.connect(server_endpoint);
+  ap.accept(server_socket);
+  client_socket.close();
+  server_socket.close();
+  client_socket.connect(server_endpoint);
+  boost::asio::ip::tcp::endpoint client_endpoint;
+  ap.accept(server_socket, client_endpoint);
+  boost::asio::ip::tcp::acceptor::non_blocking_io command(false);
+  ap.io_control(command);
+  boost::asio::ip::tcp::endpoint client_local_endpoint =
+    client_socket.local_endpoint();
+  assert(client_local_endpoint.port() == client_endpoint.port());
+  boost::asio::ip::tcp::endpoint server_remote_endpoint =
+    server_socket.remote_endpoint();
+  assert(server_remote_endpoint.port() == client_endpoint.port());
+  client_socket.close();
+  server_socket.close();
+  ap.async_accept(server_socket, client_endpoint, &handle_accept);
+  client_socket.async_connect(server_endpoint, &handle_connect);
+  ios.reset();
+  ios.run();
+  client_local_endpoint = client_socket.local_endpoint();
+  assert(client_local_endpoint.port() == client_endpoint.port());
+  server_remote_endpoint = server_socket.remote_endpoint();
+  assert(server_remote_endpoint.port() == client_endpoint.port());
+}
+} // namespace
 auto main() -> decltype(0) {
-  test_1(); test_2(); test_3(); test_4();
-  return 0;
+test_1(); test_2(); test_3(); test_4(); test_5(); test_6();
+return 0;
 }
