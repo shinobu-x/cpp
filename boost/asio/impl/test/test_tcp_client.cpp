@@ -22,6 +22,7 @@ struct transfer_all {
 void do_test_tcp_client() {
   const char* ip = "127.0.0.1";
   unsigned short port = 12345;
+  int num_connections = 100;
   std::size_t buffer_size = 102400;
   bool spin = true;
 
@@ -29,7 +30,7 @@ void do_test_tcp_client() {
   std::vector<boost::shared_ptr<boost::asio::ip::tcp::socket> > sockets;
 
   for (int i = 0; i < num_connections; ++i) {
-    boost::shared_ptr<boost::asio::ip::tcp::socket s(
+    boost::shared_ptr<boost::asio::ip::tcp::socket> s(
       new boost::asio::ip::tcp::socket(ios));
 
     boost::asio::ip::tcp::endpoint target(
@@ -40,7 +41,7 @@ void do_test_tcp_client() {
     s->set_option(boost::asio::ip::tcp::no_delay(true));
 
     if (spin) {
-      boost::asio::ip::tcp::socket::non_blocking_i non_blocking_io(true);
+      boost::asio::ip::tcp::socket::non_blocking_io non_blocking_io(true);
       s->io_control(non_blocking_io);
     }
 
@@ -87,6 +88,19 @@ void do_test_tcp_client() {
   std::printf(" 40.0%%\t%f\n", samples[num_samples * 4 / 10 - 1] * scale);
   std::printf(" 50.0%%\t%f\n", samples[num_samples * 5 / 10 - 1] * scale);
   std::printf(" 60.0%%\t%f\n", samples[num_samples * 6 / 10 - 1] * scale);
+  std::printf(" 70.0%%\t%f\n", samples[num_samples * 7 / 10 - 1] * scale);
+  std::printf(" 80.0%%\t%f\n", samples[num_samples * 8 / 10 - 1] * scale);
+  std::printf(" 90.0%%\t%f\n", samples[num_samples * 9 / 10 - 1] * scale);
+  std::printf(" 99.0%%\t%f\n", samples[num_samples * 99 / 100 - 1] * scale);
+  std::printf(" 99.9%%\t%f\n", samples[num_samples * 999 / 1000 - 1] * scale);
+  std::printf("100.0%%\t%f\n", samples[num_samples - 1] * scale);
+
+  double total = 0.0;
+
+  for (int i = 0; i < num_samples; ++i)
+    total += samples[i] * scale;
+
+  std::printf("  mean\t%f\n", total / num_samples);
 }
 
 auto main() -> decltype(0) {
