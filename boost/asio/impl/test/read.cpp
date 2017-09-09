@@ -677,9 +677,188 @@ void test_10() {
   assert(s.check_buffers(buffers, sizeof(read_data)));
 }
 
+// Test arg streambuf read
+void test_11() {
+  boost::asio::io_service ios;
+  stream s(ios);
+  boost::asio::streambuf sb(sizeof(read_data));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  size_t bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_all());
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb, boost::asio::transfer_all());
+  assert(bytes_transferred = sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb, boost::asio::transfer_all());
+  assert(bytes_transferred = sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(1));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(1));
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10));
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10));
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10));
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(sb.data(), 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 50);
+  assert(sb.size() == 50);
+  assert(s.check_buffers(sb.data(), 50));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1));
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1));
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1));
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(10));
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(10));
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(sb.data(), 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(sb.data(), 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(sb.data(), 42));
+ 
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   test_8(); test_9();
-  test_10();
+  test_10(); test_11();
   return 0;
 }
