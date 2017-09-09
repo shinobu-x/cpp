@@ -1,3 +1,6 @@
+#include <boost/array.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/lockfree/detail/atomic.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -67,5 +70,24 @@ namespace thread_detail_anon {
     void operator=(indirect_adapter&);
   };
 } // namespace
+
+namespace {
+template <typename int_type>
+int_type generate_id(void);
+
+template <typename int_type, std::size_t bucket>
+class static_hashed_set {
+public:
+  int calc_index(int_type const&);
+  bool insert(int_type const&);
+  bool find(int_type const&);
+  bool erase(int_type const& id);
+  std::size_t count_nodes(void) const;
+private:
+  boost::array<std::set<int_type>, bucket> data_;
+  mutable boost::array<boost::mutex, bucket> ref_mutex_;
+};
+} // namespace
+
 #pragma once
 #include "utils.ipp"

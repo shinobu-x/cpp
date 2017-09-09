@@ -106,3 +106,54 @@ void timed_test(F func, int sec,
   REQUIRE_MESSAGE(monitor.wait(),
     "Timed test didn't complete in time, passible deadlock.");
 }
+
+template <typename int_type>
+int_type generate_id(void) {
+  static boost::lockfree::detail::atomic<int_type> generator(0);
+  return ++generator;
+}
+
+template <typename int_type, std::size_t bucket>
+int static_hashed_set<int_type, bucket>::calc_index(int_type const& id) {
+  std::size_t factor =
+    std::size_t((float)bucket * 1.616f);
+    return ((std::size_t)id * factor) % bucket;
+}
+
+template <typename int_type, std::size_t bucket>
+bool static_hashed_set<int_type, bucket>::insert(int_type const& id) {
+  std::size_t index = calc_index(id);
+  boost::lock_guard<boost::mutex> l(static_hashed_set::ref_mutex_[index]);
+  std::pair<typename std::set<int_type>::iterator, bool> p;
+  p = data_[index].insert(id);
+  return p.second;
+}
+
+template <typename int_type, std::size_t bucket>
+bool static_hashed_set<int_type, bucket>::find(int_type const& id) {
+  std::size_t index = calc_index(id);
+  boost::lock_guard<boost::mutex> l(static_hashed_set::ref_mutex_[index]);
+  return data_[index].find(id) != data_[index].end();
+}
+
+template <typename int_type, std::size_t bucket>
+bool static_hashed_set<int_type, bucket>::erase(int_type const& id) {
+  std::size_t index = calc_index(id);
+  boost::lock_guard<boost::mutex> l(static_hashed_set::ref_mutex_[index]);
+  if (data_[index].find(id) != data_[index].end()) {
+    data_[index].find(id);
+    assert(data_[index].find(id) == data_[index].end());
+    return true;
+  } else
+    return false;
+}
+
+template <typename int_type, std::size_t bucket>
+std::size_t static_hashed_set<int_type, bucket>::count_nodes(void) const {
+  std::size_t r = 0;
+  for (int i = 0; i != bucket; ++i) {
+    boost::lock_guard<boost::mutex> l(static_hashed_set::ref_mutex_[i]);
+    r += data_[i].size();
+  }
+  return r;
+}
