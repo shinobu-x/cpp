@@ -11,7 +11,7 @@ public:
     return static_cast<void*>(&space_);
   }
 
-  void deallocator(void* p) {
+  void deallocate(void* p) {
     if (p != static_cast<void*>(&space_))
       ::operator delete(p);
     else
@@ -19,7 +19,7 @@ public:
   }
 
 private:
-  alloator(const allocator&);
+  allocator(const allocator&);
   allocator& operator=(const allocator&);
   bool in_use_;
   boost::aligned_storage<1024>::type space_;

@@ -1,87 +1,71 @@
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/read.hpp>
-#include <boost/asio/write.hpp>
+#include <boost/asio/ip/udp.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include <cassert>
+#include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
 #include "high_resolution_clock.hpp"
 
-const int num_samples = 100000;
+const int num_samples = 1000000;
 
-struct transfer_all {
-  typedef std::size_t result_type;
-  std::size_t operator()(const boost::system::error_code& ec, std::size_t) {
-    return (ec && ec != boost::asio::error::would_block) ? 0 : ~0;
-  }
-};
+void do_test_udp_client() {
 
-void do_test_tcp_client() {
-  const char* ip = "127.0.0.1";
-  unsigned short port = 12345;
-  int num_connections = 100;
+  unsigned short first_port = 12345;
+  unsigned short num_ports = 1000;
   std::size_t buffer_size = 1024;
   bool spin = true;
 
   boost::asio::io_service ios;
-  std::vector<boost::shared_ptr<boost::asio::ip::tcp::socket> > sockets;
+  boost::asio::ip::udp::socket s(ios, boost::asio::ip::udp::endpoint(
+    boost::asio::ip::udp::v4(), 0));
 
-  for (int i = 0; i < num_connections; ++i) {
-    boost::shared_ptr<boost::asio::ip::tcp::socket> s(
-      new boost::asio::ip::tcp::socket(ios));
-
-    boost::asio::ip::tcp::endpoint target(
-      boost::asio::ip::address::from_string(ip), port);
-
-    s->connect(target);
-
-    s->set_option(boost::asio::ip::tcp::no_delay(true));
-
-    if (spin) {
-      boost::asio::ip::tcp::socket::non_blocking_io non_blocking_io(true);
-      s->io_control(non_blocking_io);
-    }
-
-    sockets.push_back(s);
+  if (spin) {
+    boost::asio::ip::udp::socket::non_blocking_io non_blocking_io(true);
+    s.io_control(non_blocking_io);
   }
 
+  boost::asio::ip::udp::endpoint target(
+    boost::asio::ip::address_v4::loopback(), first_port);
+  unsigned short last_port = first_port + num_ports - 1;
   std::vector<unsigned char> write_buffer(buffer_size);
   std::vector<unsigned char> read_buffer(buffer_size);
+
   boost::posix_time::ptime start =
     boost::posix_time::microsec_clock::universal_time();
   boost::uint64_t start_high_resolution = high_res_clock();
   boost::uint64_t samples[num_samples];
 
   for (int i = 0; i < num_samples; ++i) {
-    boost::asio::ip::tcp::socket& socket = *sockets[i % num_connections];
     boost::uint64_t t = high_res_clock();
     boost::system::error_code ec;
-
-    boost::asio::write(socket, boost::asio::buffer(write_buffer),
-      transfer_all(), ec);
-
-    boost::asio::read(socket, boost::asio::buffer(read_buffer),
-      transfer_all(), ec);
+    s.send_to(boost::asio::buffer(write_buffer), target, 0, ec);
+    do
+      s.receive(boost::asio::buffer(read_buffer),  0, ec);
+    while (ec == boost::asio::error::would_block);
 
     samples[i] = high_res_clock() - t;
+
+    if (target.port() == last_port)
+      target.port(first_port);
+    else
+      target.port(target.port() + 1);
   }
 
   boost::posix_time::ptime stop =
     boost::posix_time::microsec_clock::universal_time();
   boost::uint64_t stop_high_resolution = high_res_clock();
   boost::uint64_t elapsed_usec = (stop - start).total_microseconds();
-  boost::uint64_t elapsed_high_resolution = 
+  boost::uint64_t elapsed_high_resolution =
     stop_high_resolution - start_high_resolution;
   double scale = 1.0 * elapsed_usec / elapsed_high_resolution;
 
   std::sort(samples, samples + num_samples);
-
   std::printf("  0.0%%\t%f\n", samples[0] * scale);
   std::printf("  0.1%%\t%f\n", samples[num_samples / 1000 - 1] * scale);
-  std::printf("  1.0%%\t%f\n", samples[num_samples / 100 -1] * scale);
+  std::printf("  1.0%%\t%f\n", samples[num_samples / 100 - 1] * scale);
   std::printf(" 10.0%%\t%f\n", samples[num_samples / 10 - 1] * scale);
   std::printf(" 20.0%%\t%f\n", samples[num_samples * 2 / 10 - 1] * scale);
   std::printf(" 30.0%%\t%f\n", samples[num_samples * 3 / 10 - 1] * scale);
@@ -90,20 +74,18 @@ void do_test_tcp_client() {
   std::printf(" 60.0%%\t%f\n", samples[num_samples * 6 / 10 - 1] * scale);
   std::printf(" 70.0%%\t%f\n", samples[num_samples * 7 / 10 - 1] * scale);
   std::printf(" 80.0%%\t%f\n", samples[num_samples * 8 / 10 - 1] * scale);
-  std::printf(" 90.0%%\t%f\n", samples[num_samples * 9 / 10 - 1] * scale);
+  std::printf(" 90.0%%\t%f\n", samples[num_samples * 9 / 10 -1 ] * scale);
   std::printf(" 99.0%%\t%f\n", samples[num_samples * 99 / 100 - 1] * scale);
   std::printf(" 99.9%%\t%f\n", samples[num_samples * 999 / 1000 - 1] * scale);
   std::printf("100.0%%\t%f\n", samples[num_samples - 1] * scale);
 
   double total = 0.0;
-
   for (int i = 0; i < num_samples; ++i)
     total += samples[i] * scale;
-
   std::printf("  mean\t%f\n", total / num_samples);
 }
 
 auto main() -> decltype(0) {
-  do_test_tcp_client();
+  do_test_udp_client();
   return 0;
 }
