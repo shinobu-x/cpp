@@ -51,7 +51,7 @@ private:
           for (;;)                           \
             case 1:                          \
             if (_coro_value)                 \
-              goto bail_out_of_coroutine;     \
+              goto bail_out_of_coroutine;    \
             else                             \
               case 0:
 
@@ -70,3 +70,5 @@ for (_coro_value = -(n);; _coro_value = (n)) \
 #define CORO_YIELD CORO_YIELD_IMPL(__LINE__)
 #define CORO_FORK CORO_FORK_IMPL(__LINE__)
 #endif
+
+#pragma once
