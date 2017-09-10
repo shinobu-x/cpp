@@ -38,3 +38,66 @@ void locking_thread<lock_type>::operator()() {
     --simultaneous_running_count_;
   }
 }
+
+simple_writing_thread::simple_writing_thread(
+  shared_mutex& rwm_mutex,
+  boost::mutex& finish_mutex,
+  boost::mutex& unblocked_mutex,
+  unsigned& unblocked_count)
+  : rwm_mutex_(rwm_mutex),
+    finish_mutex_(finish_mutex),
+    unblocked_mutex_(unblocked_mutex),
+    unblocked_count_(unblocked_count) {}
+
+void simple_writing_thread::operator()() {
+  boost::unique_lock<shared_mutex> lock(rwm_mutex_);
+
+  {
+    boost::unique_lock<boost::mutex> unblock(unblocked_mutex_);
+    ++unblocked_count_;
+  }
+
+  boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
+}
+
+simple_reading_thread::simple_reading_thread(
+  shared_mutex& rwm_mutex,
+  boost::mutex& finish_mutex,
+  boost::mutex& unblocked_mutex,
+  unsigned& unblocked_count)
+  : rwm_mutex_(rwm_mutex),
+    finish_mutex_(finish_mutex),
+    unblocked_mutex_(unblocked_mutex),
+    unblocked_count_(unblocked_count) {}
+
+void simple_reading_thread::operator()() {
+  boost::shared_lock<shared_mutex> lock(rwm_mutex_);
+
+  {
+    boost::unique_lock<boost::mutex> unblock(unblocked_mutex_);
+    ++unblocked_count_;
+  }
+
+  boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
+}
+
+simple_upgrade_thread::simple_upgrade_thread(
+  shared_mutex& rwm_mutex,
+  boost::mutex& finish_mutex,
+  boost::mutex& unblocked_mutex,
+  unsigned& unblocked_count)
+  : rwm_mutex_(rwm_mutex),
+    finish_mutex_(finish_mutex),
+    unblocked_mutex_(unblocked_mutex),
+    unblocked_count_(unblocked_count) {}
+
+void simple_upgrade_thread::operator()() {
+  boost::upgrade_lock<shared_mutex> lock(rwm_mutex_);
+
+  {
+    boost::unique_lock<boost::mutex> unblock(unblocked_mutex_);
+    ++unblocked_count_;
+  }
+
+  boost::unique_lock<boost::mutex> finish_lock(finish_mutex_);
+}
