@@ -141,7 +141,7 @@ bool static_hashed_set<int_type, bucket>::erase(int_type const& id) {
   std::size_t index = calc_index(id);
   boost::lock_guard<boost::mutex> l(static_hashed_set::ref_mutex_[index]);
   if (data_[index].find(id) != data_[index].end()) {
-    data_[index].find(id);
+    data_[index].erase(id);
     assert(data_[index].find(id) == data_[index].end());
     return true;
   } else
