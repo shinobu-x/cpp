@@ -107,12 +107,6 @@ void timed_test(F func, int sec,
     "Timed test didn't complete in time, passible deadlock.");
 }
 
-template <typename int_type>
-int_type generate_id(void) {
-  static boost::lockfree::detail::atomic<int_type> generator(0);
-  return ++generator;
-}
-
 template <typename int_type, std::size_t bucket>
 int static_hashed_set<int_type, bucket>::calc_index(int_type const& id) {
   std::size_t factor =

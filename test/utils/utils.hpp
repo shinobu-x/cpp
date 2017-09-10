@@ -73,7 +73,10 @@ namespace thread_detail_anon {
 
 namespace {
 template <typename int_type>
-int_type generate_id(void);
+int_type generate_id() {
+  static boost::lockfree::detail::atomic<int_type> generator(0);
+  return ++generator;
+}
 
 template <typename int_type, std::size_t bucket>
 class static_hashed_set {
