@@ -180,7 +180,7 @@ void test_5() {
   boost::system_time const timeout1 =
     start + boost::posix_time::milliseconds(500);
   boost::posix_time::milliseconds const timeout_resolution(50);
-//  bool timed_lock_succeeded = rwm_mutex.timed_lock(timeout1);
+  bool timed_lock_succeeded = rwm_mutex.timed_lock(timeout1);
 
   assert(boost::get_system_time() < timeout1);
   assert(timed_lock_succeeded);
@@ -190,7 +190,7 @@ void test_5() {
 
   boost::posix_time::milliseconds const wait_duration(500);
   boost::system_time const timeout2 = boost::get_system_time() + wait_duration;
-//  timed_lock_succeeded = rwm_mutex.timed_lock(wait_duration);
+  timed_lock_succeeded = rwm_mutex.timed_lock(wait_duration);
 
   assert(boost::get_system_time() < timeout2);
   assert(timed_lock_succeeded);
