@@ -901,19 +901,48 @@ void test_11() {
   assert(s.check_buffers(sb.data(), sizeof(read_data)));
 }
 
-// Test mutable buffer_1 read
+// Test mutable buffers_1 read
 void test_12() {
   boost::asio::io_service ios;
   stream s(ios);
   char read_buf[sizeof(read_data)];
   boost::asio::mutable_buffers_1 buffers =
-    boost::asio::buffer(read_buf, sizeof(read_data));
+    boost::asio::buffer(read_buf, sizeof(read_buf));
 
   s.reset(read_data, sizeof(read_data));
-  memset(read_buf, 0, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
   boost::system::error_code ec;
   size_t bytes_transferred = boost::asio::read(s, buffers,
     boost::asio::transfer_all(), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_all(), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_all(), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(1), ec);
   assert(bytes_transferred == sizeof(read_data));
   assert(s.check_buffers(buffers, sizeof(read_data)));
   assert(!ec);
