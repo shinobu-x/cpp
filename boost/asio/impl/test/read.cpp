@@ -984,7 +984,66 @@ void test_12() {
   assert(bytes_transferred == 10);
   assert(s.check_buffers(buffers, 10));
   assert(!ec);
-}
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(10), ec);
+  assert(bytes_transferred == 10);
+  assert(s.check_buffers(buffers, 10));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(buffers, 42));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 50);
+  assert(s.check_buffers(buffers, 50));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(9);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 45);
+  assert(s.check_buffers(buffers, 45));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(8);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, buffers,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 48);
+  assert(s.check_buffers(buffers, 48));
+  assert(!ec);
+} //1140
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
