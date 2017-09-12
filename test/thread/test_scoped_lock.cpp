@@ -47,6 +47,6 @@ void do_test_scoped_lock() {
 }
 
 auto main() -> decltype(0) {
-  do_test_lock();
+  do_test_scoped_lock();
   return 0;
 }
