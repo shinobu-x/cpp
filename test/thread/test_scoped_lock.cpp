@@ -32,7 +32,7 @@ struct test_scoped_lock {
   }
 };
 
-void do_test_lock() {
+void do_test_scoped_lock() {
    boost::thread_group threads;
 
    try {
