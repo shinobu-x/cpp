@@ -8,7 +8,7 @@
 #include <cassert>
 
 template <typename mutex_type>
-struct test_lock {
+struct test_scoped_lock {
   void operator()() {
     mutex_type mutex;
     boost::condition condition;
@@ -37,7 +37,7 @@ void do_test_lock() {
 
    try {
      for (unsigned i = 0; i < 10; ++i)
-       threads.create_thread(test_lock<boost::mutex>());
+       threads.create_thread(test_scoped_lock<boost::mutex>());
      threads.join_all();
    } catch (...) {
      threads.interrupt_all();
