@@ -22,8 +22,8 @@ struct lock_timeout_if_other_thread_has_lock {
 
     boost::lock_guard<boost::mutex> lock_done(done_mutex);
     locked = lock.owns_lock();
-    assert(locked);
-    done = lock;
+    assert(!locked);
+    done = true;
     condition.notify_one();
   }
 
@@ -33,7 +33,7 @@ struct lock_timeout_if_other_thread_has_lock {
 
     boost::lock_guard<boost::mutex> lock_done(done_mutex);
     locked = lock.owns_lock();
-    assert(locked);
+    assert(!locked);
     done = true;
     condition.notify_one();
   }
@@ -60,6 +60,7 @@ struct lock_timeout_if_other_thread_has_lock {
           boost::bind(&this_type::is_done, this)));
         assert(!locked);
       }
+      assert(lock.owns_lock());
       lock.unlock();
       t.join();
     } catch (...) {
@@ -70,6 +71,9 @@ struct lock_timeout_if_other_thread_has_lock {
   }
 
   void operator()() {
+    do_lock_timeout_if_other_thread_has_lock(&this_type::locking_thread);
+    do_lock_timeout_if_other_thread_has_lock(
+      &this_type::locking_thread_through_constructor);
   }
 
 };
@@ -113,24 +117,24 @@ struct test_scoped_timed_lock {
     lock.unlock();
     assert(!lock);
     lock.lock();
-    assert(lock);
+    assert(lock.owns_lock());
 
     lock.unlock();
     assert(!lock);
     boost::system_time timeout2 = 
       boost::get_system_time() + boost::posix_time::milliseconds(100);
     lock.timed_lock(timeout2);
-    assert(lock);
+    assert(lock.owns_lock());
     lock.unlock();
-    assert(!lock);
+    assert(!lock.owns_lock());
 
     mutex.timed_lock(boost::posix_time::milliseconds(100));
     mutex.unlock();
 
     lock.timed_lock(boost::posix_time::milliseconds(100));
-    assert(lock);
+    assert(lock.owns_lock());
     lock.unlock();
-    assert(!lock);
+    assert(!lock.owns_lock());
   }
 };
 
