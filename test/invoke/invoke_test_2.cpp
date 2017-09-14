@@ -96,11 +96,6 @@ void do_test_invoke_2() {
     save = count;
   }
   {
-    boost::detail::invoke<void>(cobj, i);
-    assert(count == save +(i*2));
-    save = count;
-  }
-  {
     boost::detail::invoke(cobj, i, i);
     assert(count == save + (i*2));
     save = count;
@@ -122,7 +117,37 @@ void do_test_invoke_2() {
   }
   {
     boost::detail::invoke(cobj, i, i, i, i, i, i);
-    assert(count == save + (i+6));
+    assert(count == save + (i*6));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i);
+    assert(count == save + (i*2));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i, i);
+    assert(count == save + (i*2));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i, i, i);
+    assert(count == save + (i*3));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i, i, i, i);
+    assert(count == save + (i*4));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i, i, i, i, i);
+    assert(count == save + (i*5));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(cobj, i, i, i, i, i, i);
+    assert(count == save + (i*6));
     save = count;
   }
   {
@@ -196,6 +221,16 @@ void do_test_invoke_2() {
     save = count;
   }
   {
+    boost::detail::invoke(&test_invoke_2::f1, test_invoke_2());
+    assert(count == save + i);
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(&test_invoke_2::f1, test_invoke_2());
+    assert(count == save + i);
+    save = count;
+  }
+  {
     boost::detail::invoke(&test_invoke_2::f2, obj);
     assert(count == save + (i*2));
     save = count;
@@ -207,6 +242,21 @@ void do_test_invoke_2() {
   }
   {
     boost::detail::invoke(&test_invoke_2::f2, ptr);
+    assert(count == save + (i*2));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(&test_invoke_2::f2, ptr);
+    assert(count == save + (i*2));
+    save = count;
+  }
+  {
+    boost::detail::invoke(&test_invoke_2::f2, test_invoke_2());
+    assert(count == save + (i*2));
+    save = count;
+  }
+  {
+    boost::detail::invoke<void>(&test_invoke_2::f2, test_invoke_2());
     assert(count == save + (i*2));
     save = count;
   }
