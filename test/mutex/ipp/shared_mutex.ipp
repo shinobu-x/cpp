@@ -221,6 +221,10 @@ bool shared_mutex::timed_lock(boost::system_time const& timeout) {
 
   return false;
 }
+template <typename TimeDuration>
+bool shared_mutex::timed_lock(TimeDuration const& relative_time) {
+  return timed_lock(boost::get_system_time() + relative_time);
+}
 #endif
 #ifdef BOOST_THREAD_USES_CHRONO
 template <class Rep, class Period>
