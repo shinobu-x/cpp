@@ -80,7 +80,97 @@ void test_buffers_iterator() {
         boost::asio::buffers_iterator<
           std::array<
             boost::asio::mutable_buffer, 2>, const char>::begin(std_mb2)); 
+    boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, char> bi17(
+        boost::asio::buffers_iterator<
+          std::vector<boost::asio::mutable_buffer>, char>::begin(mb3));
+    boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, const char> bi18(
+        boost::asio::buffers_iterator<
+          std::vector<boost::asio::mutable_buffer>, const char>::begin(mb3));
+    boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, char> bi19(
+        boost::asio::buffers_iterator<
+          boost::asio::const_buffers_1, char>::begin(cb1));
+    boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, const char> bi20(
+        boost::asio::buffers_iterator<
+          boost::asio::const_buffers_1, const char>::begin(cb1));
+    boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, char> bi21(
+        boost::asio::buffers_iterator<
+          boost::array<boost::asio::const_buffer, 2>, char>::begin(cb2));
+    boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, const char> bi22(
+        boost::asio::buffers_iterator<
+          boost::array<boost::asio::const_buffer, 2>, const char>::begin(cb2));
+    boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, char> std_bi21(
+        boost::asio::buffers_iterator<
+          std::array<boost::asio::const_buffer, 2>, char>::begin(std_cb2));
+    boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, const char> std_bi22(
+        boost::asio::buffers_iterator<
+          std::array<boost::asio::const_buffer, 2>,
+            const char>::begin(std_cb2));
+    boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, char> bi23(
+        boost::asio::buffers_iterator<
+          std::vector<boost::asio::const_buffer>, char>::begin(cb3));
+    boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, const char> bi24(
+        boost::asio::buffers_iterator<
+          std::vector<boost::asio::const_buffer>, const char>::begin(cb3));
 
+    bi1 = boost::asio::buffers_iterator<
+      boost::asio::mutable_buffers_1, char>::begin(mb1);
+    bi2 = boost::asio::buffers_iterator<
+      boost::asio::mutable_buffers_1, const char>::begin(mb1);
+    bi3 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::mutable_buffer, 2>, char>::begin(mb2);
+    bi4 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::mutable_buffer, 2>, const char>::begin(mb2);
+    std_bi3 = boost::asio::buffers_iterator<
+      std::array<boost::asio::mutable_buffer, 2>, char>::begin(std_mb2);
+    std_bi4 = boost::asio::buffers_iterator<
+      std::array<boost::asio::mutable_buffer, 2>, const char>::begin(std_mb2);
+    bi5 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, char>::begin(mb3);
+    bi6 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, const char>::begin(mb3);
+    bi7 = boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, char>::begin(cb1);
+    bi8 = boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, const char>::begin(cb1);
+    bi9 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, char>::begin(cb2);
+    bi10 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, const char>::begin(cb2);
+    std_bi9 = boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, char>::begin(std_cb2);
+    std_bi10 = boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, const char>::begin(std_cb2);
+    bi11 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, char>::begin(cb3);
+    bi12 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, const char>::begin(cb3);
+
+    bi1 = boost::asio::buffers_iterator<
+      boost::asio::mutable_buffers_1, char>::end(mb1);
+    bi2 = boost::asio::buffers_iterator<
+      boost::asio::mutable_buffers_1, const char>::end(mb1);
+    bi3 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::mutable_buffer, 2>, char>::end(mb2);
+    bi4 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::mutable_buffer, 2>, const char>::end(mb2);
+    std_bi3 = boost::asio::buffers_iterator<
+      std::array<boost::asio::mutable_buffer, 2>, char>::end(std_mb2);
+    std_bi4 = boost::asio::buffers_iterator<
+      std::array<boost::asio::mutable_buffer, 2>, const char>::end(std_mb2);
+    bi5 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, char>::end(mb3);
+    bi6 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::mutable_buffer>, const char>::end(mb3);
   } catch (...) {}
 }
 
