@@ -6,6 +6,7 @@
 void test_buffer() {
   try {
     char raw_data[1024];
+    void* void_ptr_data = raw_data;
     const char const_raw_data[1024] = "";
     const void* const_void_ptr_data = const_raw_data;
     boost::array<char, 1024> array_data;
@@ -13,7 +14,7 @@ void test_buffer() {
     boost::array<const char, 1024> const_array_data_2 = {{0}};
     std::array<char, 1024> std_array_data;
     const std::array<char, 1024>& const_std_array_data_1 = std_array_data;
-    std::array<const char, 1024> const_std_array_2 = {{0}};
+    std::array<const char, 1024> const_std_array_data_2 = {{0}};
     std::vector<char> vector_data(1024);
     const std::vector<char>& const_vector_data = vector_data;
     const std::string string_data(1024, ' ');
@@ -46,9 +47,9 @@ void test_buffer() {
     boost::asio::const_buffers_1 cbc1(cb1);
     boost::asio::const_buffers_1 cbc2(cbc1);
 
-    boost::asio::const_buffers_1::const_iterator it1 = cbc1.begin();
+    boost::asio::const_buffers_1::const_iterator it3 = cbc1.begin();
     (void)it3;
-    boost::asio::const_buffers_1::const_iterator it2 = cbc1.end();
+    boost::asio::const_buffers_1::const_iterator it4 = cbc1.end();
     (void)it4;
 
     std::size_t s1 = boost::asio::buffer_size(mb1);
@@ -127,7 +128,7 @@ void test_buffer() {
     (void)s22;
     std::size_t s23 = boost::asio::buffer_copy(mb1, cbc2, 128);
     (void)s23;
-    std::size_t s24 = boost::asio::buufer_copy(mb1, mb2, 128);
+    std::size_t s24 = boost::asio::buffer_copy(mb1, mb2, 128);
     (void)s24;
     std::size_t s25 = boost::asio::buffer_copy(mb1, mbc2, 128);
     (void)s25;
@@ -141,4 +142,29 @@ void test_buffer() {
     (void)s29;
     std::size_t s30 = boost::asio::buffer_copy(mbc1, mbc2, 128);
     (void)s30;
+    std::size_t s31 =
+      boost::asio::buffer_copy(mbc1, const_buffer_sequence, 128);
+    (void)s31;
+    std::size_t s32 =
+      boost::asio::buffer_copy(mutable_buffer_sequence, cb2, 128);
+    (void)s32;
+    std::size_t s33 =
+      boost::asio::buffer_copy(mutable_buffer_sequence, cbc2, 128);
+    (void)s33;
+    std::size_t s34 =
+      boost::asio::buffer_copy(mutable_buffer_sequence, mb2, 128);
+    (void)s34;
+    std::size_t s35 =
+      boost::asio::buffer_copy(mutable_buffer_sequence, mbc2, 128);
+    (void)s35;
+    std::size_t s36 =
+      boost::asio::buffer_copy(
+        mutable_buffer_sequence, const_buffer_sequence, 128);
+    (void)s36;
+  } catch (...) {}
+}
 
+auto main() -> decltype(0) {
+  test_buffer();
+  return 0;
+}
