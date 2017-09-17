@@ -1471,6 +1471,23 @@ void test_13() {
   assert(!ec);
 }
 
+// Test arg streambuf read
+void test_14() {
+  boost::asio::io_service ios;
+  stream s(ios);
+  boost::asio::streambuf sb(sizeof(read_data));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  boost::system::error_code ec;
+  size_t bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_all(), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   test_8(); test_9();
