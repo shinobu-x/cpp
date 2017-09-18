@@ -171,9 +171,80 @@ void test_buffers_iterator() {
       std::vector<boost::asio::mutable_buffer>, char>::end(mb3);
     bi6 = boost::asio::buffers_iterator<
       std::vector<boost::asio::mutable_buffer>, const char>::end(mb3);
-  } catch (...) {}
+    bi7 = boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, char>::end(cb1);
+    bi8 = boost::asio::buffers_iterator<
+      boost::asio::const_buffers_1, const char>::end(cb1);
+    bi9 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, char>::end(cb2);
+    bi10 = boost::asio::buffers_iterator<
+      boost::array<boost::asio::const_buffer, 2>, const char>::end(cb2);
+    std_bi9 = boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, char>::end(std_cb2);
+    std_bi10 = boost::asio::buffers_iterator<
+      std::array<boost::asio::const_buffer, 2>, const char>::end(std_cb2);
+    bi11 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, char>::end(cb3);
+    bi12 = boost::asio::buffers_iterator<
+      std::vector<boost::asio::const_buffer>, const char>::end(cb3);
+
+    bi1 = boost::asio::buffers_begin(mb1);
+    bi3 = boost::asio::buffers_begin(mb2);
+    bi5 = boost::asio::buffers_begin(mb3);
+    bi7 = boost::asio::buffers_begin(cb1);
+    bi9 = boost::asio::buffers_begin(cb2);
+    bi11 = boost::asio::buffers_begin(cb3);
+
+    bi1 = boost::asio::buffers_begin(mb1);
+    bi3 = boost::asio::buffers_begin(mb2);
+    bi5 = boost::asio::buffers_begin(mb3);
+    bi7 = boost::asio::buffers_begin(cb1);
+    bi9 = boost::asio::buffers_begin(cb2);
+    bi11 = boost::asio::buffers_begin(cb3);
+
+    ++bi1; --bi1; bi1++; bi1--;
+    --bi2; ++bi2; bi2--; bi2++;
+    ++bi3; --bi3; bi3++; bi3--;
+    --bi4; ++bi4; bi4--; bi4++;
+    ++bi5; --bi5; bi5++; bi5--;
+    --bi6; ++bi6; bi6--; bi6++;
+    ++bi7; --bi7; bi7++; bi7--;
+    --bi8; ++bi8; bi8--; bi8++;
+    ++bi9; --bi9; bi9++; bi9--;
+    --bi10; ++bi10; bi10--; bi10++;
+    ++bi11; --bi11; bi11++; bi11--;
+    --bi12; ++bi12; bi12--; bi12++;
+
+    bi1 += 1; bi1 -= 1; bi1 = bi1 + 1; bi1 = bi1 - 1; bi1 = (+1) + bi1;
+    bi2 -= 1; bi2 += 1; bi2 = bi2 - 1; bi2 = bi2 + 1; bi2 = (-1) + bi2;
+    bi3 += 1; bi3 -= 1; bi3 = bi3 + 1; bi3 = bi3 - 1; bi3 = (+1) + bi3;
+    bi4 -= 1; bi4 += 1; bi4 = bi4 - 1; bi4 = bi4 + 1; bi4 = (-1) + bi4;
+    bi5 += 1; bi5 -= 1; bi5 = bi5 + 1; bi5 = bi5 - 1; bi5 = (+1) + bi5;
+    bi6 -= 1; bi6 += 1; bi6 = bi6 - 1; bi6 = bi6 + 1; bi6 = (-1) + bi6;
+    bi7 += 1; bi7 -= 1; bi7 = bi7 + 1; bi7 = bi7 - 1; bi7 = (+1) + bi7;
+    bi8 -= 1; bi8 += 1; bi8 = bi8 - 1; bi8 = bi8 + 1; bi8 = (-1) + bi8;
+    bi9 += 1; bi9 -= 1; bi9 = bi9 + 1; bi9 = bi9 - 1; bi9 = (+1) + bi9;
+    bi10 -= 1; bi10 += 1; bi10 = bi10 - 1; bi10 = bi10 + 1; bi10 = (-1) + bi10;
+    bi11 += 1; bi11 -= 1; bi11 = bi11 + 1; bi11 = bi11 - 1; bi11 = (+1) + bi11;
+    bi12 -= 1; bi12 += 1; bi12 = bi12 - 1; bi12 = bi12 + 1; bi12 = (-1) + bi12;
+
+    (void)static_cast<std::ptrdiff_t>(bi13 - bi1);
+    (void)static_cast<std::ptrdiff_t>(bi14 - bi2);
+    (void)static_cast<std::ptrdiff_t>(bi15 - bi3);
+    (void)static_cast<std::ptrdiff_t>(bi16 - bi4);
+    (void)static_cast<std::ptrdiff_t>(bi17 - bi5);
+    (void)static_cast<std::ptrdiff_t>(bi18 - bi6);
+    (void)static_cast<std::ptrdiff_t>(bi19 - bi7);
+    (void)static_cast<std::ptrdiff_t>(bi20 - bi8);
+    (void)static_cast<std::ptrdiff_t>(bi21 - bi9);
+    (void)static_cast<std::ptrdiff_t>(bi22 - bi10);
+    (void)static_cast<std::ptrdiff_t>(bi23 - bi11);
+    (void)static_cast<std::ptrdiff_t>(bi24 - bi12);
+
+  } catch (std::exception&) {}
 }
 
 auto main() -> decltype(0) {
+  test_buffers_iterator();
   return 0;
-} 
+}
