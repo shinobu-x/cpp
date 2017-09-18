@@ -358,6 +358,48 @@ void test_socket_base() {
   tcp_sk.get_option(receive_low_watermark4, ec);
   assert(!ec);
   assert(receive_low_watermark4.value() == receive_low_watermark2.value()*2);
+
+  boost::asio::socket_base::reuse_address reuse_address1(true);
+  udp_sk.set_option(reuse_address1, ec);
+  assert(!ec);
+  assert(reuse_address1.value());
+  assert(!!reuse_address1.value());
+  assert(reuse_address1);
+  assert(!!reuse_address1);
+  assert(static_cast<bool>(reuse_address1));
+  assert(!!static_cast<bool>(reuse_address1));
+
+  boost::asio::socket_base::reuse_address reuse_address2;
+  udp_sk.get_option(reuse_address2, ec);
+  assert(!ec);
+  assert(reuse_address2.value());
+  assert(!!reuse_address2.value());
+  assert(reuse_address2);
+  assert(!!reuse_address2);
+  assert(static_cast<bool>(reuse_address2));
+  assert(!!static_cast<bool>(reuse_address2));
+
+  boost::asio::socket_base::reuse_address reuse_address3(false);
+  udp_sk.set_option(reuse_address3, ec);
+  assert(!ec);
+  assert(!reuse_address3.value());
+  assert(!reuse_address3);
+  assert(!static_cast<bool>(reuse_address3));
+
+  boost::asio::socket_base::reuse_address reuse_address4;
+  udp_sk.get_option(reuse_address4, ec);
+  assert(!ec);
+  assert(!reuse_address4.value());
+  assert(!reuse_address4);
+  assert(!static_cast<bool>(reuse_address4));
+
+  boost::asio::socket_base::linger linger1(true, 60);
+  tcp_sk.set_option(linger1, ec);
+  assert(!ec);
+  assert(linger1.enabled());
+  assert(linger1.timeout() == 60);
+
+
 }
 } // namespace
 auto main() -> decltype(0) {
