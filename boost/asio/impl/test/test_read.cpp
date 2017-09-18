@@ -1524,7 +1524,7 @@ void test_14() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read(s, sb,
-    boost::asio::transfer_at_least(1));
+    boost::asio::transfer_at_least(1), ec);
   assert(bytes_transferred == 1);
   assert(sb.size() == 1);
   assert(s.check_buffers(sb.data(), 1));
@@ -1535,7 +1535,7 @@ void test_14() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read(s, sb,
-    boost::asio::transfer_at_least(1));
+    boost::asio::transfer_at_least(1), ec);
   assert(bytes_transferred == 10);
   assert(sb.size() == 10);
   assert(s.check_buffers(sb.data(), 10));
@@ -1545,10 +1545,106 @@ void test_14() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read(s, sb,
-    boost::asio::transfer_at_least(10));
+    boost::asio::transfer_at_least(10), ec);
   assert(bytes_transferred == sizeof(read_data));
   assert(sb.size() == sizeof(read_data));
   assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10), ec);
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(10), ec);
+  assert(bytes_transferred == 10);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(4096), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42), ec);
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(sb.data(), 42));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_at_least(42), ec);
+  assert(bytes_transferred == 50);
+  assert(sb.size() == 50);
+  assert(s.check_buffers(sb.data(), 50));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1), ec);
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1), ec);
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb,
+    boost::asio::transfer_exactly(1), ec);
+  assert(bytes_transferred == 1);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
   assert(!ec);
 }
 
