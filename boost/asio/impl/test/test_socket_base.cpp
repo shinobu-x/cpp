@@ -394,12 +394,77 @@ void test_socket_base() {
   assert(!static_cast<bool>(reuse_address4));
 
   boost::asio::socket_base::linger linger1(true, 60);
-  tcp_sk.set_option(linger1, ec);
+  udp_sk.set_option(linger1, ec);
   assert(!ec);
   assert(linger1.enabled());
   assert(linger1.timeout() == 60);
 
+  boost::asio::socket_base::linger linger2;
+  udp_sk.get_option(linger2, ec);
+  assert(!ec);
+  assert(linger2.enabled());
+  assert(linger2.timeout() == linger1.timeout());
 
+  boost::asio::socket_base::linger linger3(false, 0);
+  udp_sk.set_option(linger3, ec);
+  assert(!ec);
+  assert(!linger3.enabled());
+  assert(linger3.timeout() == 0);
+
+  boost::asio::socket_base::linger linger4;
+  udp_sk.get_option(linger4, ec);
+  assert(!ec);
+  assert(!linger4.enabled());
+
+  boost::asio::socket_base::enable_connection_aborted
+    enable_connection_aborted1(true);
+  ap.set_option(enable_connection_aborted1, ec);
+  assert(!ec);
+  assert(enable_connection_aborted1.value());
+  assert(!!enable_connection_aborted1.value());
+  assert(enable_connection_aborted1);
+  assert(!!enable_connection_aborted1);
+  assert(static_cast<bool>(enable_connection_aborted1));
+  assert(!!static_cast<bool>(enable_connection_aborted1));
+
+  boost::asio::socket_base::enable_connection_aborted
+    enable_connection_aborted2;
+  ap.get_option(enable_connection_aborted2, ec);
+  assert(!ec);
+  assert(enable_connection_aborted2.value());
+  assert(!!enable_connection_aborted2.value());
+  assert(enable_connection_aborted2);
+  assert(!!enable_connection_aborted2);
+  assert(static_cast<bool>(enable_connection_aborted2));
+  assert(!!static_cast<bool>(enable_connection_aborted2));
+
+  boost::asio::socket_base::enable_connection_aborted
+    enable_connection_aborted3(false);
+  ap.set_option(enable_connection_aborted3, ec);
+  assert(!ec);
+  assert(!enable_connection_aborted3.value());
+  assert(!enable_connection_aborted3);
+  assert(!static_cast<bool>(enable_connection_aborted3));
+
+  boost::asio::socket_base::enable_connection_aborted
+    enable_connection_aborted4;
+  ap.get_option(enable_connection_aborted4, ec);
+  assert(!ec);
+  assert(!enable_connection_aborted4.value());
+  assert(!enable_connection_aborted4);
+  assert(!static_cast<bool>(enable_connection_aborted4));
+
+  boost::asio::socket_base::non_blocking_io non_blocking_io1(true);
+  tcp_sk.io_control(non_blocking_io1, ec);
+  assert(!ec);
+
+  boost::asio::socket_base::non_blocking_io non_blocking_io2(false);
+  tcp_sk.io_control(non_blocking_io2, ec);
+  assert(!ec);
+
+  boost::asio::socket_base::bytes_readable bytes_readable;
+  udp_sk.io_control(bytes_readable, ec);
+  assert(!ec);
 }
 } // namespace
 auto main() -> decltype(0) {
