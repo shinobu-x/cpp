@@ -17,7 +17,7 @@ public:
     return ios_;
   }
 
-  void rest(const void* data, std::size_t length) {
+  void reset(const void* data, std::size_t length) {
     assert(length <= max_length);
 
     memcpy(data_, data, length);
@@ -45,7 +45,7 @@ public:
     return read_some(buffers);
   }
 
-  template <typename mutable_buffers, typename hander>
+  template <typename mutable_buffers, typename handler>
   void async_read_some(const mutable_buffers& buffers, handler h) {
     std::size_t bytes_transferred = read_some(buffers);
     ios_.post(boost::asio::detail::bind_handler(h,
@@ -61,6 +61,76 @@ private:
   std::size_t next_read_length_;
 };
 
+static const char read_data[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+void test_read_until() {
+  boost::asio::io_service ios;
+  stream s(ios);
+  boost::asio::streambuf sb1;
+  boost::asio::streambuf sb2(25);
+  boost::system::error_code ec;
+
+  {
+    s.reset(read_data, sizeof(read_data));
+    sb1.consume(sb1.size());
+    std::size_t length = boost::asio::read_until(s, sb1, 'Z');
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z');
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z');
+
+    s.reset(read_data, sizeof(read_data));
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(ec != boost::asio::error::not_found);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(ec != boost::asio::error::not_found);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, 'Z', ec);
+    assert(ec != boost::asio::error::not_found);
+    assert(length == 26);
+  }
+}
+
 auto main() -> decltype(0) {
+  test_read_until();
   return 0;
 }
