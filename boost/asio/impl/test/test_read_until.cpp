@@ -277,6 +277,78 @@ void test_read_until() {
     sb1.consume(sb1.size());
     std::size_t length = boost::asio::read_until(s, sb1, match_char('Z'));
     assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, match_char('Z'));
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, match_char('Z'));
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, match_char('Z'), ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, match_char('Z'), ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb1.consume(sb1.size());
+    length = boost::asio::read_until(s, sb1, match_char('Z'), ec);
+    assert(!ec);
+    assert(length == 26);
+
+    s.reset(read_data, sizeof(read_data));
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Z'), ec);
+    assert(ec == boost::asio::error::not_found);
+    assert(length == 0);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Z'), ec);
+    assert(ec == boost::asio::error::not_found);
+    assert(length == 0);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Z'), ec);
+    assert(ec == boost::asio::error::not_found);
+    assert(length == 0);
+
+    s.reset(read_data, sizeof(read_data));
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Y'), ec);
+    assert(!ec);
+    assert(length == 25);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(1);
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Y'), ec);
+    assert(!ec);
+    assert(length == 25);
+
+    s.reset(read_data, sizeof(read_data));
+    s.next_read_length(10);
+    sb2.consume(sb2.size());
+    length = boost::asio::read_until(s, sb2, match_char('Y'), ec);
+    assert(!ec);
+    assert(length == 25);
   }
 }
 
