@@ -64,6 +64,29 @@ private:
 static const char read_data[] =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
+class match_char {
+public:
+  explicit match_char(char c) : c_(c) {}
+
+  template <typename iterator>
+  std::pair<iterator, bool> operator()(iterator begin, iterator end) const {
+    iterator i = begin;
+    while (i != end)
+      if (c_ == *i++)
+        return std::make_pair(i, true);
+    return std::make_pair(i, false);
+  }
+private:
+  char c_;
+};
+
+namespace boost { namespace asio {
+  template <>
+  struct is_match_condition<match_char> {
+    enum { value = true };
+  };
+}} // namespace
+
 void test_read_until() {
   boost::asio::io_service ios;
   stream s(ios);
@@ -247,6 +270,13 @@ void test_read_until() {
     assert(ec != boost::asio::error::not_found);
     assert(length == 25);
 
+  }
+
+  {
+    s.reset(read_data, sizeof(read_data));
+    sb1.consume(sb1.size());
+    std::size_t length = boost::asio::read_until(s, sb1, match_char('Z'));
+    assert(length == 26);
   }
 }
 
