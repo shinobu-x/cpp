@@ -68,5 +68,28 @@ namespace detail { \
 #define BOOST_THREAD_DCL_MOVABLE_END > \
     : integral_constant<bool, false> {}; \
   }
+#else
+#if defined BOOST_THREAD_USES_MOVE
+#define BOOST_THREAD_COPY_ASSIGN_REF(TYPE) BOOST_COPY_ASSIGN_REF(TYPE)
+#define BOOST_THREAD_RV_REF(TYPE) BOOST_RV_REF(TYPE)
+#define BOOST_THREAD_RV_REF_2_TEMPL_ARGS(TYPE) BOOST_RV_REF_2_TEMPL_ARGS(TYPE)
+#define BOOST_THREAD_RV_REF_BEG BOOST_RV_REF_REG
+#define BOOST_THREAD_RV_REF_END BOOST_RV_REF_END
+#define BOOST_THREAD_RV(V) V
+#define BOOST_THREAD_FWD_REF(TYPE) BOOST_FWD_REF(TYPE)
+#define BOOST_THREAD_DCL_MOVABLE(TYPE)
+#define BOOST_THREAD_DCL_MOVABLEBEG(T) \
+namespace detail { \
+  template <typename T> \
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_BEG2(T1, T2) \
+namespace detail { \
+  template <typename T1, typename T2> \
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_END > \
+    : integral_constant<bool, false> {}; \
+  }
+#else
+#define BOOST_THREAD
 
 } } // namespace
