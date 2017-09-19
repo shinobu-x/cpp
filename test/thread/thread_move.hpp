@@ -90,6 +90,31 @@ namespace detail { \
     : integral_constant<bool, false> {}; \
   }
 #else
-#define BOOST_THREAD
+#define BOOST_THREAD_COPY_ASSIGN_REF(TYPE) const TYPES&
+#define BOOST_THREAD_RV_REF(TYPE) boost::detail::thread_move_t< TYPE >
+#define BOOST_THREAD_RV_REF_BEG boost::detail::thread_move_t<
+#define BOOST_THREAD_RV_REF_END >
+#define BOOST_THREAD_RV(V) (*V)
+#define BOOST_THREAD_FWD_REF(TYPE) BOOST_FWD_REF(TYPE)
+#define BOOST_THREAD_DCL_MOVABLE(TYPE) \
+template <> \
+struct enable_move_utility_emulation< TYPE > { \
+  static const bool value = false; \
+};
+#define BOOST_THREAD_DCL_MOVABLE_BEG(T) \
+template <typename T> \
+struct enable_move_utility_emulation<
 
-} } // namespace
+#define BOOST_THREAD_DCL_MOVABLE_BEG2(T1, T2) \
+template <typename T1, typename T2> \
+struct enable_move_utility_emulation<
+#define BOOST_THREAD_DCL_MOVABLE_END > { \
+  static const bool value = false; \
+};
+#endif
+
+namespace boost { namespace detail {
+template <typename T>
+BOOST_THREAD_RV_REF(typename ::boost::remove_cv<typename :: boost::remove_reference<T>::type>::type) make_rv_ref(T v) BOOST_NOEXCEPT {
+  return (BOOST_THREAD_RV_REF(typename ::boost::remove_cv<typename ::boost::remove_referenct<T>::type>::type))(v);
+}
