@@ -1775,7 +1775,44 @@ void test_14() {
   assert(sb.size() == sizeof(read_data));
   assert(s.check_buffers(sb.data(), sizeof(read_data)));
   assert(!ec);
-// 1808
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb, short_transfer);
+  assert(bytes_transferred = sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb, short_transfer);
+  assert(bytes_transferred = sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read(s, sb, short_transfer);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+  assert(!ec);
+}
+
+void async_read_handler(const boost::system::error_code& ec,
+  std::size_t bytes_transferred, std::size_t expected_bytes_transferred,
+  bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == expected_bytes_transferred);
 }
 
 auto main() -> decltype(0) {
