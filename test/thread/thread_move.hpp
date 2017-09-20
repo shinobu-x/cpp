@@ -23,17 +23,17 @@ struct enable_move_utility_emulation_dummy_specialization;
 
 template <typename T>
 struct thread_move_t {
-  T& t;
+  T& t_;
   explicit thread_move_t(T& t) : t_(t) {}
 
-  T& operator*() const { return t; }
+  T& operator*() const { return t_; }
 
-  T* operator->() const { return &t; }
+  T* operator->() const { return &t_; }
 
 private:
   void operator=(thread_move_t&);
 };
-
+}
 #if !defined BOOST_THREAD_USES_MOVE
 
 #ifndef BOOST_NO_SFINAE
@@ -50,6 +50,7 @@ boost::detail::thread_move_t<T> move(boost::detail::thread_move_t<T> t) {
 }
 #endif
 
+}
 #if !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 #define BOOST_THREAD_COPY_ASSIGN_REF(TYPE) BOOST_COPY_ASSIGN_REF(TYPE)
 #define BOOST_THREAD_RV_REF(TYPE) BOOST_RV_REF(TYPE)
@@ -103,14 +104,37 @@ namespace detail { \
 #define BOOST_THREAD_FWD_REF(TYPE) BOOST_FWD_REF(TYPE)
 #define BOOST_THREAD_DCL_MOVABLE(TYPE)
 #define BOOST_THREAD_DCL_MOVABLE_BEG(T) \
-
-
-
-
-
-
-
-
+namespace detail { \
+  template <typename T  \
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_BEG2(T1, T2) \
+namespace detail { \
+  template <typename T1, typename T2> \
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_END > \
+    : integral_constant<bool, false> {}; \
+}
+#else
+#if defined BOOST_THREAD_USES_MOVE
+#define BOOST_THREAD_COPY_ASSIGN_REF(TYPE) BOOST_COPY_ASSIGN_REF(TYPE)
+#define BOOST_THREAD_RV_REF(TYPE) BOOST_RV_REF(TYPE)
+#define BOOST_THREAD_RV_REF_2_TEMPL_ARGS(TYPE) BOOST_RV_REF_2_TEMPL_ARGS(TYPE)
+#define BOOST_THREAD_RV_REF_BEG BOOST_RV_REF_BEG
+#define BOOST_THREAD_RV_REF_END BOOST_RV_REF_END
+#define BOOST_THREAD_RV(V) V
+#define BOOST_THREAD_FWD_REF(TYPE) BOOST_FWD_REF(TYPE)
+#define BOOST_THREAD_DCL_MOVABLE(TYPE)
+#define BOOST_THREAD_DCL_MOVABLE_BEG(T) \
+namespace detail { \
+  template <typename T> \
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_BEG2(T1, T2) \
+  template <typename T1, typename T2>
+  struct enable_move_utility_emulation_dummy_specialization<
+#define BOOST_THREAD_DCL_MOVABLE_END > \
+    : integral_constant<bool, false> {}; \
+}
+#else
 #define BOOST_THREAD_COPY_ASSIGN_REF(TYPE) const TYPES&
 #define BOOST_THREAD_RV_REF(TYPE) boost::detail::thread_move_t< TYPE >
 #define BOOST_THREAD_RV_REF_BEG boost::detail::thread_move_t<
@@ -187,6 +211,13 @@ BOOST_THREAD_RV_REF(
 #endif
 #endif
 
+#define BOOST_THREAD_MOVABLE_ONLY(TYPE) \
+  BOOST_THREAD_NO_COPYABLE(TYPE) \
+  BOOST_THREAD_MOVABLE(TYPE) \
+  typedef int boost_move_no_copy_constructor_or_assign; \
+#define BOOST_THREAD_COPYABLE_AND_MOVABLE(TYPE) \
+  BOOST_THREAD_COPYABLE(TYPE) \
+  BOOST_THREAD_MOVEABLE(TYPE) \
 namespace boost { namespace thread_detail {
 #if !defined BOOST_NO_CXX11_RVALUE_REFERRENCES
 #elif defined BOOST_THREAD_USES_MOVE
