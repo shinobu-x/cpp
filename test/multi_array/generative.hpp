@@ -137,3 +137,68 @@ int do_configuration(const storage_order3& so3, const storage_order4& so4,
   }
   return 0;
 }
+
+template <typename array_modifier>
+int do_test_storage(const array_modifier& modifier) {
+  do_configuration(
+    boost::c_storage_order(), boost::c_storage_order(), modifier);
+  do_configuration(
+    boost::fortran_storage_order(), boost::fortran_storage_order(), modifier);
+
+  std::size_t ordering[] = {2, 0, 1, 3};
+  bool ascending[] = {false, true, true, true};
+  do_configuration(
+    boost::general_storage_order<3>(ordering, ascending),
+    boost::general_storage_order<4>(ordering, ascending), modifier);
+
+  return 0;
+}
+
+struct null_modifier {
+  template <typename array_t>
+  void modify(array_t&) const {}
+};
+
+struct set_index_base_modifier {
+  template <typename array_t>
+  void modify(array_t a) const {
+#ifdef BOOST_NO_SFINAE
+  typedef boost::multi_array_type::index index;
+  a.reindex(index(1));
+#else
+  a.reindex(1);
+#endif
+  }
+};
+
+struct reindex_modifier {
+  template <typename array_t>
+  void modify(array_t& a) const {
+    boost::array<int, 4> bases = {{1, 2, 3, 4}};
+    a.reindex(bases);
+  }
+};
+
+struct reshape_modifier {
+  template <typename array_t>
+  void modify(array_t& a) const {
+    typedef typename array_t::size_type size_type;
+    std::vector<size_type> old_shape(a.num_dimensions());
+    std::vector<size_type> new_shape(a.num_dimensions());
+
+    std::copy(a.shape(), a.shape() + a.num_dimensions(), old_shape.begin());
+    std::copy(old_shape.rbegin(), old_shape.rend(), new_shape.begin());
+
+    a.reshape(new_shape);
+    a.reshape(old_shape);
+  }
+};
+
+int do_test_generative() {
+  do_test_storage(null_modifier());
+  do_test_storage(set_index_base_modifier());
+  do_test_storage(reindex_modifier());
+  do_test_storage(reshape_modifier());
+
+  return 0;
+}
