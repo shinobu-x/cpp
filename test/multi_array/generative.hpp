@@ -19,7 +19,7 @@ void assign_if_not_const(array_t& a, const mutable_array_tag&);
 
 template <typename array_t>
 void assign_if_not_const(array_t& a, const mutable_array_tag&) {
-  typedef typename a::index index;
+  typedef typename array_t::index index;
   const index idx0 = a.index_bases()[0];
   const index idx1 = a.index_bases()[1];
   const index idx2 = a.index_bases()[2];
@@ -42,9 +42,9 @@ void access(array_t& a, const mutable_array_tag&);
 template <typename array_t>
 void access(array_t& a, const const_array_tag&);
 
-template <typename storage_order3, typename storage_order4, typename modifier>
+template <typename storage_order3, typename storage_order4, typename modifier_t>
 int do_configuration(const storage_order3& so3, const storage_order4& so4,
-  const modifier& modifier) {
+  const modifier_t& modifier) {
   {
     typedef boost::multi_array<int, 3> array;
     typename array::extent_gen extents;
@@ -112,4 +112,28 @@ int do_configuration(const storage_order3& so3, const storage_order4& so4,
     }
   }
   {
+    typedef boost::multi_array<int, 3> array;
+    typedef typename array::index_range range;
+    typename array::index_gen indices;
+    typename array::extent_gen extents;
+    {
+      typedef typename array::index index;
+      array a(extents[4][5][6], so3);
+      modifier.modify(a);
+      const index idx0 = a.index_bases()[0];
+      const index idx1 = a.index_bases()[1];
+      const index idx2 = a.index_bases()[2];
 
+      typename array::template array_view<3>::type b = a[
+        indices[range(idx0 + 1, idx0 + 3)]
+               [range(idx1 + 1, idx1 + 4)]
+               [range(idx2 + 1, idx2 + 5)]
+      ];
+      assign(b);
+
+      typename array::template const_array_view<3>::type c = b;
+      access(c, const_array_tag());
+    }
+  }
+  return 0;
+}
