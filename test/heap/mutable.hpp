@@ -241,3 +241,8 @@ void do_test_mutable_heap() {
   do_test_mutable_heap_erase<priority_queue>();
   do_test_mutable_heap_handle_from_iterator<priority_queue>();
 }
+
+template <typename priority_queue>
+void do_test_ordered_iterator() {
+  test_ordered_iterators<priority_queue>();
+}
