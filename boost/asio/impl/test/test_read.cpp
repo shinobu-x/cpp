@@ -2823,6 +2823,15 @@ void test_23() {
   assert(called);
   assert(sb.size() == sizeof(read_data));
   assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  int i = boost::asio::async_read(s, sb, lazy_handler());
+  assert(i == 42);
+  ios.reset();
+  ios.run();
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
 }
 
 auto main() -> decltype(0) {
