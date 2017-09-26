@@ -16,7 +16,7 @@ void write_some_handler(const boost::system::error_code&, std::size_t) {}
 
 void read_some_handler(const boost::system::error_code&, std::size_t) {}
 
-void test() {
+void test_1() {
   try {
     boost::asio::io_service ios;
     char mutable_char_buffer[128] = "";
@@ -101,14 +101,71 @@ void test() {
       socket1.remote_endpoint(ec);
 
     socket1.shutdown(boost::asio::socket_base::shutdown_both);
-    socket1.shutdown(boost::asio::socket_base::shutdown_both, ec)
+    socket1.shutdown(boost::asio::socket_base::shutdown_both, ec);
 
+    socket1.send(boost::asio::buffer(mutable_char_buffer));
+    socket1.send(boost::asio::buffer(const_char_buffer));
+    socket1.send(boost::asio::null_buffers());
+    socket1.send(boost::asio::buffer(mutable_char_buffer), in_flags);
+    socket1.send(boost::asio::buffer(const_char_buffer), in_flags);
+    socket1.send(boost::asio::null_buffers(), in_flags);
+    socket1.send(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    socket1.send(boost::asio::buffer(const_char_buffer), in_flags, ec);
+    socket1.send(boost::asio::null_buffers(), in_flags, ec);
+
+    socket1.async_send(
+      boost::asio::buffer(mutable_char_buffer), send_handler);
+    socket1.async_send(
+      boost::asio::buffer(const_char_buffer), send_handler);
+    socket1.async_send(boost::asio::null_buffers(), send_handler);
+    socket1.async_send(
+      boost::asio::buffer(mutable_char_buffer), in_flags, send_handler);
+    socket1.async_send(
+      boost::asio::buffer(const_char_buffer), in_flags, send_handler);
+    socket1.async_send(boost::asio::null_buffers(), in_flags, send_handler);
+
+    socket1.receive(boost::asio::buffer(mutable_char_buffer));
+    socket1.receive(boost::asio::null_buffers());
+    socket1.receive(boost::asio::buffer(mutable_char_buffer), in_flags);
+    socket1.receive(boost::asio::null_buffers(), in_flags);
+    socket1.receive(boost::asio::buffer(mutable_char_buffer), in_flags, ec);
+    socket1.receive(boost::asio::null_buffers(), in_flags, ec);
+ 
+    socket1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), receive_handler);
+    socket1.async_receive(boost::asio::null_buffers(), receive_handler);
+    socket1.async_receive(
+      boost::asio::buffer(mutable_char_buffer), in_flags, receive_handler);
+    socket1.async_receive(
+      boost::asio::null_buffers(), in_flags, receive_handler);
+
+    socket1.write_some(boost::asio::buffer(mutable_char_buffer));
+    socket1.write_some(boost::asio::buffer(const_char_buffer));
+    socket1.write_some(boost::asio::null_buffers());
+    socket1.write_some(boost::asio::buffer(mutable_char_buffer), ec);
+    socket1.write_some(boost::asio::buffer(const_char_buffer), ec);
+    socket1.write_some(boost::asio::null_buffers(), ec);
+
+    socket1.async_write_some(boost::asio::buffer(mutable_char_buffer), 
+      write_some_handler);
+    socket1.async_write_some(boost::asio::buffer(const_char_buffer),
+      write_some_handler);
+    socket1.async_write_some(boost::asio::null_buffers(), write_some_handler);
+
+    socket1.read_some(boost::asio;:buffer(mutable_char_buffer));
+    socket1.read_some(boost::asio::null_buffers());
+    socket1.read_some(boost::asio::buffer(mutable_char_buffer), ec);
+    socket1.read_some(boost::asio::null_buffers(), ec);
+
+    socket1.async_read_some(boost::asio::buffer(mutable_char_buffer),
+      read_some_handler);
+    socket1.async_read_some(bosot::asio::null_buffers(), read_some_handler);
   } catch (...) {}
 }
 
 } // namespace
 
 auto main() -> decltype() {
-
+  compile::test_1();
   return 0;
 }
