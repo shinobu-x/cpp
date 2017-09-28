@@ -134,6 +134,29 @@ void test_1() {
         boost::asio::buffer(const_char_buffer), write_some_handler);
       descriptor5.async_write_some(
         boost::asio::null_buffers(), write_some_handler);
+      int l6 = descriptor5.async_write_some(
+        boost::asio::buffer(mutable_char_buffer), lazy);
+      (void)l6;
+      int l7 = descriptor5.async_write_some(
+        boost::asio::buffer(const_char_buffer), lazy);
+      (void)l7;
+      int l8 = descriptor5.async_write_some(
+        boost::asio::null_buffers(), lazy);
+      (void)l8;
+      descriptor5.read_some(boost::asio::buffer(mutable_char_buffer));
+      descriptor5.read_some(boost::asio::null_buffers());
+      descriptor5.read_some(boost::asio::buffer(mutable_char_buffer), ec);
+      descriptor5.read_some(boost::asio::null_buffers(), ec);
+      descriptor5.async_read_some(
+        boost::asio::buffer(mutable_char_buffer), read_some_handler);
+      descriptor5.async_read_some(
+        boost::asio::null_buffers(), read_some_handler);
+      int l9 = descriptor5.async_read_some(
+        boost::asio::buffer(mutable_char_buffer), lazy);
+      (void)l9;
+      int l10 = descriptor5.async_read_some(
+        boost::asio::null_buffers(), lazy);
+      (void)l10;
     }
 
   } catch (...) {}
@@ -142,5 +165,6 @@ void test_1() {
 } // namespace
 
 auto main() -> decltype(0) {
+  test_1();
   return 0;
 }
