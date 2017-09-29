@@ -39,5 +39,37 @@ auto main() -> decltype(0) {
     assert(sptr1 == sptr6);
   }
 
+  sptr1.reset();
+
+  {
+    boost::shared_ptr<dummy> sptr2 = boost::atomic_load_explicit(
+      &sptr1, boost::memory_order_acquire);
+    assert(sptr1 == sptr2);
+
+    boost::shared_ptr<dummy> sptr3(new dummy);
+    boost::atomic_store_explicit(&sptr1, sptr3, boost::memory_order_release);
+    assert(sptr1 == sptr3);
+
+    boost::shared_ptr<dummy> sptr4 =
+      boost::atomic_exchange_explicit(
+        &sptr1, boost::shared_ptr<dummy>(), boost::memory_order_acq_rel);
+    assert(sptr3 == sptr4);
+    assert(sptr1 == sptr2);
+
+    boost::shared_ptr<dummy> sptr5(new dummy);
+    boost::shared_ptr<dummy> cmp(sptr3);
+
+    bool r = boost::atomic_compare_exchange_explicit(&sptr1, &cmp, sptr5, 
+      boost::memory_order_acquire, boost::memory_order_relaxed);
+    assert(!r);
+    assert(sptr1 == sptr2);
+    assert(cmp == sptr2);
+
+    r = boost::atomic_compare_exchange_explicit(&sptr1, &cmp, sptr5,
+      boost::memory_order_release, boost::memory_order_acquire);
+    assert(r);
+    assert(sptr1 == sptr5);
+  }
+
   return 0;
 }
