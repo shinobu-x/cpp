@@ -3160,6 +3160,12 @@ void test_24() {
   assert(s.check_buffers(buffers, sizeof(read_data)));
 
 }
+
+// Test boost array buffers async read
+void test_25() {
+
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   test_8(); test_9();
