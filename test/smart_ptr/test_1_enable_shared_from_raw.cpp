@@ -18,6 +18,8 @@ protected:
   ~B() {}
 };
 
+struct C : public boost::enable_shared_from_raw {};
+
 class impl1
   : public A, public virtual B, public virtual boost::enable_shared_from_raw {
 public:
@@ -55,7 +57,38 @@ void test_1() {
   } catch (boost::bad_weak_ptr const&) {}
 }
 
+void test_2() {
+  boost::shared_ptr<B> sptr_b(static_cast<impl2*>(0));
+}
+
+void test_3() {
+  boost::shared_ptr<C> sptr_c(new C);
+
+  try {
+    boost::shared_ptr<C> sptr_c2 = boost::shared_from_raw(sptr_c.get());
+    assert(sptr_c == sptr_c2);
+    assert(!(sptr_c < sptr_c2) && !(sptr_c2 < sptr_c));
+  } catch (boost::bad_weak_ptr const&) {}
+
+  C c(*sptr_c);
+
+  try {
+    boost::shared_ptr<C> c2 = boost::shared_from_raw(&c);
+    assert(c2.get() == &c);
+    // Don't share onwership with sptr_c
+    assert(sptr_c != c2);
+    assert((sptr_c < c2) || (c2 < sptr_c));
+  } catch (boost::bad_weak_ptr const&) {}
+
+  try {
+    *sptr_c = C();
+    boost::shared_ptr<C> c3 = boost::shared_from_raw(sptr_c.get());
+    assert(sptr_c == c3);
+    assert(!(sptr_c < c3) && !(c3 < sptr_c));
+  } catch (boost::bad_weak_ptr const&) {}
+}
+
 auto main() -> decltype(0) {
-  test_1();
+  test_1(); test_2(); test_3();
   return 0;
 }
