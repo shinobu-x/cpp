@@ -120,6 +120,22 @@ void test_1() {
 }
 } // namespace
 
+namespae runtime {
+void test_1() {
+  boost::asio::io_service ios;
+  boost::asio::ip::tcp::acceptor acceptor(ios,
+    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+  boost::asio::ip::tcp::endpoint server_endpoint = acceptor.local_endpoint();
+  server_endpoint.address(boost::asio::ip::address_v4::loopback());
+
+  boost::asio::buffered_stream<boost::asio::ip::tcp::socket> client_socket(ios);
+  client_socket.lowest_layer().connect(server_endpoint);
+  acceptor.accept(server_socket.lowest_layer());
+
+  const char write_data[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+}
+} // namespace
 auto main() -> decltype(0) {
   compile::test_1();
   return 0;
