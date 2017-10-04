@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <cassert>
 #include <cstring>
 
 #include "async_result.hpp"
@@ -120,7 +121,8 @@ void test_1() {
 }
 } // namespace
 
-namespae runtime {
+namespace runtime {
+// Test sync operation
 void test_1() {
   boost::asio::io_service ios;
   boost::asio::ip::tcp::acceptor acceptor(ios,
@@ -130,13 +132,165 @@ void test_1() {
 
   boost::asio::buffered_stream<boost::asio::ip::tcp::socket> client_socket(ios);
   client_socket.lowest_layer().connect(server_endpoint);
+
+  boost::asio::buffered_stream<boost::asio::ip::tcp::socket> server_socket(ios);
   acceptor.accept(server_socket.lowest_layer());
 
   const char write_data[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const boost::asio::const_buffer write_buf = boost::asio::buffer(write_data);
+
+  std::size_t bytes_written = 0;
+
+  while (bytes_written < sizeof(write_data)) {
+    bytes_written += server_socket.write_some(
+      boost::asio::buffer(write_buf + bytes_written));
+    server_socket.flush();
+  }
+
+  char read_data[sizeof(write_data)];
+  const boost::asio::mutable_buffer read_buf = boost::asio::buffer(read_data);
+
+  std::size_t bytes_read = 0;
+
+  while (bytes_read < sizeof(read_data)) {
+    bytes_read += client_socket.read_some(
+      boost::asio::buffer(read_buf + bytes_read));
+  }
+
+  assert(bytes_written == sizeof(write_data));
+  assert(bytes_read == sizeof(read_data));
+  assert(memcmp(write_data, read_data, sizeof(write_data)) == 0);
+
+  server_socket.close();
+  boost::system::error_code ec;
+  bytes_read = client_socket.read_some(boost::asio::buffer(read_buf), ec);
+
+  assert(bytes_read == 0);
+  assert(ec == boost::asio::error::eof);
+
+  client_socket.close(ec);
+}
+
+void handle_accept(const boost::system::error_code& ec) {
+  assert(!ec);
+}
+
+void handle_write(const boost::system::error_code& ec,
+  std::size_t bytes_transferred, std::size_t* total_bytes_written) {
+  assert(!ec);
+
+  if (ec)
+    throw boost::system::system_error(ec);
+
+  *total_bytes_written += bytes_transferred;
+}
+
+void handle_flush(const boost::system::error_code& ec) {
+  assert(!ec);
+}
+
+void handle_read(const boost::system::error_code& ec,
+  std::size_t bytes_transferred, std::size_t* total_bytes_read) {
+  assert(!ec);
+
+  if (ec)
+    throw boost::system::system_error(ec);
+
+  *total_bytes_read += bytes_transferred;
+}
+
+void handle_read_eof(const boost::system::error_code& ec,
+  std::size_t bytes_transferred) {
+  assert(ec == boost::asio::error::eof);
+  assert(bytes_transferred == 0);
+}
+
+// Test async operation
+void test_2() {
+  boost::asio::io_service ios;
+  boost::asio::ip::tcp::acceptor acceptor(ios,
+    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 0));
+  boost::asio::ip::tcp::endpoint server_endpoint = acceptor.local_endpoint();
+  server_endpoint.address(boost::asio::ip::address_v4::loopback());
+
+  boost::asio::buffered_stream<boost::asio::ip::tcp::socket> client_socket(ios);
+  client_socket.lowest_layer().connect(server_endpoint);
+
+  boost::asio::buffered_stream<boost::asio::ip::tcp::socket> server_socket(ios);
+  acceptor.async_accept(server_socket.lowest_layer(), &handle_accept);
+  ios.run();
+  ios.reset();
+
+  const char write_data[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const boost::asio::const_buffer write_buf = boost::asio::buffer(write_data);
+
+  std::size_t bytes_written = 0;
+
+  while (bytes_written < sizeof(write_data)) {
+    client_socket.async_write_some(
+      boost::asio::buffer(write_buf + bytes_written),
+      boost::bind(handle_write, _1, _2, &bytes_written));
+    ios.run();
+    ios.reset();
+    client_socket.async_flush(boost::bind(handle_flush, _1));
+    ios.run();
+    ios.reset();
+  }
+
+  char read_data[sizeof(write_data)];
+  const boost::asio::mutable_buffer read_buf = boost::asio::buffer(read_data);
+
+  std::size_t bytes_read = 0;
+
+  while (bytes_read < sizeof(read_data)) {
+    server_socket.async_read_some(
+      boost::asio::buffer(read_buf + bytes_read),
+      boost::bind(handle_read, _1, _2, &bytes_read));
+  ios.run();
+  ios.reset();
+  }
+
+  assert(bytes_written == sizeof(write_data));
+  assert(bytes_read == sizeof(read_data));
+  assert(memcmp(write_data, read_data, sizeof(write_data)) == 0);
+
+  bytes_written = 0;
+
+  while (bytes_written < sizeof(write_data)) {
+    server_socket.async_write_some(
+      boost::asio::buffer(write_buf + bytes_written),
+      boost::bind(handle_write, _1, _2, &bytes_written));
+    ios.run();
+    ios.reset();
+    server_socket.async_flush(boost::bind(handle_flush, _1));
+    ios.run();
+    ios.reset();
+  }
+
+  bytes_read = 0;
+
+  while (bytes_read < sizeof(read_data)) {
+    client_socket.async_read_some(
+      boost::asio::buffer(read_buf + bytes_read),
+      boost::bind(handle_read, _1, _2, &bytes_read));
+    ios.run();
+    ios.reset();
+  }
+
+  assert(bytes_written == sizeof(write_data));
+  assert(bytes_read == sizeof(read_data));
+  assert(memcmp(write_data, read_data, sizeof(write_data)) == 0);
+
+  server_socket.close();
+  client_socket.async_read_some(boost::asio::buffer(read_buf), handle_read_eof);
 }
 } // namespace
+
 auto main() -> decltype(0) {
   compile::test_1();
+  runtime::test_1();
+  runtime::test_2();
   return 0;
 } 
