@@ -3341,6 +3341,142 @@ void test_25() {
   assert(called);
   assert(s.check_buffers(buffers, 10));
 
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_exactly(10),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_exactly(10),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, 10));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_exactly(42),
+    boost::bind(async_read_handler, _1, _2, 42, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_exactly(42),
+    boost::bind(async_read_handler, _1, _2, 42, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_exactly(42),
+    boost::bind(async_read_handler, _1, _2, 42, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, old_style_transfer_all,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, old_style_transfer_all,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, old_style_transfer_all,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, short_transfer,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, short_transfer,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, short_transfer,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  int i = boost::asio::async_read(s, buffers, short_transfer, lazy_handler());
+  assert(i == 42);
+  ios.reset();
+  ios.run();
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+}
+
+// Test std array buffers async read
+void test_26() {
+  boost::asio::io_service ios;
+  stream s(ios);
+  char read_buf[sizeof(read_data)];
+  std::array<boost::asio::mutable_buffer, 2> buffers = {{
+    boost::asio::buffer(read_buf, 32),
+    boost::asio::buffer(read_buf) + 32
+  }};
 }
 
 auto main() -> decltype(0) {
