@@ -3766,6 +3766,35 @@ void test_26() {
   assert(called);
   assert(s.check_buffers(buffers, sizeof(read_data)));
 
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, short_transfer,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, short_transfer,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  int l = boost::asio::async_read(s, buffers, short_transfer, lazy_handler());
+  assert(l == 42);
+  ios.reset();
+  ios.run();
+  assert(s.check_buffers(buffers, sizeof(read_data)));
 }
 
 auto main() -> decltype(0) {
