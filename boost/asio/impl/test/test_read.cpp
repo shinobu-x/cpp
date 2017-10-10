@@ -3797,12 +3797,64 @@ void test_26() {
   assert(s.check_buffers(buffers, sizeof(read_data)));
 }
 
+// Test vector buffers async read
+void test_27() {
+  boost::asio::io_service ios;
+  stream s(ios);
+  char read_buf[sizeof(read_data)];
+  std::vector<boost::asio::mutable_buffer> buffers;
+  buffers.push_back(boost::asio::buffer(read_buf, 32));
+  buffers.push_back(boost::asio::buffer(read_buf) + 32);
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bool called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_all(),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_all(),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_all(),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read(s, buffers, boost::asio::transfer_at_least(1),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(buffers, sizeof(read_data)));
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   test_8(); test_9();
   test_10(); test_11(); test_12(); test_13(); test_14(); test_15(); test_16();
   test_17(); test_18(); test_19(); test_20(); test_21(); test_22(); test_23();
-  test_24(); test_25(); test_26();
+  test_24(); test_25(); test_26(); test_27();
 
   return 0;
 }
