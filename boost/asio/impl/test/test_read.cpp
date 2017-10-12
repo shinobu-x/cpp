@@ -4140,6 +4140,76 @@ void test_28() {
   assert(called);
   assert(sb.size() == sizeof(read_data));
   assert(s.check_buffers(sb.data(),  sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_all(),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_at_least(1),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_at_least(1),
+    boost::bind(async_read_handler, _1, _2, 1, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == 1);
+  assert(s.check_buffers(sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_at_least(1),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_at_least(10),
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_at_least(10),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
 }
 
 auto main() -> decltype(0) {
