@@ -4327,6 +4327,30 @@ void test_28() {
   assert(called);
   assert(sb.size() == 10);
   assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_exactly(10),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(42);
+  sb.consume(sb.size());
+  called = false;
+  boost::asio::async_read(s, sb, boost::asio::transfer_exactly(10),
+    boost::bind(async_read_handler, _1, _2, 10, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(sb.size() == 10);
+  assert(s.check_buffers(sb.data(), 10));
 }
 
 auto main() -> decltype(0) {
