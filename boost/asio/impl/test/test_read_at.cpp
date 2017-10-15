@@ -136,7 +136,6 @@ void test_1() {
   bytes_transferred = boost::asio::read_at(s, 1234, buffers);
   assert(bytes_transferred == sizeof(read_data));
   assert(s.check_buffers(1234, buffers, sizeof(read_data)));
-
 }
 
 auto main() -> decltype(0) {
