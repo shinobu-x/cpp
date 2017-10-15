@@ -14,7 +14,7 @@ void f(int i) {
 
 void do_test(const int n) {
   boost::executors::basic_thread_pool tp(4);
-  boost::scheduling_adpator<boost::executors::basic_thread_pool> sa(tp);
+  boost::scheduling_adaptor<boost::executors::basic_thread_pool> sa(tp);
 
   for (int i = 0; i < n; ++i) {
     sa.submit_after(boost::bind(f, i), boost::chrono::seconds(i));

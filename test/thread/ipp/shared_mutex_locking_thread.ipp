@@ -20,7 +20,6 @@ locking_thread<lock_type>::locking_thread(
 template <typename lock_type>
 void locking_thread<lock_type>::operator()() {
   lock_type lock(rw_mutex_);
-
   {
     boost::unique_lock<boost::mutex> unblock(unblocked_count_mutex_);
     ++unblocked_count_;

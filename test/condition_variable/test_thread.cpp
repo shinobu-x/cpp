@@ -124,7 +124,7 @@ void test_7() {
   boost::thread t(boost::ref(f));
   assert(t.joinable());
   boost::system_time tx = delay(3);
-  bool const joined1 = t.timed_join(tx);
+  bool const joined1 = t.timed_join(xt);
   assert(in_range(boost::get_xtime(tx), 2));
   assert(!joined1);
   assert(t.joinable());
