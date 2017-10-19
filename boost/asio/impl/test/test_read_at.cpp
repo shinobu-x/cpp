@@ -704,10 +704,101 @@ void test_7() {
     boost::asio::transfer_exactly(10));
   assert(bytes_transferred == 10);
   assert(s.check_buffers(1234, buffers, 10));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(0, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(1234, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(0, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(1234, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(0, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    boost::asio::transfer_exactly(42));
+  assert(bytes_transferred == 42);
+  assert(s.check_buffers(1234, buffers, 42));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(0, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(1234, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(0, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(1234, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(0, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    old_style_transfer_all);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(1234, buffers, sizeof(read_data)));
 }
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   return 0;
 }
-
