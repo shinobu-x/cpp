@@ -107,7 +107,7 @@ public:
 
       for (unsigned j = 0; j < acting.size(); ++j)
         (*any)[acting[j]]++;
-      if (!acting.empty());
+      if (!acting.empty())
         (*first)[acting[0]]++;
       if (acting_primary >= 0)
         (*primary)[acting_primary]++;
@@ -177,7 +177,7 @@ TEST_F(test_osdmap, map_pg) {
   std::cerr << " osdmap.pool_max == " << osdmap.get_pool_max() << std::endl;
   pg_t raw_pg(0, rep_pool, -1);
   pg_t pgid = osdmap.raw_pg_to_pg(raw_pg);
-  std::vector<int> up_osds, acting_osd;
+  std::vector<int> up_osds, acting_osds;
   int up_primary, acting_primary;
 
   osdmap.pg_to_up_acting_osds(
@@ -213,4 +213,59 @@ TEST_F(test_osdmap, map_function) {
   EXPECT_EQ(acting_primary, acting_primary_two);
   osdmap.pg_to_acting_osds(pgid, acting_osds_two);
   EXPECT_EQ(acting_osds, acting_osds_two);
+}
+
+TEST_F(test_osdmap, primary) {
+  set_up_map();
+  pg_t raw_pg(0, rep_pool, -1);
+  pg_t pgid = osdmap.raw_pg_to_pg(raw_pg);
+  std::vector<int> up_osds, acting_osds;
+  int up_primary, acting_primary;
+
+  osdmap.pg_to_up_acting_osds(
+    pgid, &up_osds, &up_primary, &acting_osds, &acting_primary);
+
+  std::vector<int> up_osds_two, acting_osds_two;
+
+  osdmap.pg_to_up_acting_osds(
+    pgid, up_osds_two, acting_osds_two);
+
+  ASSERT_EQ(up_osds, up_osds_two);
+  ASSERT_EQ(acting_osds, acting_osds_two);
+
+  int acting_primary_two;
+
+  osdmap.pg_to_acting_osds(
+    pgid, &acting_osds_two, &acting_primary_two);
+
+  EXPECT_EQ(acting_osds, acting_osds_two);
+  EXPECT_EQ(acting_primary, acting_primary_two);
+
+  osdmap.pg_to_acting_osds(pgid, acting_osds_two);
+
+  EXPECT_EQ(acting_osds, acting_osds_two);
+}
+
+TEST_F(test_osdmap, pg_temp_respected) {
+  set_up_map();
+
+  pg_t raw_pg(0, rep_pool, -1);
+  pg_t pgid = osdmap.raw_pg_to_pg(raw_pg);
+  std::vector<int> up_osds, acting_osds;
+  int up_primary, acting_primary;
+
+  osdmap.pg_to_up_acting_osds(
+    pgid, &up_osds, &up_primary, &acting_osds, &acting_primary);
+
+  // Non-primary OSD to primary via incremental
+  OSDMap::Incremental pgtemp_map(osdmap.get_epoch() + 1);
+  pgtemp_map.new_primary_temp[pgid] = acting_osds[1];
+  osdmap.apply_incremental(pgtemp_map);
+
+  osdmap.pg_to_up_acting_osds(
+    pgid, &up_osds, &up_primary, &acting_osds, &acting_primary);
+
+  EXPECT_EQ(acting_primary, acting_osds[1]);
+  std::cout << acting_primary << std::endl;
+  std::cout << acting_osds[1] << std::endl;
 }
