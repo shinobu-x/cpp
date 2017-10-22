@@ -237,6 +237,98 @@ void test_7() {
         recoverable.get(),
         &past_intervals));
     }
+
+    { // Change: up primary
+      std::vector<int> new_up;
+      int new_up_primary_ = osd + 1;
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary_,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals));
+    }
+
+    { // Change: pg_num
+      std::shared_ptr<OSDMap> osdmap(new OSDMap());
+      osdmap->set_max_osd(10);
+      osdmap->set_state(osd, CEPH_OSD_EXISTS);
+      osdmap->set_epoch(e);
+      int new_pg_num = pg_num^2;
+      OSDMap::Incremental inc(e + 1);
+      inc.new_pools[pool].min_size = min_size;
+      inc.new_pools[pool].set_pg_num(new_pg_num);
+      osdmap->apply_incremental(inc);
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals));
+    }
+
+    { // Chnage: min_size
+      std::shared_ptr<OSDMap> osdmap(new OSDMap());
+      osdmap->set_max_osd(10);
+      osdmap->set_state(osd, CEPH_OSD_EXISTS);
+      osdmap->set_epoch(e);
+      OSDMap::Incremental inc(e + 1);
+      __u8 new_min_size = min_size + 1;
+      inc.new_pools[pool].min_size = new_min_size;
+      inc.new_pools[pool].set_pg_num(pg_num);
+      osdmap->apply_incremental(inc);
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals));
+    }
   }
 }
 auto main() -> decltype(0) {
