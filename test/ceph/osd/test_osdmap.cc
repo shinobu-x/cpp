@@ -94,7 +94,7 @@ public:
     return num_osds;
   }
 
-  void test_mapping(int pool, int num, std::vector<int>* any,
+  void test_mappings(int pool, int num, std::vector<int>* any,
     std::vector<int>* first, std::vector<int>* primary) {
     mapping.update(osdmap);
 
@@ -268,4 +268,170 @@ TEST_F(test_osdmap, pg_temp_respected) {
   EXPECT_EQ(acting_primary, acting_osds[1]);
   std::cout << acting_primary << std::endl;
   std::cout << acting_osds[1] << std::endl;
+}
+
+TEST_F(test_osdmap, clean_temps) {
+  set_up_map();
+
+  OSDMap::Incremental pgtemp_map(osdmap.get_epoch() + 1);
+  OSDMap::Incremental pending_inc(osdmap.get_epoch() + 2);
+
+  pg_t pg_a = osdmap.raw_pg_to_pg(pg_t(0, rep_pool));
+  {
+    std::vector<int> up_osds, acting_osds;
+    int up_primary, acting_primary;
+    osdmap.pg_to_up_acting_osds(
+      pg_a, &up_osds, &up_primary, &acting_osds, &acting_primary);
+    pgtemp_map.new_pg_temp[pg_a] =
+      mempool::osdmap::vector<int>(up_osds.begin(), up_osds.end());
+    pgtemp_map.new_primary_temp[pg_a] = up_primary;
+  }
+
+  pg_t pg_b = osdmap.raw_pg_to_pg(pg_t(1, rep_pool));
+  {
+    std::vector<int> up_osds, acting_osds;
+    int up_primary, acting_primary;
+    osdmap.pg_to_up_acting_osds(
+      pg_b, &up_osds, &up_primary, &acting_osds, &acting_primary);
+    pending_inc.new_pg_temp[pg_b] =
+      mempool::osdmap::vector<int>(up_osds.begin(), up_osds.end());
+    pending_inc.new_primary_temp[pg_b] = up_primary;
+  }
+
+  osdmap.apply_incremental(pgtemp_map);
+  OSDMap::clean_temps(g_ceph_context, osdmap, &pending_inc);
+
+  EXPECT_TRUE(pending_inc.new_pg_temp.count(pg_a) &&
+    pending_inc.new_pg_temp[pg_a].size() == 0);
+  EXPECT_EQ(-1, pending_inc.new_primary_temp[pg_a]);
+  EXPECT_TRUE(!pending_inc.new_pg_temp.count(pg_b) &&
+    !pending_inc.new_primary_temp.count(pg_b));
+}
+
+TEST_F(test_osdmap, necessary_temp) {
+  set_up_map();
+  pg_t raw_pg(0, rep_pool, -1);
+  pg_t pgid = osdmap.raw_pg_to_pg(raw_pg);
+  std::vector<int> up_osds, acting_osds;
+  int up_primary, acting_primary;
+
+  osdmap.pg_to_up_acting_osds(
+    pgid, &up_osds, &up_primary, &acting_osds, &acting_primary);
+
+  OSDMap::Incremental pgtemp_map(osdmap.get_epoch() + 1);
+
+  int i = 0;
+  for (; i != (int)get_num_osds(); ++i) {
+    bool in_use = false;
+
+    for (std::vector<int>::iterator osd = up_osds.begin();
+      osd != up_osds.end(); ++osd) {
+      if (i == *osd) {
+        in_use = true;
+        break;
+      }
+    }
+
+    if (!in_use) {
+      up_osds[1] = i;
+      break;
+    }
+  }
+
+  if (i == (int)get_num_osds())
+    FAIL() << "Unused OSD Not Found";
+
+
+  pgtemp_map.new_pg_temp[pgid] =
+    mempool::osdmap::vector<int>(up_osds.begin(), up_osds.end());
+  pgtemp_map.new_primary_temp[pgid] = up_osds[1];
+  osdmap.apply_incremental(pgtemp_map);
+
+  OSDMap::Incremental pending_inc(osdmap.get_epoch() + 1);
+
+  OSDMap::clean_temps(g_ceph_context, osdmap, &pending_inc);
+  EXPECT_FALSE(pending_inc.new_pg_temp.count(pgid));
+  EXPECT_FALSE(pending_inc.new_primary_temp.count(pgid));
+}
+
+TEST_F(test_osdmap, primary_affinity) {
+  set_up_map();
+
+  int n = get_num_osds();
+
+  for (std::map<int64_t, pg_pool_t>::const_iterator p =
+    osdmap.get_pools().begin(); p != osdmap.get_pools().end(); ++p) {
+    int pool = p->first;
+    int expect_primary = 10000 / n;
+
+    std::cout << "pool " << pool << " size " << (int)p->second.size
+      << " expect_primary" << expect_primary << std::endl;
+
+    {
+      std::vector<int> any(n, 0);
+      std::vector<int> first(n, 0);
+      std::vector<int> primary(n, 0);
+      test_mappings(pool, 10000, &any, &first, &primary);
+
+      for (int i = 0; i < n; ++i) {
+        ASSERT_LT(0, any[i]);
+        ASSERT_LT(0, first[i]);
+        ASSERT_LT(0, primary[i]);
+      }
+    }
+
+    osdmap.set_primary_affinity(0, 0);
+    osdmap.set_primary_affinity(1, 0);
+
+    {
+      std::vector<int> any(n, 0);
+      std::vector<int> first(n, 0);
+      std::vector<int> primary(n, 0);
+      test_mappings(pool, 10000, &any, &first, &primary);
+
+      for (int i = 0; i < n; ++i) {
+        ASSERT_LT(0, any[i]);
+        if (i >= 2) {
+          ASSERT_LT(0, first[i]);
+          ASSERT_LT(0, primary[i]);
+        } else {
+          if (p->second.is_replicated()) {
+            ASSERT_EQ(0, first[i]);
+          }
+          ASSERT_EQ(0, primary[i]);
+        }
+      }
+    }
+
+    osdmap.set_primary_affinity(0, 0x8000);
+    osdmap.set_primary_affinity(1, 0);
+
+    {
+      std::vector<int> any(n, 0);
+      std::vector<int> first(n, 0);
+      std::vector<int> primary(n, 0);
+      test_mappings(pool, 10000, &any, &first, &primary);
+
+      int expect = (10000 / (n-2)) / 2;
+      std::cout << "expect " << expect << std::endl;
+
+      for (int i = 0; i < n; ++i) {
+        ASSERT_LT(0, any[i]);
+        if (i >= 2) {
+          ASSERT_LT(0, first[i]);
+          ASSERT_LT(0, primary[i]);
+        } else if (i == 1) {
+          if (p->second.is_replicated()) {
+            ASSERT_EQ(0, first[i]);
+          }
+          ASSERT_EQ(0, primary[i]);
+        } else {
+          ASSERT_LT(expect * 2/3, primary[0]);
+          ASSERT_GT(expect * 4/3, primary[0]);
+        }
+      }
+    }
+    osdmap.set_primary_affinity(0, 0x10000);
+    osdmap.set_primary_affinity(1, 0x10000);
+  }
 }
