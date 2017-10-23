@@ -517,9 +517,116 @@ void test_7() {
 
       std::cout << out.str() << '\n';
     }
-    }
   }
 }
+
+void test_8() {
+  assert(pg_t(0, 0, -1) == pg_t(16, 0, -1).get_ancestor(16));
+  assert(pg_t(1, 0, -1) == pg_t(17, 0, -1).get_ancestor(16));
+  assert(pg_t(0, 0, -1) == pg_t(16, 0, -1).get_ancestor(8));
+  assert(pg_t(16, 0, -1) == pg_t(16, 0, -1).get_ancestor(80));
+  assert(pg_t(16, 0, -1) == pg_t(16, 0, -1).get_ancestor(83));
+  assert(pg_t(1, 0, -1) ==
+    pg_t(1321, 0, -1).get_ancestor(123).get_ancestor(8));
+  assert(pg_t(3, 0, -1) ==
+    pg_t(1323, 0, -1).get_ancestor(123).get_ancestor(8));
+  assert(pg_t(3, 0, -1) == pg_t(1323, 0, -1).get_ancestor(8));
+}
+
+void test_9() {
+  pg_t pgid(0, 0, -1);
+  std::set<pg_t> s;
+  bool b;
+
+  s.clear();
+  b = pgid.is_split(1, 1, &s);
+  assert(!b);
+
+  s.clear();
+  b = pgid.is_split(2, 4, NULL);
+  assert(b);
+  assert(1u == s.size());
+  assert(s.count(pg_t(2, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(2, 8, &s);
+  assert(b);
+  assert(3u == s.size());
+  assert(s.count(pg_t(2, 0, -1)));
+  assert(s.count(pg_t(4, 0, -1)));
+  assert(s.count(pg_t(6, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(6, 8, NULL);
+  assert(!b);
+  b = pgid.is_split(6, 8, &s);
+  assert(!b);
+  assert(0u == s.size());
+
+  pgid = pg_t(1, 0, -1);
+
+  s.clear();
+  b = pgid.is_split(2, 4, &s);
+  assert(b);
+  assert(1u == s.size());
+  assert(s.count(pg_t(3, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(2, 6, &s);
+  assert(b);
+  assert(2u == s.size());
+  assert(s.count(pg_t(3, 0, -1)));
+  assert(s.count(pg_t(5, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(2, 8, &s);
+  assert(b);
+  assert(3u == s.size());
+  assert(s.count(pg_t(3, 0, -1)));
+  assert(s.count(pg_t(5, 0, -1)));
+  assert(s.count(pg_t(7, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(4, 8, &s);
+  assert(b);
+  assert(1u == s.size());
+  assert(s.count(pg_t(5, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(3, 8, &s);
+  assert(b);
+  assert(3u == s.size());
+  assert(s.count(pg_t(3, 0, -1)));
+  assert(s.count(pg_t(5, 0, -1)));
+  assert(s.count(pg_t(7, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(6, 8, &s);
+  assert(!b);
+  assert(0u == s.size());
+
+  pgid = pg_t(3, 0, -1);
+
+  s.clear();
+  b = pgid.is_split(7, 8, &s);
+  assert(b);
+  assert(1u == s.size());
+  assert(s.count(pg_t(7, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(7, 12, &s);
+  assert(b);
+  assert(2u == s.size());
+  assert(s.count(pg_t(7, 0, -1)));
+  assert(s.count(pg_t(11, 0, -1)));
+
+  s.clear();
+  b = pgid.is_split(7, 11, &s);
+  assert(b);
+  assert(1u == s.size());
+  assert(s.count(pg_t(7, 0, -1)));
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   return 0;
