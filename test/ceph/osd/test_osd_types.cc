@@ -673,12 +673,138 @@ void test_9() {
   assert(s.count(pg_t(7, 0, -1)));
 }
 
-// Test missing
+// Test pg_missing_t
 void test_10() {
-  {
+
+  { // constructor
     pg_missing_t missing;
     assert((unsigned int)0 == missing.num_missing());
     assert(!missing.have_missing());
+  }
+
+  { // have_missing
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.have_missing());
+    missing.add(oid, eversion_t(), eversion_t(), false);
+    assert(missing.have_missing());
+  }
+
+  { // claim
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.have_missing());
+    missing.add(oid, eversion_t(), eversion_t(), false);
+    assert(missing.have_missing());
+
+    pg_missing_t other;
+    assert(!other.have_missing());
+
+    other.claim(missing);
+    assert(other.have_missing());
+  }
+
+  { // is_missing
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.is_missing(oid));
+    missing.add(oid, eversion_t(), eversion_t(), false);
+    assert(missing.is_missing(oid));
+  }
+
+  { // is_missing
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    eversion_t need(10, 5);
+    assert(!missing.is_missing(oid, eversion_t()));
+    missing.add(oid, need, eversion_t(), false);
+    assert(missing.is_missing(oid));
+    assert(!missing.is_missing(oid, eversion_t()));
+    assert(missing.is_missing(oid, need));
+  }
+
+  { // have_old
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(eversion_t() == missing.have_old(oid));
+    missing.add(oid, eversion_t(), eversion_t(), false);
+    assert(eversion_t() == missing.have_old(oid));
+    eversion_t have(1, 1);
+    missing.revise_have(oid, have);
+    assert(have == missing.have_old(oid));
+  }
+
+  { // add_next_event
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    hobject_t other(object_t("other"), "key", 987, 654, 0, "");
+    eversion_t version(10, 5);
+    eversion_t prior_version(3, 4);
+    pg_log_entry_t sample(pg_log_entry_t::DELETE, oid, version, prior_version,
+      0, osd_reqid_t(entity_name_t::CLIENT(777), 8, 999), utime_t(8, 9), 0);
+
+    {  // new object
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+
+      e.op = pg_log_entry_t::MODIFY;
+      e.prior_version = eversion_t();
+      assert(e.is_update());
+      assert(e.object_is_indexed());
+      assert(e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(eversion_t() == missing.get_items().at(oid).have);
+      assert(oid == missing.get_rmissing().at(e.version.version));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+    }
+
+    { // new object - clone
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+
+      e.op = pg_log_entry_t::CLONE;
+      e.prior_version = eversion_t();
+      assert(e.is_clone());
+      assert(e.object_is_indexed());
+      assert(!e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(eversion_t() == missing.get_items().at(oid).have);
+      assert(oid == missing.get_rmissing().at(e.version.version));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+    }
+
+    { // existing object - modify
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+
+      e.op = pg_log_entry_t::MODIFY;
+      e.prior_version = eversion_t();
+      assert(e.is_update());
+      assert(e.object_is_indexed());
+      assert(e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(eversion_t() == missing.get_items().at(oid).have);
+      assert(oid == missing.get_rmissing().at(e.version.version));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+    }
   }
 }
 
