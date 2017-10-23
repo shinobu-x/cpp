@@ -1254,7 +1254,25 @@ void test_8() {
 
 // Test streambuf read_at
 void test_9() {
+  boost::asio::io_service ios;
+  stream_access_device s(ios);
+  boost::asio::streambuf sb(sizeof(read_data));
 
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  std::size_t bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_all());
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 1234, sb,
+    boost::asio::transfer_all());
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
 }
 
 auto main() -> decltype(0) {
