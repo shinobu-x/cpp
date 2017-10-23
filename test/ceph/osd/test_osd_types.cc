@@ -182,10 +182,10 @@ void test_7() {
       assert(past_intervals.empty());
     }
 
-    { // Change: acting set
+    {
       std::vector<int> new_acting;
-      int new_primary_ = osd + 1;
-      new_acting.push_back(new_primary_);
+      int new_primary_ = osd + 1; // New primary
+      new_acting.push_back(new_primary_); // New acting set
 
       PastIntervals past_intervals;
 
@@ -211,10 +211,10 @@ void test_7() {
       old_primary = new_primary;
     }
 
-    { // Change: up set
+    {
       std::vector<int> new_up;
       int new_primary_ = osd + 1;
-      new_up.push_back(new_primary_);
+      new_up.push_back(new_primary_); // New up set
 
       PastIntervals past_intervals;
 
@@ -238,9 +238,9 @@ void test_7() {
         &past_intervals));
     }
 
-    { // Change: up primary
+    {
       std::vector<int> new_up;
-      int new_up_primary_ = osd + 1;
+      int new_up_primary_ = osd + 1; // New up primary
 
       PastIntervals past_intervals;
 
@@ -264,12 +264,12 @@ void test_7() {
         &past_intervals));
     }
 
-    { // Change: pg_num
+    {
       std::shared_ptr<OSDMap> osdmap(new OSDMap());
       osdmap->set_max_osd(10);
       osdmap->set_state(osd, CEPH_OSD_EXISTS);
       osdmap->set_epoch(e);
-      int new_pg_num = pg_num^2;
+      int new_pg_num = pg_num^2; // Change pg_num
       OSDMap::Incremental inc(e + 1);
       inc.new_pools[pool].min_size = min_size;
       inc.new_pools[pool].set_pg_num(new_pg_num);
@@ -297,13 +297,13 @@ void test_7() {
         &past_intervals));
     }
 
-    { // Chnage: min_size
+    {
       std::shared_ptr<OSDMap> osdmap(new OSDMap());
       osdmap->set_max_osd(10);
       osdmap->set_state(osd, CEPH_OSD_EXISTS);
       osdmap->set_epoch(e);
       OSDMap::Incremental inc(e + 1);
-      __u8 new_min_size = min_size + 1;
+      __u8 new_min_size = min_size + 1; // Change min_size
       inc.new_pools[pool].min_size = new_min_size;
       inc.new_pools[pool].set_pg_num(pg_num);
       osdmap->apply_incremental(inc);
@@ -328,6 +328,195 @@ void test_7() {
         pgid,
         recoverable.get(),
         &past_intervals));
+    }
+
+    {
+      std::vector<int> old_acting; // Empty acting set
+
+      PastIntervals past_intervals;
+      std::ostream out;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals,
+        &out));
+
+      std::cout << out.str() << '\n';
+    }
+
+    {
+      std::vector<int> old_acting;
+      old_acting.push_back(osd); // Not enough OSDs
+
+      std::shared_ptr<OSDMap> osdmap(new OSDMap());
+      osdmap->set_max_osd(10);
+      osdmap->set_state(osd, CEPH_OSD_EXISTS);
+      osdmap->set_epoch(e);
+      OSDMap::Incremental inc(e + 1);
+      __u8 new_min_size = old_acting.size();
+      inc.new_pools[pool].min_size = new_min_size;
+      inc.new_pools[pool].set_pg_num(pg_num);
+      osdmap->apply_incremental(inc);
+
+      std:;ostream out;
+
+      PastIntervals past_interval;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals,
+        &out));
+
+      std::cout << out.str() << '\n';
+    }
+
+    {
+      std::vector<int> new_acting; // New acting set
+      new_acting.push_back(osd + 4);
+      new_acting.push_back(osd + 5);
+
+      std::ostream out;
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals,
+        &out));
+
+      std::cout << out.str() << '\n';
+    }
+
+    {
+      std::vector<int> new_acting; // New acting set
+      new_acting.push_back(osd + 4);
+      new_acting.push_back(osd + 5);
+
+      std::shared_ptr<OSDMap> last_osdmap(new OSDMap());
+      last_osdmap->set_max_osd(10);
+      last_osdmap->set_state(osd, CEPH_OSD_EXISTS);
+      last_osdmap->set_epoch(e);
+      OSDMap::Incremental inc(e + 1);
+      inc.new_pools[pool].min_size = min_size;
+      inc.new_pools[pool].set_pg_num(pg_num);
+      inc.new_up_thru[osd] = epoch - 10;
+      last_osdmap->apply_incremental(inc);
+
+      std::ostream out;
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals,
+        &out));
+
+      std::cout << out.str() << '\n';
+    }
+
+    {
+      std::vector<int> new_acting;
+      new_acting.push_back(osd + 4);
+      new_acting.push_back(osd + 5);
+
+      epoch_t last_epock_clean = e - 10;
+
+      std::shared_ptr<OSDMap> last_osdmap(new OSDMap());
+      last_osdmap->set_max_osd(10);
+      last_osdmap->set_state(osd, CEPH_OSD_EXISTS);
+      last_osdmap->set_epoch(e);
+      OSDMap::Incremental enc(e + 1);
+      inc.new_pools[pool].min_size = min_size;
+      inc.new_pools[pool].set_pg_num(pg_num);
+      inc.new_up_thru[osd] = last_epoch_clean;
+      last_osdmap->apply_incremental(inc);
+
+      std::ostream out;
+
+      PastIntervals past_intervals;
+
+      assert(past_intervals.empty());
+
+      assert(PastIntervals::check_new_interval(
+        old_primary,
+        new_primary,
+        old_acting,
+        new_acting,
+        old_up_primary,
+        new_up_primary,
+        old_up,
+        new_up,
+        same_interval_since,
+        last_epoch_clean,
+        osdmap,
+        last_osdmap,
+        pgid,
+        recoverable.get(),
+        &past_intervals,
+        &out));
+
+      std::cout << out.str() << '\n';
+    }
     }
   }
 }
