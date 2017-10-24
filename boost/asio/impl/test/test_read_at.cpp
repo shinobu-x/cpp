@@ -1306,7 +1306,18 @@ void test_9() {
   sb.consume(sb.size());
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
     boost::asio::transfer_all());
-  assert(by
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_at_least(1));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
+
 }
 
 auto main() -> decltype(0) {
