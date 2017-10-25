@@ -1433,6 +1433,40 @@ void test_9() {
   assert(s.check_buffers(1234, sb.data(), 50));
 
   s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 1234, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(0, sb.data(), 42));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 1234, sb,
+    boost::asio::transfer_at_least(42));
+  assert(bytes_transferred == 42);
+  assert(sb.size() == 42);
+  assert(s.check_buffers(1234, sb.data(), 42));
+
+  s.reset(read_data, sizeof(read_data));
   s.next_read_length(10);
   sb.consume(sb.size());
   bytes_transferred = boost::asio::read_at(s, 0, sb,
