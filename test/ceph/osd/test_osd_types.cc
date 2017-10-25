@@ -804,7 +804,261 @@ void test_10() {
       assert(oid == missing.get_rmissing().at(e.version.version));
       assert(1U == missing.num_missing());
       assert(1U == missing.get_rmissing().size());
+
+      e.prior_version = prior_version;
+      missing.add_next_event(e);
+      assert(eversion_t() == missing.get_items().at(oid).have);
+      assert(missing.is_missing(oid));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
     }
+
+    { // object with prior version - modify
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+
+      e.op = pg_log_entry_t::MODIFY;
+      assert(e.is_update());
+      assert(e.object_is_indexed());
+      assert(e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(prior_version == missing.get_items().at(oid).have);
+      assert(version == missing.get_items().at(oid).need);
+      assert(oid == missing.get_rmissing().at(e.version.version));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+    }
+
+    { // backlog
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+      e.op = pg_log_entry_t::BACKLOG;
+      assert(e.is_backlog());
+      assert(e.object_is_indexed());
+      assert(!e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+    }
+
+    {
+      pg_missing_t missing;
+      pg_log_entry_t e = sample;
+
+      e.op = pg_log_entry_t::MODIFY;
+      assert(e.is_update());
+      assert(e.object_is_indexed());
+      assert(e.reqid_is_indexed());
+      assert(!missing.is_missing(oid));
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(!missing.get_items().at(oid).is_delete());
+
+      e.op = pg_log_entry_t::LOST_DELETE;
+      e.version.version++;
+      assert(e.is_delete());
+      missing.add_next_event(e);
+      assert(missing.is_missing(oid));
+      assert(missing.get_items().at(oid).is_delete());
+      assert(prior_version == missing.get_items().at(oid).have);
+      assert(e.version == missing.get_items().at(oid).need);
+      assert(oid == missing.get_rmissing().at(e.version.version));
+      assert(1U == missing.num_missing());
+      assert(1U == missing.get_rmissing().size());
+    }
+  }
+
+  { // revise_need
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.is_missing(oid));
+    eversion_t need(10, 10);
+    missing.revise_need(oid, need, false);
+    assert(missing.is_missing(oid));
+    assert(eversion_t() == missing.get_items().at(oid).have);
+    assert(need == missing.get_items().at(oid).need);
+    eversion_t have(1, 1);
+    missing.revise_have(oid, have);
+    eversion_t new_need(10, 12);
+    assert(have == missing.get_items().at(oid).have);
+    missing.revise_need(oid, new_need, false);
+    assert(have == missing.get_items().at(oid).have);
+    assert(new_need == missing.get_items().at(oid).need);
+  }
+
+  { // revise_have
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.is_missing(oid));
+    eversion_t have(1, 1);
+    missing.revise_have(oid, have);
+    assert(!missing.is_missing(oid));
+    eversion_t need(10, 12);
+    missing.add(oid, need, have, false);
+    assert(missing.is_missing(oid));
+    eversion_t new_have(2, 2);
+    assert(have == missing.get_items().at(oid).have);
+    missing.revise_have(oid, new_have);
+    assert(new_have == missing.get_items().at(oid).have);
+    assert(need == missing.get_items().at(oid).need);
+  }
+
+  { // add
+    hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+    pg_missing_t missing;
+    assert(!missing.is_missing(oid));
+    eversion_t have(1, 1);
+    eversion_t need(10, 10);
+    missing.add(oid, need, have, false);
+    assert(missing.is_missing(oid));
+    assert(have == missing.get_items().at(oid).have);
+    assert(need == missing.get_items().at(oid).need);
+  }
+
+  {
+    { // rm
+      hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+      pg_missing_t missing;
+      assert(!missing.is_missing(oid));
+      epoch_t e = 10;
+      eversion_t need(e, 10);
+      missing.add(oid, need, eversion_t(), false);
+      assert(missing.is_missing(oid));
+      missing.rm(oid, eversion_t(e / 2, 20));
+      assert(missing.is_missing(oid));
+      missing.rm(oid, eversion_t(e * 2, 20));
+      assert(!missing.is_missing(oid));
+    }
+
+    {
+      hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+      pg_missing_t missing;
+      assert(!missing.is_missing(oid));
+      missing.add(oid, eversion_t(), eversion_t(), false);
+      assert(missing.is_missing(oid));
+      std::map<hobject_t, pg_missing_item>::const_iterator m =
+        missing.get_items().find(oid);
+      missing.rm(m);
+      assert(!missing.is_missing(oid));
+    }
+  }
+
+  { // got
+    {
+      hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+      pg_missing_t missing;
+
+      assert(!missing.is_missing(oid));
+      epoch_t e = 10;
+      eversion_t need(e, 10);
+      missing.add(oid, need, eversion_t(), false);
+      assert(missing.is_missing(oid));
+
+      missing.got(oid, eversion_t(e * 2, 20));
+      assert(!missing.is_missing(oid));
+
+    }
+
+    {
+      hobject_t oid(object_t("test"), "key", 123, 456, 0, "");
+      pg_missing_t missing;
+      assert(!missing.is_missing(oid));
+      missing.add(oid, eversion_t(), eversion_t(), false);
+      assert(missing.is_missing(oid));
+      std::map<hobject_t, pg_missing_item>::const_iterator m =
+        missing.get_items().find(oid);
+      missing.got(m);
+      assert(!missing.is_missing(oid));
+    } 
+  }
+
+  { // split_into
+    uint32_t hash1 = 1, hash2 = 2;
+    hobject_t oid1(object_t("test"), "key1", 123, hash1, 0, "");
+    hobject_t oid2(object_t("test"), "key2", 123, hash2, 0, "");
+    pg_missing_t missing;
+    missing.add(oid1, eversion_t(), eversion_t(), false);
+    missing.add(oid2, eversion_t(), eversion_t(), false);
+    pg_t child_pgid;
+    child_pgid.m_seed = 1;
+    pg_missing_t child;
+    unsigned split_bits = 1;
+    missing.split_into(child_pgid, split_bits, &child);
+    assert(child.is_missing(oid1));
+    assert(!child.is_missing(oid2));
+    assert(!missing.is_missing(oid1));
+    assert(missing.is_missing(oid2));
+  }
+
+  { // clear
+    hobject_t oid1(object_t("test"), "key1", 123, 1, 0, "");
+    hobject_t oid2(object_t("test"), "key2", 123, 2, 0, "");
+    pg_missing_t missing;
+    missing.add(oid1, eversion_t(), eversion_t(), false);
+    missing.add(oid2, eversion_t(), eversion_t(), false);
+    assert(missing.is_missing(oid1));
+    assert(missing.is_missing(oid2));
+    missing.clear();
+  }
+
+  { // dump
+    hobject_t oid1(object_t("test"), "key1", 123, 1, 0, "");
+    hobject_t oid2(object_t("test"), "key2", 123, 1, 0, "");
+    pg_missing_t missing;
+    missing.add(oid1, eversion_t(), eversion_t(), false);
+    missing.add(oid2, eversion_t(), eversion_t(), false);
+    Formatter* f = Formatter::create("json-pretty");
+    missing.dump(f);
+  }
+
+  { // test
+    pg_missing_t missing;
+    missing.test();
+  }
+}
+
+class object_context {
+protected:
+  static const useconds_t DELAY_MAX = 20 * 1000 * 1000;
+
+  class read_lock : public Thread {
+  public:
+    ObjectContext& obc;
+
+    explicit read_lock(ObjectContext& _obc)
+      : obc(_obc) {}
+
+    void* entry() override {
+      obc.ondisk_read_lock();
+      return NULL;
+    }
+  };
+
+  class write_lock : public Thread {
+  public:
+    ObjectContext& obc;
+
+    explicit write_lock(ObjectContext& _obc)
+      : obc(_obc) {}
+
+    void* entry() override {
+      obc.ondisk_write_lock();
+      return NULL;
+    }
+  };
+};
+
+void test_11() {
+  {
+    ObjectContext obc;
+  
+    // no lock
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);  
+
+    // lock
+    assert(0 == obc.writers_waiting);
+    assert(1 == obc.unstable_writes);
   }
 }
 
