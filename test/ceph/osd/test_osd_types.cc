@@ -1183,8 +1183,53 @@ void test_11() {
   }
 }
 
+void test_12() {
+
+  { // get_pg_num_divisor
+    pg_pool_t p;
+    p.set_pg_num(16);
+    p.set_pgp_num(16);
+
+    for (int i = 0; i < 16; ++i)
+      assert(16u == p.get_pg_num_divisor(pg_t(i, 1)));
+
+    p.set_pg_num(12);
+    p.set_pgp_num(12);
+
+    assert(16u == p.get_pg_num_divisor(pg_t(0, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(1, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(2, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(3, 1)));
+    assert(8u == p.get_pg_num_divisor(pg_t(4, 1)));
+    assert(8u == p.get_pg_num_divisor(pg_t(5, 1)));
+    assert(8u == p.get_pg_num_divisor(pg_t(6, 1)));
+    assert(8u == p.get_pg_num_divisor(pg_t(7, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(8, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(9, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(10, 1)));
+    assert(16u == p.get_pg_num_divisor(pg_t(11, 1)));
+  }
+
+  { // get_random_pg_position
+    srand(getpid());
+
+    for (int i = 0; i < 100; ++i) {
+      pg_pool_t p;
+      p.set_pg_num(1 + (rand() % 1000));
+      p.set_pgp_num(p.get_pg_num());
+      pg_t pgid(rand() % p.get_pg_num(), 1);
+      uint32_t h = p.get_random_pg_position(pgid, rand());
+      uint32_t ps = p.raw_hash_to_pg(h);
+      std::cout << "pg_num: " << p.get_pg_num() << " " 
+        << "pgid: " << pgid << " psition: " << h
+        << " -> " << pg_t(ps, 1) << '\n';
+      assert(pgid.ps() == ps);
+    } 
+  }
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
-  test_8(); test_9(); test_10(); test_11();
+  test_8(); test_9(); test_10(); test_11(); test_12();
   return 0;
 }
