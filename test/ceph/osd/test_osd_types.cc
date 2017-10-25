@@ -1018,7 +1018,7 @@ void test_10() {
 }
 
 class object_context {
-protected:
+public:
   static const useconds_t DELAY_MAX = 20 * 1000 * 1000;
 
   class read_lock : public Thread {
@@ -1056,14 +1056,135 @@ void test_11() {
     assert(0 == obc.writers_waiting);
     assert(0 == obc.unstable_writes);  
 
-    // lock
+    // lock: 1
+    obc.ondisk_write_lock();
     assert(0 == obc.writers_waiting);
     assert(1 == obc.unstable_writes);
+
+    // lock: 2
+    obc.ondisk_write_lock();
+    assert(0 == obc.writers_waiting);
+    assert(2 == obc.unstable_writes);
+
+    // unlock: 1
+    obc.ondisk_write_unlock();
+    assert(0 == obc.writers_waiting);
+    assert(1 == obc.unstable_writes);
+
+    // unlock: 2
+    obc.ondisk_write_unlock();
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+  }
+
+  useconds_t delay = 0;
+
+  { // read lock
+    ObjectContext obc;
+
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    // lock
+    obc.ondisk_write_lock();
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(1 == obc.unstable_writes);
+
+    object_context::read_lock t(obc);
+    t.create("obc_read");
+
+    do {
+      std::cout << "Trying... " << delay << '\n';
+      usleep(delay);
+    } while (obc.readers_waiting == 0 &&
+      (delay = delay * 2 + 1) < object_context::DELAY_MAX);
+
+    assert(1 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(1 == obc.unstable_writes);
+
+    obc.ondisk_write_unlock();
+
+    do {
+      std::cout << "Trying... " << delay << '\n';
+      usleep(delay);
+    } while ((obc.readers == 0 || obc.readers_waiting == 1) &&
+      (delay = delay * 2 + 1) < object_context::DELAY_MAX);
+
+    assert(0 == obc.readers_waiting);
+    assert(1 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    obc.ondisk_read_unlock();
+
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    t.join();
+  }
+
+  { // write lock
+    ObjectContext obc;
+
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    obc.ondisk_read_lock();
+    assert(0 == obc.readers_waiting);
+    assert(1 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    object_context::write_lock t(obc);
+    t.create("obc_write");
+
+    do {
+      std::cout << "Trying... " << delay << '\n';
+      usleep(delay);
+    } while ((obc.writers_waiting == 0) &&
+      (delay = delay * 2 + 1) < object_context::DELAY_MAX);
+
+    assert(0 == obc.readers_waiting);
+    assert(1 == obc.readers);
+    assert(1 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    obc.ondisk_read_unlock();
+
+    do {
+      std::cout << "Trying... " << delay << '\n';
+      usleep(delay);
+    } while ((obc.unstable_writes == 0 || obc.writers_waiting == 1) &&
+      (delay == delay * 2 + 1) < object_context::DELAY_MAX);
+
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(1 == obc.unstable_writes);
+
+    obc.ondisk_write_unlock();
+
+    assert(0 == obc.readers_waiting);
+    assert(0 == obc.readers);
+    assert(0 == obc.writers_waiting);
+    assert(0 == obc.unstable_writes);
+
+    t.join();
   }
 }
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
-  test_8(); test_9(); test_10();
+  test_8(); test_9(); test_10(); test_11();
   return 0;
 }
