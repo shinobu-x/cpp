@@ -1226,10 +1226,241 @@ void test_12() {
       assert(pgid.ps() == ps);
     } 
   }
+
+  { // generate_test_instances
+    std::list<pg_info_t*> i;
+    i.push_back(new pg_info_t);
+    i.push_back(new pg_info_t);
+    std::list<pg_history_t*> h;
+    pg_history_t::generate_test_instances(h);
+    i.back()->history = *h.back();
+    i.back()->pgid = spg_t(pg_t(1, 2, -1), shard_id_t::NO_SHARD);
+    i.back()->last_update = eversion_t(3, 4);
+    i.back()->last_complete = eversion_t(5, 6);
+    i.back()->last_user_version = 2;
+    i.back()->log_tail = eversion_t(7, 8);
+    i.back()->last_backfill =
+      hobject_t(object_t("test"), "key", 123, 456, -1, "");
+    i.back()->last_backfill_bitwise = true;
+    {
+      std::list<pg_stat_t*> s;
+      pg_stat_t::generate_test_instances(s);
+      i.back()->stats = *s.back();
+    }
+    {
+      std::list<pg_hit_set_history_t*> s;
+      pg_hit_set_history_t::generate_test_instances(s);
+      i.back()->hit_set = *s.back();
+    }
+    {
+      std::list<pg_info_t*> i;
+      pg_info_t::generate_test_instances(i);
+    }
+  }
+}
+
+void test_13() {
+  { // shard_id_t
+    std::set<shard_id_t> shards;
+    shards.insert(shard_id_t(0));
+    shards.insert(shard_id_t(1));
+    shards.insert(shard_id_t(2));
+    std::ostringstream out;
+    out << shards;
+    std::cout << out.str() << '\n';
+    shard_id_t noshard = shard_id_t::NO_SHARD;
+    shard_id_t zero(0);
+    assert(zero >= noshard);
+  }
+
+  { // spg_t::parse
+    spg_t a(pg_t(1, 2), shard_id_t::NO_SHARD);
+    spg_t aa, bb;
+    spg_t b(pg_t(3, 2), shard_id_t(2));
+    std::string s = stringify(a);
+    assert(aa.parse(s.c_str()));
+    assert(a == aa);
+
+    s = stringify(b);
+    assert(bb.parse(s.c_str()));
+    assert(b == bb);
+  }
+
+  { // coll_t::parse
+    const char* ok[] = {
+      "meta",
+      "1.2_head",
+      "1.2_TEMP",
+      "1.2s3_head",
+      "1.3s2_TEMP",
+      "1.2s0_head",
+      0
+    };
+
+    const char* bad[] = {
+      "foo",
+      "1.2_food",
+//      "1.2_head",
+//      "1.2_temp",
+//      "1.2_HEAD",
+//      "1.xS3_HEAD",
+//      "1.2s_HEAD",
+      "1.2sfoo_HEAD",
+      0
+    };
+
+    coll_t a;
+    for (int i = 0; ok[i]; ++i) {
+      std::cout << "ok" << ok[i] << '\n';
+      assert(a.parse(ok[i]));
+      assert(std::string(ok[i]) == a.to_str());
+    }
+
+    for (int i = 0; bad[i]; ++i) {
+      std::cout << "bad" << bad[i] << '\n';
+      assert(!a.parse(bad[i])); 
+    }  
+  }
+
+  { // coll_t
+    {
+      spg_t pgid1;
+      coll_t foo(pgid1);
+      assert(foo.to_str() == std::string("0.0_head"));
+
+      coll_t temp = foo.get_temp();
+      assert(temp.to_str() == std::string("0.0_TEMP"));
+
+      spg_t pgid2;
+      assert(temp.is_temp());
+      assert(temp.is_temp(&pgid2));
+      assert(pgid1 == pgid2);
+    }
+
+    {
+      spg_t pgid;
+      coll_t right(pgid);
+      assert(right.to_str() == std::string("0.0_head"));
+      std::cout << right.to_str() << '\n';
+
+      coll_t left, middle;
+      assert(left.to_str() == std::string("meta"));
+      assert(middle.to_str() == std::string("meta"));
+
+      left = middle = right;
+
+      assert(left.to_str() == std::string("0.0_head"));
+      std::cout << left.to_str() << '\n';
+
+      assert(middle.to_str() == std::string("0.0_head"));
+      std::cout << middle.to_str() << '\n';
+
+      assert(middle.c_str() != right.c_str());
+      assert(left.c_str() != middle.c_str());
+    }
+  }
+}
+
+void test_14() {
+  { // hobject_t
+    const char* v[] = {
+      "MIN",
+      "MAX",
+      "-1:60c2fa6d:::inc_osdmap.1:0",
+      "-1:60c2fa6d:::inc_osdmap.1:333",
+      "0:00000000::::head",
+      "1:00000000:nspace:key:obj:head",
+      "-40:00000000:nspace:obj:head",
+      "20:00000000::key:obj:head",
+      "20:00000000:::o%fdj:head",
+      "20:00000000:::o%02fdj:head",
+      "20:00000000:::_zero_%00_:head",
+      NULL
+    };
+
+    for (unsigned i = 0; v[i]; ++i) {
+      hobject_t o;
+      bool b = o.parse(v[i]);
+
+      if (!b)
+        std::cout << "failed to parse " << v[i] << std::endl;
+
+      std::string s = stringify(o);
+
+      if (s != v[i])
+        std::cout << v[i] << " -> " << o << " -> " << s << std::endl;
+    }
+  }
+}
+
+void test_15() {
+  { // objectstore_perf_stat_t
+    std::list<objectstore_perf_stat_t*> o;
+    o.push_back(new objectstore_perf_stat_t());
+    o.push_back(new objectstore_perf_stat_t());
+    o.back()->os_commit_latency = 20;
+    o.back()->os_apply_latency = 30;
+    Formatter* f = Formatter::create("json-pretty");
+    o.back()->dump(f);
+  }
+}
+
+void test_16() {
+  { // ghobject_t
+    {
+      ghobject_t min, sep;
+      sep.set_shard(shard_id_t(1));
+      sep.hobj.pool = -1;
+      std::cout << min << " <- " << sep << '\n';
+      assert(min < sep);
+
+      sep.set_shard(shard_id_t::NO_SHARD);
+      std::cout << "sep shard" << sep.shard_id << '\n';
+
+      ghobject_t o(hobject_t(
+        object_t(), std::string(), CEPH_NOSNAP, 0x42, 1, std::string()));
+      std::cout << "o " << o << '\n';
+      assert(o > sep);
+    }
+
+    { 
+      const char* v[] = {
+        "GHMIN",
+        "GHMAX",
+        "13#0:00000000::::head#",
+        "13#0:00000000::::head#deadbeef",
+        "#-1:60c2fa6d:::inc_osdmap.1:333#deadbeef",
+        "#-1:60c2fa6d:::inc%02osdmap.1:333#deadbeef",
+        "#-1:60c2fa6d:::inc_osdmap.1:333#",
+        "1#MIN#deadbeefff",
+        "1#MAX#",
+        "#MAX#123",
+        "#-40:00000000:nspace::obj:head#",
+        NULL
+      };
+
+      for (const char* c : v) 
+        std::cout << c << '\n';
+
+      for (unsigned i = 0; v[i]; ++i) {
+        ghobject_t o;
+        bool b = o.parse(v[i]);
+
+        if (!b)
+          std::cout << "failed to parse " << v[i] << '\n';
+
+        std::string s = stringify(o);
+
+        if (s != v[i])
+          std::cout << v[i] << " -> " << o << " -> " << s << '\n';
+      }
+    }
+  }
 }
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
-  test_8(); test_9(); test_10(); test_11(); test_12();
+  test_8(); test_9(); test_10(); test_11(); test_12(); test_13(); test_14();
+  test_15(); test_16();
   return 0;
 }
