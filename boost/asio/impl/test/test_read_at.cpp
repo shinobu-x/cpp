@@ -1685,10 +1685,59 @@ void test_9() {
   assert(bytes_transferred == sizeof(read_data));
   assert(sb.size() == sizeof(read_data));
   assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 0, sb, short_transfer);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 1234, sb, short_transfer);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 0, sb, short_transfer);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  sb.consume(sb.size());
+  bytes_transferred = boost::asio::read_at(s, 1234, sb, short_transfer);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(sb.size() == sizeof(read_data));
+  assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
+}
+
+// Test mutable buffers_1 read_at
+void test_10() {
+  boost::asio::io_service ios;
+  stream_access_device s(ios);
+  char read_buf[sizeof(read_data)];
+  boost::asio::mutable_buffers_1 buffers
+    = boost::asio::buffer(read_buf, sizeof(read_buf));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  boost::system::error_code ec;
+  std::size_t bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    boost::asio::transfer_all(), ec);
+  assert(bytes_transferred == sizeof(read_data));
+  assert(s.check_buffers(0, buffers, sizeof(read_data)));
 }
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
-  test_8(); test_9();
+  test_8(); test_9(); test_10();
   return 0;
 }
