@@ -1439,9 +1439,6 @@ void test_16() {
         NULL
       };
 
-      for (const char* c : v) 
-        std::cout << c << '\n';
-
       for (unsigned i = 0; v[i]; ++i) {
         ghobject_t o;
         bool b = o.parse(v[i]);
@@ -1458,9 +1455,171 @@ void test_16() {
   }
 }
 
+void test_17() {
+  { // pool_opts_t
+    assert(!pool_opts_t::is_opt_name("INVALID_OPT"));
+  }
+
+  { // scrub_min_interval
+    double d;
+    pool_opts_t opts;
+    assert(!opts.get(pool_opts_t::SCRUB_MIN_INTERVAL, &d));
+    opts.set(pool_opts_t::SCRUB_MIN_INTERVAL, static_cast<double>(2017));
+    std::cout << opts.get(pool_opts_t::SCRUB_MIN_INTERVAL, &d) << '\n';
+    assert(d == 2017);
+    assert(opts.is_set(pool_opts_t::SCRUB_MIN_INTERVAL));
+  }
+
+  { // scrub_max_interval
+    assert(pool_opts_t::is_opt_name("scrub_max_interval"));
+    assert(pool_opts_t::get_opt_desc("scrub_max_interval") ==
+      pool_opts_t::opt_desc_t(pool_opts_t::SCRUB_MAX_INTERVAL,
+        pool_opts_t::DOUBLE));
+
+    pool_opts_t opts;
+    assert(!opts.is_set(pool_opts_t::SCRUB_MAX_INTERVAL));
+
+    double d;
+    assert(!opts.get(pool_opts_t::SCRUB_MAX_INTERVAL, &d));
+    opts.set(pool_opts_t::SCRUB_MAX_INTERVAL, static_cast<double>(2017));
+    assert(opts.get(pool_opts_t::SCRUB_MAX_INTERVAL, &d));
+    assert(d == 2017);
+    opts.unset(pool_opts_t::SCRUB_MAX_INTERVAL);
+    assert(!opts.is_set(pool_opts_t::SCRUB_MAX_INTERVAL));
+  }
+
+  { // deep_scrub_interval
+    assert(pool_opts_t::is_opt_name("deep_scrub_interval"));
+    assert(pool_opts_t::get_opt_desc("deep_scrub_interval") ==
+      pool_opts_t::opt_desc_t(pool_opts_t::DEEP_SCRUB_INTERVAL,
+        pool_opts_t::DOUBLE));
+
+    pool_opts_t opts;
+    assert(!opts.is_set(pool_opts_t::DEEP_SCRUB_INTERVAL));
+
+    double d;
+    assert(!opts.get(pool_opts_t::DEEP_SCRUB_INTERVAL, &d));
+    opts.set(pool_opts_t::DEEP_SCRUB_INTERVAL, static_cast<double>(2017));
+    assert(opts.get(pool_opts_t::DEEP_SCRUB_INTERVAL, &d));
+    assert(d == 2017);
+    opts.unset(pool_opts_t::DEEP_SCRUB_INTERVAL);
+    assert(!opts.is_set(pool_opts_t::DEEP_SCRUB_INTERVAL));
+  }
+}
+
+struct require_predicate : IsPGRecoverablePredicate {
+  unsigned _required_size;
+  require_predicate(unsigned required_size) : _required_size(required_size) {}
+  bool operator ()(const std::set<pg_shard_t> &have) const override {
+    return have.size() >= _required_size;
+  }
+};
+
+struct map_predicate {
+  std::map<int, std::pair<
+    PastIntervals::osd_state_t, epoch_t> > _states;
+  map_predicate(std::vector<std::pair<int, std::pair<PastIntervals::osd_state_t,
+    epoch_t> > > states)
+    : _states(states.begin(), states.end()) {}
+  PastIntervals::osd_state_t operator ()(epoch_t start, int osd,
+    epoch_t* lost_at) {
+    auto v = _states.at(osd);
+    if (lost_at)
+      *lost_at = v.second;
+    return v.first;
+  }
+};
+
+const int N = 0x7fffffff;
+
+struct past_intervals_test {
+  past_intervals_test() {}
+
+  void run(
+    bool ec_pool,
+    std::list<PastIntervals::pg_interval_t> intervals,
+    epoch_t last_epoch_started,
+    unsigned min_to_peer,
+    std::vector<std::pair<int, std::pair<
+      PastIntervals::osd_state_t, epoch_t> > > osd_states,
+    std::vector<int> up,
+    std::vector<int> acting,
+    std::set<pg_shard_t> probe,
+    std::set<int> down,
+    std::map<int, epoch_t> blocked_by,
+    bool pg_down) {
+    require_predicate require_pred(min_to_peer);
+    map_predicate map_pred(osd_states);
+
+    PastIntervals::PriorSet correct(
+      ec_pool,
+      probe,
+      down,
+      blocked_by,
+      pg_down,
+      new require_predicate(require_pred));
+
+    PastIntervals compact;
+
+    for (auto&& i : intervals) {
+      std::cout << i.first << '\n';
+      compact.add_interval(ec_pool, i);
+    }
+
+    PastIntervals::PriorSet compact_ps = compact.get_prior_set(
+      ec_pool,
+      last_epoch_started,
+      new require_predicate(require_pred),
+      map_pred,
+      up,
+      acting,
+      nullptr);
+
+    assert(correct == compact_ps);
+  }
+};
+
+void test_18() {
+  past_intervals_test intervals_test;
+  { // test1
+    intervals_test.run(
+      /* ec_pool          */ false,
+      /* intervals        */ {
+                               PastIntervals::pg_interval_t {
+                                 {0, 1, 2}, {0, 1, 2}, 10, 20,  true, 0, 0
+                               },
+                               PastIntervals::pg_interval_t {
+                                 {   1, 2}, {   1, 2}, 21, 30,  true, 1, 1
+                               },
+                               PastIntervals::pg_interval_t {
+                                 {      2}, {      2}, 31, 35, false, 2, 2
+                               },
+                               PastIntervals::pg_interval_t {
+                                 {0,    2}, {0,    2}, 36, 50,  true, 0, 0
+                               }
+                             },
+      /* last_epoch_started */ 5,
+      /* min_to_peer        */ 1,
+      /* osd_states         */ {
+                                 std::make_pair(0, std::make_pair(
+                                   PastIntervals::UP ,0)),
+                                 std::make_pair(1, std::make_pair(
+                                   PastIntervals::UP, 0)),
+                                 std::make_pair(2, std::make_pair(
+                                   PastIntervals::DOWN, 0))
+                               },
+      /* up                 */ {0, 1},
+      /* acting             */ {0, 1},
+      /* probe              */ {pg_shard_t(0), pg_shard_t(1)},
+      /* down               */ {2},
+      /* blocked_by         */ {},
+      /* pg_down            */ false);
+  }
+}
+
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   test_8(); test_9(); test_10(); test_11(); test_12(); test_13(); test_14();
-  test_15(); test_16();
+  test_15(); test_16(); test_17(); test_18();
   return 0;
 }
