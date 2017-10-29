@@ -6,6 +6,11 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "gtest/gtest.h"
+
+#include <cassert>
+#include <iostream>
+
 struct pglog_base {
   static hobject_t mk_obj(unsigned id) {
     hobject_t hoid;
@@ -133,21 +138,22 @@ struct pglog_base {
   }
 };
 
-class pglog_test : public PGLog, public pglog_base {
+class pglog_test
+  : virtual public ::testing::Test, protected PGLog, public pglog_base {
 public:
   pglog_test() : PGLog(g_ceph_context) {}
 
-/*  void do_setup() override {
+  void SetUp() override {
     missing.may_include_deletes = true;
   }
-*/
+
 #include "common/ceph_context.h"
 #include "common/config.h"
 
-/*  void do_teardown() override {
+  void TearDown() override {
     clear();
   }
-*/
+
   struct test {
     std::list<pg_log_entry_t> base;
     std::list<pg_log_entry_t> auth;
@@ -340,6 +346,165 @@ public:
   }
 };
 
-auto main() -> decltype(0) {
-  return 0;
+struct test_handler : public PGLog::LogEntryHandler {
+  std::list<hobject_t>& _removed;
+
+  explicit test_handler(std::list<hobject_t>& removed)
+    : _removed(removed) {}
+
+  void rollback(const pg_log_entry_t& entry) override {}
+  void rollforward(const pg_log_entry_t& entry) override {}
+  void remove(const hobject_t& hoid) override {
+    _removed.push_back(hoid);
+  }
+  void try_stash(const hobject_t&, version_t) override {}
+  void trim(const pg_log_entry_t& entry) override {}
+  void cant_rollback(const pg_log_entry_t& entry) {}
+};
+
+TEST_F(pglog_test, rewind_divergent_log) {
+
+  { // Test 1
+    clear();
+    pg_info_t info;
+    std::list<hobject_t> remove_snap;
+    bool dirty_info = false;
+    bool dirty_big_info = false;
+
+    hobject_t divergent_object;
+    eversion_t divergent_version;
+    eversion_t new_head;
+
+    hobject_t divergent;
+    divergent.set_hash(0x9);
+
+    {
+      pg_log_entry_t e;
+      e.mark_unrollbackable();
+
+      e.version = eversion_t(1, 1);
+      e.soid.set_hash(0x5);
+      log.tail = e.version;
+      log.log.push_back(e);
+      e.version = new_head = eversion_t(1, 4); // Tail
+      e.soid = divergent;
+      e.op = pg_log_entry_t::MODIFY;
+      log.log.push_back(e);
+      e.version = divergent_version = eversion_t(1, 5); // Head to be deleted
+      e.prior_version = eversion_t(1, 4); // New head
+      e.soid = divergent;
+      divergent_object = e.soid;
+      e.op = pg_log_entry_t::DELETE;
+      log.log.push_back(e);
+      log.head = e.version;
+      log.index();
+
+      info.last_update = log.head;
+      info.last_complete = log.head;
+    }
+
+    assert(!missing.have_missing());
+    assert(3U == log.log.size());
+    assert(remove_snap.empty());
+    assert(log.head == info.last_update);
+    assert(log.head == info.last_complete);
+    assert(!is_dirty());
+    assert(!dirty_info);
+    assert(!dirty_info);
+
+    test_handler h(remove_snap);
+    rewind_divergent_log(
+      new_head, info, &h, dirty_info, dirty_big_info);
+
+    assert(log.objects.count(divergent));
+    assert(missing.is_missing(divergent_object));
+    assert(1U == log.objects.count(divergent_object));
+    assert(2U == log.log.size());
+    assert(remove_snap.empty());
+    assert(new_head == info.last_update);
+    assert(new_head == info.last_complete);
+    assert(is_dirty());
+    assert(dirty_info);
+    assert(dirty_big_info);
+  }
+
+  { // Test 2
+    clear();
+    pg_info_t info;
+    std::list<hobject_t> remove_snap;
+    bool dirty_info = false;
+    bool dirty_big_info = false;
+
+    hobject_t divergent_object;
+    eversion_t divergent_version;
+    eversion_t prior_version;
+    eversion_t new_head;
+
+    {
+      pg_log_entry_t e;
+      e.mark_unrollbackable();
+
+      info.log_tail = log.tail = eversion_t(1, 1);  // Tail
+      new_head = eversion_t(1, 3); // New head;
+      e.version = divergent_version = eversion_t(1, 5); // Head
+      e.soid.set_hash(0x9); // Hash for head
+      divergent_object = e.soid;
+      e.op = pg_log_entry_t::DELETE;
+      e.prior_version = prior_version = eversion_t(0, 2);
+      log.log.push_back(e);
+      log.head = e.version;
+    }
+
+    assert(!missing.have_missing());
+    assert(1U == log.log.size());
+    assert(remove_snap.empty());
+    assert(!is_dirty());
+    assert(!dirty_info);
+    assert(!dirty_big_info);
+
+    test_handler h(remove_snap);
+    rewind_divergent_log(
+      new_head, info, &h, dirty_info, dirty_big_info);
+
+    assert(missing.is_missing(divergent_object));
+    assert(0U == log.objects.count(divergent_object));
+    assert(log.empty());
+    assert(remove_snap.empty());
+    assert(is_dirty());
+    assert(dirty_info);
+    assert(dirty_big_info);
+  }
+
+  { // Test 3
+    clear();
+    std::list<hobject_t> remove_snap;
+    pg_info_t i;
+    i.log_tail = log.tail = eversion_t(1, 5);
+    i.last_update = eversion_t(1, 6);
+    bool dirty_info = false;
+    bool dirty_big_info = false;
+
+    {
+      pg_log_entry_t e;
+      e.mark_unrollbackable();
+      e.version = eversion_t(1, 5);
+      e.soid.set_hash(0x9);
+      add(e);
+    }
+    {
+      pg_log_entry_t e;
+      e.mark_unrollbackable();
+      e.version = eversion_t(1, 6);
+      e.soid.set_hash(0x10);
+      add(e);
+    }
+
+    test_handler h(remove_snap);
+    roll_forward_to(eversion_t(1, 0), &h);
+    rewind_divergent_log(
+      eversion_t(1, 5), i, &h, dirty_info, dirty_big_info);
+
+    pg_log_t l;
+    reset_backfill_claim_log(l, &h);
+  }
 }
