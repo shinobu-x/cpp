@@ -1,15 +1,10 @@
+#include <stdio.h>
+#include <signal.h>
+#include "gtest/gtest.h"
 #include "osd/PGLog.h"
 #include "osd/OSDMap.h"
 #include "include/coredumpctl.h"
 #include "../../objectstore/store_test_fixture.h"
-
-#include <stdio.h>
-#include <signal.h>
-
-#include <cassert>
-#include <iostream>
-
-#include "gtest/gtest.h"
 
 struct base {
   static hobject_t mk_obj(unsigned id) {
@@ -115,12 +110,20 @@ struct base {
 };
 
 class pglog_test
-  : protected PGLog, public base {
+  : public ::testing::Test, protected PGLog, public base {
 public:
   pglog_test() : PGLog(g_ceph_context) {}
 
+  void SetUp() override {
+    missing.may_include_deletes = true;
+  }
+
 #include "common/ceph_context.h"
 #include "common/config.h"
+
+  void TearDown() override {
+    clear();
+  }
 
   struct test {
     std::list<pg_log_entry_t> base;
@@ -173,9 +176,215 @@ public:
             break;
       }
     }
+    void set_div_bounds(eversion_t head, eversion_t tail) {
+      full_auth.tail = auth_info.log_tail = tail;
+      full_auth.head = auth_info.last_update = head;
+    }
+
+    const IndexedLog& get_full_auth() const {
+      return full_auth;
+    }
+    const IndexedLog& get_full_div() const {
+      return full_div;
+    }
+    const pg_info_t& get_auth_info() const {
+      return auth_info;
+    }
+    const pg_info_t& get_div_info() const {
+      return div_info;
+    }
   };
+
+  struct log_handler : public PGLog::LogEntryHandler {
+    std::set<hobject_t> removed;
+    std::list<pg_log_entry_t> rolledback;
+
+    void rollback(const pg_log_entry_t& entry) override {
+      rolledback.push_back(entry);
+    }
+
+    void rollforward(const pg_log_entry_t& entry) override {}
+
+    void remove(const hobject_t& hoid) override {
+      removed.insert(hoid);
+    }
+
+    void try_stash(const hobject_t&, version_t) override {}
+
+    void trim(const pg_log_entry_t& entry) override {}
+  };
+
+  template <typename missing_t>
+  void verify_missing(const test& t, const missing_t& missing) {
+
+    assert(t.last.get_items().size() == missing.get_items().size());
+
+    for (auto i = missing.get_items().begin();
+      i != missing.get_items().end(); ++i) {
+      assert(t.last.get_items().count(i->first));
+      assert(t.last.get_items().find(i->first)->second.need ==
+        i->second.need);
+      assert(t.last.get_items().find(i->first)->second.have ==
+        i->second.have);
+    }
+
+    bool correct = missing.debug_verify_from_init(t.init, &std::cout);
+    assert(correct);
+  }
+
+  void verify_side_effects(const test& t, const log_handler& h) {
+    assert(t.to_remove.size() == h.removed.size());
+    assert(t.to_rollback.size() == h.rolledback.size());
+
+    {
+      std::list<pg_log_entry_t>::const_iterator t_iter = t.to_rollback.begin();
+      std::list<pg_log_entry_t>::const_iterator h_iter = h.rolledback.begin();
+
+      for (; t_iter != t.to_rollback.end(); ++t_iter, ++h_iter)
+        assert(t_iter->version == h_iter->version);
+    }
+
+    {
+      std::set<hobject_t>::const_iterator t_iter = t.to_remove.begin();
+      std::set<hobject_t>::const_iterator h_iter = h.removed.begin();
+
+      for (; t_iter != t.to_remove.end(); ++t_iter, ++h_iter)
+        assert(*t_iter == *h_iter);
+    }
+  }
+
+  void test_merge_log(const test& t) {
+    clear();
+
+    log = t.get_full_div();
+    pg_info_t info = t.get_div_info();
+
+    missing = t.init;
+    missing.flush();
+
+    IndexedLog olog;
+    olog = t.get_full_auth();
+    pg_info_t oinfo = t.get_auth_info();
+
+    log_handler h;
+    bool dirty_info = false;
+    bool dirty_big_info = false;
+
+    merge_log(oinfo, olog, pg_shard_t(1, shard_id_t(0)), info, &h,
+      dirty_info, dirty_big_info);
+
+    assert(info.last_update == oinfo.last_update);
+
+    verify_missing(t, missing);
+    verify_side_effects(t, h);
+  }
+
+  void test_proc_replica_log(const test& t) {
+    clear();
+
+    log = t.get_full_auth();
+    pg_info_t info = t.get_auth_info();
+
+    pg_missing_t omissing = t.init;
+
+    IndexedLog olog;
+    olog = t.get_full_div();
+    pg_info_t oinfo = t.get_div_info();
+
+    proc_replica_log(oinfo, olog, omissing, pg_shard_t(1, shard_id_t(0)));
+
+    assert(oinfo.last_update >= log.tail);
+
+    if (!t.base.empty())
+      assert(t.base.rbegin()->version == oinfo.last_update);
+
+    for (std::list<pg_log_entry_t>::const_iterator i = t.auth.begin();
+      i != t.auth.end(); ++i)
+      if (i->version > oinfo.last_update) {
+        if (i->is_delete() && t.deletes_during_peering)
+          omissing.rm(i->soid, i->version);
+        else
+          omissing.add_next_event(*i);
+      }
+    verify_missing(t, omissing);
+  }
+
+  void do_test(const test& t) {
+    test_merge_log(t);
+    test_proc_replica_log(t);
+  }
 };
 
-auto main() -> decltype(0) {
-  return 0;
+struct test_handler : public PGLog::LogEntryHandler {
+  std::list<hobject_t>& _removed;
+
+  explicit test_handler(std::list<hobject_t>& removed) : _removed(removed) {}
+
+  void rollback(const pg_log_entry_t& entry) override {}
+
+  void rollforward(const pg_log_entry_t& entry) override {}
+
+  void remove(const hobject_t& hoid) override {
+    _removed.push_back(hoid);
+  }
+
+  void cant_rollback(const pg_log_entry_t& entry) {}
+
+  void try_stash(const hobject_t&, version_t) override {}
+
+  void trim(const pg_log_entry_t& entry) override {}
+};
+
+TEST_F(pglog_test, rewind_divergent_log) {
+  {
+    clear();
+    pg_info_t info;
+    std::list<hobject_t> remove_snap;
+    bool dirty_info = false;
+    bool dirty_big_info = false;
+
+    hobject_t divergent_object;
+    eversion_t divergent_version;
+    eversion_t new_head;
+
+    hobject_t divergent;
+    divergent.set_hash(0x09);
+
+    {
+      pg_log_entry_t e;
+      e.mark_unrollbackable();
+
+      e.version = eversion_t(1, 1);
+      e.soid.set_hash(0x5);
+      log.tail = e.version;
+      log.log.push_back(e);
+      e.version = new_head = eversion_t(1, 4);
+      e.soid = divergent;
+      log.log.push_back(e);
+      e.version = divergent_version = eversion_t(1, 5);
+      e.prior_version = eversion_t(1, 4);
+      e.soid = divergent;
+      divergent_object = e.soid;
+      e.op = pg_log_entry_t::DELETE;
+      log.log.push_back(e);
+      log.head = e.version;
+      log.index();
+
+      info.last_update = log.head;
+      info.last_complete = log.head;
+    }
+
+    assert(!missing.have_missing());
+    assert(3U == log.log.size());
+    assert(remove_snap.empty());
+    assert(log.head == info.last_update);
+    assert(log.head == info.last_complete);
+    assert(!is_dirty());
+    assert(!dirty_info);
+    assert(!dirty_big_info);
+
+    test_handler h(remove_snap);
+    rewind_divergent_log(new_head, info, &h, dirty_info, dirty_big_info);
+  }
 }
+
