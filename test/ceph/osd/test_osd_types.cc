@@ -88,6 +88,7 @@ void test_1() {
   do_test<ScrubMap::object>();
 }
 
+// Test osd_reqid_t
 void test_2() {
 
   {
@@ -109,7 +110,106 @@ void test_2() {
   
 }
 
+// Test object_locator_t
+void test_3() {
+  {
+    object_locator_t oloc;
+    assert(oloc.pool == -1);
+    assert(oloc.hash == -1);
+  }
+  {
+    object_locator_t oloc(123);
+    assert(oloc.pool == 123);
+  }
+  {
+    object_locator_t oloc(123, 456);
+    assert(oloc.pool == 123);
+    assert(oloc.hash == 456);
+  }
+  {
+    object_locator_t oloc(123, "abc");
+    assert(oloc.pool == 123);
+    assert(oloc.nspace == "abc");
+  }
+  {
+    object_locator_t oloc(123, "abc", 456);
+    assert(oloc.pool == 123);
+    assert(oloc.nspace == "abc");
+    assert(oloc.hash == 456);
+  }
+  {
+    object_locator_t oloc(123, "abc", "xyz");
+    assert(oloc.pool == 123);
+    assert(oloc.nspace == "abc");
+    assert(oloc.key == "xyz");
+    assert(oloc.hash == -1);
+    assert(oloc.get_pool() == 123);
+    oloc.clear();
+    assert(oloc.pool == -1);
+    assert(oloc.key == "");
+    assert(oloc.nspace == "");
+    assert(oloc.hash == -1);
+    assert(oloc.empty());
+  }
+  {
+    const hobject_t soid;
+    object_locator_t oloc(soid);
+    assert(oloc.hash == -1);
+  }
+}
+
+// Test request_redirect_t
+void test_4() {
+  request_redirect_t(object_locator_t(), 123);
+  request_redirect_t(object_locator_t());
+  request_redirect_t rdd;
+  assert(rdd.empty());
+}
+
+// Test OSD op flags
+void test_5() {
+  std::cout << CEPH_OSD_RMW_FLAG_READ << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_WRITE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_CLASS_READ << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_CLASS_WRITE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_PGOP << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_CACHE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_FORCE_PROMOTE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_SKIP_HANDLE_CACHE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_SKIP_PROMOTE << '\n';
+  std::cout << CEPH_OSD_RMW_FLAG_RWORDERED << '\n';
+}
+
+// Test pg_t
+void test_6() {
+  {
+    pg_t pg;
+    assert(pg.m_pool == 0);
+    assert(pg.m_seed == 0);
+    assert(pg.m_preferred == -1);
+  }
+  {
+    pg_t pg(123, 456);
+    assert(pg.m_pool == 456);
+    assert(pg.m_seed == 123);
+    assert(pg.m_preferred == -1);
+  }
+  {
+    old_pg_t opg;
+    pg_t pg(opg.v);
+  }
+  {
+    pg_t pg;
+    pg.set_ps(123);
+    assert(pg.m_seed == 123);
+    pg.set_pool(456);
+    assert(pg.m_pool == 456);
+    pg.set_preferred(1);
+    assert(pg.m_preferred == 1);
+  }
+}
+
 auto main() -> decltype(0) {
-  test_1(); test_2();
+  test_1(); test_2(); test_3(); test_4(); test_5(); test_6();
   return 0;
 }
