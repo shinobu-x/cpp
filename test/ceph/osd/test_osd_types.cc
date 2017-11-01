@@ -209,7 +209,22 @@ void test_6() {
   }
 }
 
+// Test spg_t
+void test_7() {
+  {
+    spg_t spg;
+    assert(spg.shard == shard_id_t::NO_SHARD);
+  }
+  {
+    pg_t pg(123, 456);
+    spg_t spg(pg, shard_id_t::NO_SHARD);
+    assert(spg.pgid.m_pool == 456);
+    assert(spg.pgid.m_seed == 123);
+    assert(spg.pgid.m_preferred == -1);
+  }
+}
+
 auto main() -> decltype(0) {
-  test_1(); test_2(); test_3(); test_4(); test_5(); test_6();
+  test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
   return 0;
 }
