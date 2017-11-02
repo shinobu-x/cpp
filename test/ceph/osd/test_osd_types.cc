@@ -240,6 +240,18 @@ void test_8() {
   coll_t other;
   coll_t c1(other);
   coll_t c2 = c1;
+  spg_t pg;
+  bool b1 = c2.is_pg_prefix(&pg);
+  (void)b1;
+  bool b2 = c2.is_temp();
+  (void)b2;
+  bool b3 = c2.is_temp(&pg);
+  (void)b3;
+  ghobject_t obj = c2.get_min_hobj();
+  unsigned h = c2.hash_to_shard(1);
+  (void)h;
+  std::list<coll_t*> o;
+  c2.generate_test_instances(o);
 }
 
 auto main() -> decltype(0) {
