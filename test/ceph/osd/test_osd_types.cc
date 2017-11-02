@@ -222,9 +222,28 @@ void test_7() {
     assert(spg.pgid.m_seed == 123);
     assert(spg.pgid.m_preferred == -1);
   }
+  {
+    std::set<spg_t> pg;
+    spg_t spg;
+    spg.is_split(1, 2, &pg);
+    bool b = spg.is_no_shard();
+    (void)b;
+    ghobject_t o = spg.make_pgmeta_oid();
+    ghobject_t tmp = spg.make_temp_ghobject(std::string("abc"));
+    unsigned h = spg.hash_to_shard(1);
+    (void)h;
+  }
+}
+
+// Test coll_t
+void test_8() {
+  coll_t other;
+  coll_t c1(other);
+  coll_t c2 = c1;
 }
 
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
+  test_8();
   return 0;
 }
