@@ -2357,6 +2357,26 @@ void test_11() {
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(1234, buffers, 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read_at(s, 0, buffers,
+    boost::asio::transfer_at_least(10), ec);
+  assert(!ec);
+  assert(bytes_transferred == 10);
+  assert(s.check_buffers(0, buffers, 10));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(10);
+  memset(read_buf, 0, sizeof(read_buf));
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read_at(s, 1234, buffers,
+    boost::asio::transfer_at_least(10), ec);
+  assert(!ec);
+  assert(bytes_transferred == 10);
+  assert(s.check_buffers(1234, buffers, 10));
 }
 
 auto main() -> decltype(0) {
