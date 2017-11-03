@@ -252,6 +252,8 @@ void test_8() {
   (void)h;
   std::list<coll_t*> o;
   c2.generate_test_instances(o);
+  h = std::hash<coll_t>()(c1);
+  std::cout << h << '\n';
 }
 
 auto main() -> decltype(0) {
