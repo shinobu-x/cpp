@@ -4,6 +4,12 @@
 
 void test_1() {
 
+  std::list<osd_info_t*> o1;
+  osd_info_t::generate_test_instances(o1);
+}
+
+void test_2() {
+
   { // osd_info_t
     osd_info_t oi;
     assert(oi.last_clean_begin == 0);
@@ -36,23 +42,9 @@ void test_1() {
   }
 }
 
-void test_2() {
+void test_3() {
   OSDMap map;
   const OSDMap old;
-
-  int r = map.Incremental::get_net_marked_out(&map);
-  (void)r;
-
-  r = map.Incremental::get_net_marked_down(&map);
-  (void)r;
-
-  uuid_d uuid;
-  r = map.Incremental::identify_osd(uuid);
-  (void)r;
-  (void)uuid;
-
-  r = map.Incremental::propagate_snap_to_tiers(&cct, old);
-  (void)r;
 }
 
 auto main() -> decltype(0) {
