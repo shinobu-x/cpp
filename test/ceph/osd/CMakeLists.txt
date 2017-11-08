@@ -41,3 +41,17 @@ target_link_libraries(
   ${CMAKE_DL_LIBS}
   ${BLKID_LIBRARIES}
 )
+
+# OSDMap
+add_executable(
+  test_osdmap
+  test_osdmap.cc
+)
+add_ceph_unittest(
+  test_osdmap
+)
+target_link_libraries(
+  test_osdmap
+  global
+  ${BLKID_LIBRARIES}
+)

@@ -6,9 +6,10 @@
 #include <string>
 
 void test_1() {
-  std::cout << 
-    g_ceph_context->_conf->public_addr << '\n';
+  CephContext* cct;
+  auto r = cct->_conf->get_val<std::string>("osd_pool_default_erasure_code_profile");
 }
+
 auto main() -> decltype(0) {
   test_1();
   return 0;

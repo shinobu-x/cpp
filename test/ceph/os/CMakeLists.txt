@@ -1,3 +1,5 @@
+add_subdirectory(bluestore)
+
 # test
 add_executable(
   sk_test_os
