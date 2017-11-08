@@ -60,5 +60,6 @@ void test_1() {
 }
 
 auto main() -> decltype(0) {
+  test_1();
   return 0;
 }
