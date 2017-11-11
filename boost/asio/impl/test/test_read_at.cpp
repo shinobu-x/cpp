@@ -2971,6 +2971,16 @@ void test_12() {
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(1234, sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_exactly(1));
+  assert(!ec);
+  assert(bytes_transferred == 1);
+  assert(s.check_buffers(0, sb.data(), 1));
 }
 
 auto main() -> decltype(0) {
