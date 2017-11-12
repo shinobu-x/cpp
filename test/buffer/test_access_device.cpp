@@ -56,6 +56,16 @@ private:
   std::size_t next_read_length_;
 };
 
+const static char test_data[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+void test_1() {
+
+  boost::asio::io_service ios;
+  stream_access_device s(ios);
+  s.reset(test_data);
+}
+
 auto main() -> decltype(0) {
   return 0;
 }
