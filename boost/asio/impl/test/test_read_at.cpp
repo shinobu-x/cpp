@@ -36,8 +36,8 @@ public:
   }
 
   template <typename const_buffers>
-  bool check_buffers(boost::asio::uint64_t offset, const const_buffers& buffers,
-    std::size_t length) {
+  bool check_buffers(boost::asio::uint64_t offset,
+    const const_buffers& buffers, std::size_t length) {
     if (offset + length > max_length_)
       return false;
 
@@ -60,8 +60,8 @@ public:
   template <typename mutable_buffers>
   std::size_t read_some_at(boost::asio::uint64_t offset,
     const mutable_buffers& buffers) {
-    return boost::asio::buffer_copy(
-      buffers, boost::asio::buffer(data_, length_) + offset, next_read_length_);
+    return boost::asio::buffer_copy(buffers,
+      boost::asio::buffer(data_, length_) + offset, next_read_length_);
   }
 
   template <typename mutable_buffers>
@@ -3020,6 +3020,15 @@ void test_12() {
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(0, sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read_at(s, 1234, sb,
+    boost::asio::transfer_exactly(10), ec);
+  assert(!ec);
+  assert(bytes_transferred == 10);
+  assert(s.check_buffers(1234, sb.data(), 10));
 }
 
 auto main() -> decltype(0) {
