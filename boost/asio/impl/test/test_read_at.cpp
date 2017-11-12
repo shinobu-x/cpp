@@ -2871,7 +2871,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_at_least(10));
+    boost::asio::transfer_at_least(10), ec);
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(1234, sb.data(), 10));
@@ -2881,7 +2881,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_at_least(10));
+    boost::asio::transfer_at_least(10), ec);
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(0, sb.data(), 10));
@@ -2891,7 +2891,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1324, sb,
-    boost::asio::transfer_at_least(10));
+    boost::asio::transfer_at_least(10), ec);
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(1234, sb.data(), 10));
@@ -2900,7 +2900,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == sizeof(read_data));
   assert(s.check_buffers(0, sb.data(), sizeof(read_data)));
@@ -2909,7 +2909,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == sizeof(read_data));
   assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
@@ -2919,7 +2919,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == 45);
   assert(s.check_buffers(0, sb.data(), 45));
@@ -2929,7 +2929,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == 45);
   assert(s.check_buffers(1234, sb.data(), 45));
@@ -2939,7 +2939,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == 50);
   assert(s.check_buffers(0, sb.data(), 50));
@@ -2949,7 +2949,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_at_least(45));
+    boost::asio::transfer_at_least(45), ec);
   assert(!ec);
   assert(bytes_transferred == 50);
   assert(s.check_buffers(1234, sb.data(), 50));
@@ -2958,7 +2958,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(0, sb.data(), 1));
@@ -2967,7 +2967,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(1234, sb.data(), 1));
@@ -2977,7 +2977,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(0, sb.data(), 1));
@@ -2987,7 +2987,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(1234, sb.data(), 1));
@@ -2997,7 +2997,7 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 0, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(0, sb.data(), 1));
@@ -3007,10 +3007,19 @@ void test_12() {
   sb.consume(sb.size());
   ec = boost::system::error_code();
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
-    boost::asio::transfer_exactly(1));
+    boost::asio::transfer_exactly(1), ec);
   assert(!ec);
   assert(bytes_transferred == 1);
   assert(s.check_buffers(1234, sb.data(), 1));
+
+  s.reset(read_data, sizeof(read_data));
+  sb.consume(sb.size());
+  ec = boost::system::error_code();
+  bytes_transferred = boost::asio::read_at(s, 0, sb,
+    boost::asio::transfer_exactly(10), ec);
+  assert(!ec);
+  assert(bytes_transferred == 10);
+  assert(s.check_buffers(0, sb.data(), 10));
 }
 
 auto main() -> decltype(0) {
