@@ -31,6 +31,19 @@ public:
     next_read_length_ = length;
   }
 
+  void reset(const void* data) {
+    std::size_t length = sizeof(data);
+    assert(length <= max_length_);
+
+    length_ = 0;
+    for (;;) {
+      memcpy(data_ + length_, data, length);
+      length_ += length;
+      if (length_ + length < max_length_)
+        break;
+    }
+  }
+
   void next_read_length(std::size_t length) {
     next_read_length_ = length;
   }
