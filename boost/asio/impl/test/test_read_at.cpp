@@ -3138,7 +3138,7 @@ void test_12() {
   bytes_transferred = boost::asio::read_at(s, 1234, sb,
     old_style_transfer_all, ec);
   assert(bytes_transferred == 1);
-  assert(s.check_buffers(1234, sb.data(), 1))
+  assert(s.check_buffers(1234, sb.data(), 1));
 
   s.reset(read_data, sizeof(read_data));
   s.next_read_length(10);
@@ -3159,6 +3159,8 @@ void test_12() {
   assert(!ec);
   assert(bytes_transferred == 10);
   assert(s.check_buffers(1234, sb.data(), 10));
+
+  s.reset(read_data, sizeof(read_data));
 
 }
 
