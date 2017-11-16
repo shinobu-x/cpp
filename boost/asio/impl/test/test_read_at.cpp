@@ -3239,8 +3239,44 @@ void test_12() {
   assert(s.check_buffers(1234, sb.data(), sizeof(read_data)));
 }
 
+void async_read_handler(const boost::system::error_code& ec,
+  std::size_t bytes_transferred, std::size_t expected_bytes_transferred,
+  bool* called) {
+  *called = true;
+  assert(!ec);
+  assert(bytes_transferred == expected_bytes_transferred);
+}
+
+// Test mutable buffers_1 async read_at
+void test_13() {
+  boost::asio::io_service ios;
+  stream_access_device s(ios);
+  char read_buf[sizeof(read_data)];
+  boost::asio::mutable_buffers_1 buffers =
+    boost::asio::buffer(read_buf, sizeof(read_data));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  bool called = false;
+  boost::asio::async_read_at(s, 0, buffers,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(0, buffers, sizeof(read_data)));
+
+  s.reset(read_data, sizeof(read_data));
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read_at(s, 1234, buffers,
+    boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(1234, buffers, sizeof(read_data))); 
+}
 auto main() -> decltype(0) {
   test_1(); test_2(); test_3(); test_4(); test_5(); test_6(); test_7();
-  test_8(); test_9(); test_10(); test_11(); test_12();
+  test_8(); test_9(); test_10(); test_11(); test_12(); test_13();
   return 0;
 }
