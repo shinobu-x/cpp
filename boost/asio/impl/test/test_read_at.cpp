@@ -3259,6 +3259,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   bool called = false;
   boost::asio::async_read_at(s, 0, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
@@ -3269,6 +3270,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   called = false;
   boost::asio::async_read_at(s, 1234, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
@@ -3280,6 +3282,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   called = false;
   boost::asio::async_read_at(s, 0, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
@@ -3291,6 +3294,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   called = false;
   boost::asio::async_read_at(s, 1234, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
@@ -3302,6 +3306,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   called = false;
   boost::asio::async_read_at(s, 0, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
@@ -3313,6 +3318,7 @@ void test_13() {
   memset(read_buf, 0, sizeof(read_buf));
   called = false;
   boost::asio::async_read_at(s, 1234, buffers,
+    boost::asio::transfer_all(),
     boost::bind(async_read_handler, _1, _2, sizeof(read_data), &called));
   ios.reset();
   ios.run();
