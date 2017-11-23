@@ -3459,11 +3459,23 @@ void test_13() {
   called = false;
   boost::asio::async_read_at(s, 1234, buffers,
     boost::asio::transfer_exactly(1),
-    boost::bind(async_read_handler, _1, _2, 1234, &called));
-  ios.rest();
+    boost::bind(async_read_handler, _1, _2, 1, &called));
+  ios.reset();
   ios.run();
   assert(called);
   assert(s.check_buffers(1234, buffers, 1));
+
+  s.reset(read_data, sizeof(read_data));
+  s.next_read_length(1);
+  memset(read_buf, 0, sizeof(read_buf));
+  called = false;
+  boost::asio::async_read_at(s, 0, buffers,
+    boost::asio::transfer_exactly(1),
+    boost::bind(async_read_handler, _1, _2, 1, &called));
+  ios.reset();
+  ios.run();
+  assert(called);
+  assert(s.check_buffers(0, buffers, 1));
 }
 
 auto main() -> decltype(0) {
