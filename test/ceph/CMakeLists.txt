@@ -1,6 +1,6 @@
-add_subdirectory(mon)
-add_subdirectory(osd)
-add_subdirectory(os)
+#add_subdirectory(mon)
+#add_subdirectory(osd)
+#add_subdirectory(os)
 add_subdirectory(common)
 
 # test

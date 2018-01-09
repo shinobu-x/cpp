@@ -9,25 +9,35 @@ target_link_libraries(
   ${BLKID_LIBRARIES}
 )
 
-# test_config
+# clock
 add_executable(
-  test_config
-  test_config.cc
+  sk_test_clock
+  sk_test_clock.cc
 )
 target_link_libraries(
-  test_config
-#  ceph-common
+  sk_test_clock
   global
   ${BLKID_LIBRARIES}
-#  ${EXTRALIBS}
 )
 
-# test_perf_counter
+# ceph_clock
 add_executable(
-  test_perf_counters
-  test_perf_counters.cc
+  sk_test_ceph_clock
+  sk_test_ceph_clock.cc
 )
 target_link_libraries(
-  test_perf_counters
+  sk_test_ceph_clock
   global
+  ${BLKID_LIBRARIES}
+)
+
+# buffer
+add_executable(
+  sk_test_buffer
+  sk_test_buffer.cc
+)
+target_link_libraries(
+  sk_test_buffer
+  global
+  ${BLKID_LIBRARIES}
 )
