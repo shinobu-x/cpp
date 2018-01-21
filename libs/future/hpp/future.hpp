@@ -63,6 +63,8 @@
 #define BOOST_THREAD_FUTURE unique_future
 #endif
 
+namespace boost {
+
 template <class T>
 boost::shared_ptr<T> static_shared_from_this(T* that) {
   return boost::static_pointer_cast<T>(that->shared_from_this());
@@ -76,6 +78,8 @@ boost::shared_ptr<T const> static_shared_from_this(T const* that) {
 class executor;
 
 typedef boost::shared_ptr<executor> executor_ptr_type;
+
+namespace detail {
 
 struct relocker {
 
@@ -275,6 +279,80 @@ struct shared_state_base :
     if (rethrow && exception)
       boost::rethrow_exception(exception);
   }
+
+  virtual void wait(boost::unique_lock<boost::mutex>& lock,
+    bool rethrow = true) {
+    wait_internal(lock, rethrow);
+  }
+
+  void wait(bool rethrow = true) {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    wait(lock, rethrow);
+  }
+
+  bool timed_wait_until(boost::system_time const& target_time) {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+
+    if (is_deferred_)
+      return false;
+
+    do_callback(lock);
+
+    while (!done_) {
+      bool const success = waiters.timed_wait(lock, target_time);
+      if (!success && !done_)
+        return false;
+    }
+
+    return true;
+  }
+
+  template <class Clock, class Duration>
+  boost::future_status
+  wait_until(const boost::chrono::time_point<Clock, Duration>& abs_time) {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+
+    if (is_deferred_)
+      return boost::future_status::deferred;
+
+    do_callback(lock);
+
+    while (!done_) {
+      boost::cv_status const status = waiters.wait_until(lock, abs_time);
+      if (status == boost::cv_status::timeout && !done_)
+        return boost::future_status::timeout;
+    }
+
+    return boost::future_status::ready;
+  }
+
+  void mark_exceptional_finish_internal(
+    boost::exception_ptr const& ex,
+    boost::unique_lock<boost::mutex>& lock) {
+    exception = ex;
+    mark_finished_internal(lock);
+  }
+
+  void set_exceptional_at_thread_exit(boost::exception_ptr e) {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+
+    if (has_value(lock))
+      boost::throw_exception(boost::promise_already_satisfied());
+
+    exception = e;
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+  bool has_value() const {
+    boost::lock_guard<boost::mutex> lock(this->mutex);
+    return done_ && !exception;
+  }
+
+  bool has_value(boost::unique_lock<boost::mutex>&) const {
+    return done_ && !exception;
+  }
+
 }; // shared_state_base
 
 template <typename T>
@@ -346,3 +424,6 @@ struct shared_state : shared_state_base {
   }
 
 };
+
+} // namespace detail
+} // namespace boost
