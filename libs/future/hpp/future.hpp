@@ -1,12 +1,12 @@
 #include <boost/thread/detail/config.hpp>
 
-#ifndef BOOST_NO_EXCEPTIONS
 #define BOOST_THREAD_FUTURE_USES_OPTIONAL
 #define BOOST_THREAD_PROVIDES_EXECUTORS
 #define BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 #define BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
 #define BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 #define BOOST_THREAD_USES_CHRONO
+#define BOOST_THREAD_USES_MOVE
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/detail/move.hpp>
@@ -249,16 +249,100 @@ struct shared_state_base :
     } else
       return false;
   }
+
+  virtual bool run_if_is_deferred_or_ready() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    if (is_deferred_) {
+      is_deferred_ = false;
+      execute(lock);
+      return true;
+    } else
+      return done_;
+  }
+
+  void wait_internal(boost::unique_lock<boost::mutex>& lock,
+    bool rethrow = true) {
+    do_callback(lock);
+
+    if (is_deferred_) {
+      is_deferred_ = false;
+      execute(lock);
+    }
+
+    while (!done_)
+      waiters.wait(lock);
+
+    if (rethrow && exception)
+      boost::rethrow_exception(exception);
+  }
 }; // shared_state_base
 
+template <typename T>
+struct shared_state : shared_state_base {
+  typedef boost::optional<T> storage_type;
+  typedef typename boost::conditional<
+    boost::is_fundamental<T>::value,
+    T,
+    T const&>::type source_reference_type;
+  typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
+  typedef T move_dest_type;
+  typedef const T& shared_future_get_result_type;
+  storage_type result;
 
+  shared_state() : result() {}
+  shared_state(boost::exceptional_ptr const& ex) :
+    shared_state_base(ex), result() {}
+  ~shared_state() {}
 
+  void mark_finish_with_result_internal(
+    source_reference_type new_result,
+    boost::unique_lock<boost::mutex>& lock) {
+    result = new_result;
+    this->mark_finish_internal(lock);
+  }
 
+  void mark_finish_with_result_internal(
+    rvalue_source_type new_result,
+    boost::unique_lock<boost::mutex>& lock) {
+    result = boost::move(new_result);
+    this->mark_finished_internal(lock);
+  }
 
+  template <class... Args>
+  void mark_finished_with_result_internal(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_FWD_REF(Args)... args) {
+    result.emplace(boost::forward<Args>(args)...);
+    this->mark_finished_internal(lock);
+  }
 
+  void mark_finsihed_with_result(source_reference_type new_result) {
+    boost::unique_lock<boost::mutex> lock(this->muetx);
+    this->mark_finish_with_result_internal(new_result, lock);
+  }
 
+  void mark_finished_with_result(rvalue_source_type new_result) {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+    mark_finished_with_result_internal(boost::move(new_result), lock);
+  }
 
+  storage_type& get_storage(boost::unique_lock<boost::mutex>& lock) {
+    wait_internal(lock);
+    return result;
+  }
 
+  virtual move_dest_type get(boost::unique_lock<boost::mutex>& lock) {
+    return boost::move(*get_storage(lock));
+  }
 
+  move_dest_type get() {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+    return this->get(lock);
+  }
 
-#endif // BOOST_NO_EXCEPTIONS
+  virtual shared_future_get_result_type get_s(
+    boost::unique_lock<boost::mutex>& lock) {
+    return get_storage(lock);
+  }
+
+};
