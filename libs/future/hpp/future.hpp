@@ -353,6 +353,47 @@ struct shared_state_base :
     return done_ && !exception;
   }
 
+  bool has_exception() const {
+    boost:lock_guard<boost::mutex> lock(this->mutex);
+    return done_ && exception;
+  }
+
+  boost::launch launch_policy(boost::unique_lock<boost::mutex>&) const {
+    return policy_;
+  }
+
+  boost::future_state::state get_state(
+    boost::unique_lock<boost::mutex>&) const {
+
+    if (!done_)
+      return boost::future_state::waiting;
+    else
+      return boost::future_state::ready;
+  }
+
+  boost::future_state::state get_state() const {
+    boost::lock_guard<boost::mutex> lock(this->mutex);
+
+    if (!done_)
+      return boost::future_state::waiting;
+    else
+      return boost::future_state::ready;
+  }
+
+  boost::exception_ptr get_exception_ptr() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    wait_internal(lock, false);
+  }
+
+  template <typename F, typename U>
+  void set_wait_callback(F f, U* u) {
+    boost::lock_guard<boost::mutex> lock(this->mutex);
+    callback = boost::bind(f, boost::ref(*u));
+  }
+
+private:
+  shared_state_base(shared_state_base const&);
+  shared_state_base operator=(shared_state_base const&);
 }; // shared_state_base
 
 template <typename T>
@@ -423,7 +464,37 @@ struct shared_state : shared_state_base {
     return get_storage(lock);
   }
 
-};
+  shared_future_get_result_type get_s() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    return this->get_s(lock);
+  }
+
+  void set_value_at_thread_exit(source_reference_type new_result) {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+
+    if (this->has_value(lock))
+      boost::throw_exception(boost::promise_already_satisfied());
+
+    result = new_result;
+    this->is_constructed = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+  void set_value_at_thread_exit(rvalue_source_type new_result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+
+    if (this->has_value(lock))
+      boost::throw_exception(boost::promise_already_satisfied());
+
+    result = new_result;
+    this->is_constructed = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state operator=(shared_state const&);
+}; // shared_state
 
 } // namespace detail
 } // namespace boost
