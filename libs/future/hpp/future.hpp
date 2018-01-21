@@ -1,5 +1,3 @@
-#include <boost/thread/detail/config.hpp>
-
 #define BOOST_THREAD_FUTURE_USES_OPTIONAL
 #define BOOST_THREAD_PROVIDES_EXECUTORS
 #define BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
@@ -8,6 +6,7 @@
 #define BOOST_THREAD_USES_CHRONO
 #define BOOST_THREAD_USES_MOVE
 
+#include <boost/thread/detail/config.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/detail/move.hpp>
 #include <boost/thread/detail/invoker.hpp>
@@ -476,7 +475,7 @@ struct shared_state : shared_state_base {
       boost::throw_exception(boost::promise_already_satisfied());
 
     result = new_result;
-    this->is_constructed = true;
+    this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
   }
 
@@ -487,13 +486,126 @@ struct shared_state : shared_state_base {
       boost::throw_exception(boost::promise_already_satisfied());
 
     result = new_result;
-    this->is_constructed = true;
+    this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
   }
 
 private:
   shared_state(shared_state const&);
   shared_state operator=(shared_state const&);
+}; // shared_state
+
+template <typename T>
+struct shared_state<T&> : shared_state_base {
+  typedef T* storage_type;
+  typedef T& source_reference_type;
+  typedef T& move_dest_type;
+  typedef T& shared_future_get_result_type;
+  T* result;
+
+  shared_state() : result(0) {}
+  shared_state(boost::exception_ptr const& ex) : shared_state_base(ex),
+    result(0) {}
+  ~shared_state() {}
+
+  void mark_finished_with_result_internal(
+    source_reference_type new_result,
+    boost::unique_lock<boost::mutex>& lock) {
+    result = new_result;
+    mark_finished_internal(lock);
+  }
+
+  void mark_finished_with_result(source_reference_type new_result) {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+    mark_finished_with_result_internal(new_result, lock);
+  }
+
+  virtual T& get(boost::unique_lock<boost::mutex>& lock) {
+    wait_internal(lock);
+    return *result;
+  }
+
+  T& get() {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+    return get(lock);
+  }
+
+  virtual T& get_s(boost::unique_lock<boost::mutex> lock) {
+    wait_internal(lock);
+    return *result;
+  }
+
+  T& get_s() {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+    return get_s(lock);
+  }
+
+  void set_value_at_thread_exit(T& new_result) {
+    boost::unique_lock<boost::mutex> lock(this->lock);
+
+    if (this->has_value(lock))
+      boost::throw_exception(boost::promise_already_satisfied());
+
+    result = new_result;
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
+}; // shared_state
+
+template <>
+struct shared_state<void> : shared_state_base {
+  typedef void shared_future_get_result_type;
+  typedef void mvoe_dest_type;
+
+  shared_state() {}
+  shared_state(boost::exceptional_ptr const& ex) : shared_state_base(ex) {}
+  ~shared_state() {}
+
+  void mark_finished_with_result_internal(
+    boost::unique_lock<boost::mutex>& lock) {
+    mark_finished_internal(lock);
+  }
+
+  void mark_finished_with_result() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    mark_finished_with_result_internal(lock);
+  }
+
+  virtual void get(boost::unique_lock<boost::mutex>& lock) {
+    this->wait_internal(lock);
+  }
+
+  void get() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    this->get(lock);
+  }
+
+  virtual void get_s(boost::unique_lock<boost::mutex>& lock) {
+    this->wait_internal(lock);
+  }
+
+  void get_s() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    this->get_s(lock);
+  }
+
+  void set_value_thread_exit() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+
+    if (this->has_value(lock))
+      boost::throw_exception(boost::promise_already_satisfied());
+
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
 }; // shared_state
 
 } // namespace detail
