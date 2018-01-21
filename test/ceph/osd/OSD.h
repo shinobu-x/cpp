@@ -37,10 +37,13 @@ public:
 
   void pre_publish_map(OSDMapRef map);
   void activate_map();
+  // map epochs reserved below
   map<epoch_t, unsigned> map_reservation;
-
+  // gets ref to next_osdmap and registers the epoch as reserved
   OSDMapRef get_nextmap_reserved();
+  // releases reservation on map
   void release_map(OSDMapRef osdmap);
+  // blocks until there are no reserved maps prior to next_osdmap
   void await_reserved_maps();
   OSDMapRef get_next_osdmap();
 
@@ -66,15 +69,21 @@ public:
 /* ScrubJob */
   struct ScrubJob
     CephContext* cct;
+    // pg to be scrubbed
     spg_t pgid;
+    // a time scheduled for scrub. but the scrub could be delayed if system
+    // load is too high or it fails to fall in the scrub hours
     utime_t sched_time;
+    // the hard upper bound of scrub time
     utime_t deadline;
     explicit ScrubJob(CephContext*, const spg_t&, const utime_t&,
       double, double, bool);
+    // order the jobs by sched_time
     bool operator<(const ScrubJob&) const;
 /* ScrubJob */
 
   set<ScrubJob> sched_scrub_pg;
+  // @returns the scrub_reg_stamp used for unregister the scrub job
   utime_t reg_pg-scrub(spg_t, utime_t, double, double, bool);
   void unreg_pg_scrub(spg_t, utime_t);
   bool first_scrub_stamp(ScrubJob* out);
@@ -93,14 +102,23 @@ public:
   void agent_stop();
   void _enqueque(PG*, uint64_t);
   void _dequeue(PG*, uint64_t);
+  // enable agent for a pg
   void agent_enable_pg(PG*, uint64_t);
+  // adjust priority for an enabled pg
   void agent_adjust_pg(PG*, uint64_t, uint64_t);
+  // disable agnet for a pg
   void agent_disable_pg(PG*, uint64_t);
+  // note start of an async (evict) op
   void agent_start_evict_opp();
+  // note finish or cancellation of async (evict) op
   void agent_finish_evict_op();
+  // note start of an async (flush) op
   void agent_start_op(const hobject_t&);
+  // note finish or cancellation of an async (flush) op
   void agent_finish_op(const hobject_t&);
+  // check if we are operating on an object
   bool agent_is_active_oid(const hobject_t&);
+  // get count of active agent ops
   int agent_get_num_ops();
   void agent_inc_high_count();
   void agent_dec_high_count();
@@ -108,6 +126,7 @@ public:
   bool promote_throttle();
   void promote_finish(uint64_t);
   void promote_throttle_recalibrate();
+  // Objecter, for tiering reads/writes from/to other OSDs
   Objecter* objecter;
   int m_objecter_finishers;
   vector<Finisher*> objecter_finishers;
@@ -117,10 +136,12 @@ public:
   uint64_t get_next_id(epoch_t);
   Mutex recovery_request_lock;
   SafeTimer recovery_request_timer;
+  // For async recovery sleep
   bool recovery_needs_sleep;
   utime_t recovery_schedule_time;
   Mutex recovery_sleep_lock;
   SafeTimer recovery_sleep_timer;
+  // for ops i issue
   std::atomic<unsigned int> last_tid{0};
   ceph_tid_t get_tid();
 
@@ -154,13 +175,17 @@ public:
   void unpause_recovery();
   void kick_recovery_queue();
   void clear_queued_recovery(PG*);
+  // delayed pg activation
   void queue_for_recovery(PG*);
   void queue_recovery_sleep(PG*, epoch_t, uint64_t);
+  // osd map cache (past osd maps)
   Mutex map_cache_lock;
   SharedLRU<epoch_t, const OSDMap> map_cache;
   SharedLRU<epoch_t, bufferlist> map_bl_cache;
   SharedLRU<epoch_t, bufferlist> map_bl_inc_cache;
+  // newest map fully consumed by handle_osd_map (i.e., written to disk)
   epoch_t map_cache_pinned_epoch = 0;
+  // true if pg consumption affected our unpinning
   std::atomic<bool> map_cache_pinned_low;
   map<int64_t, int> deleted_pool_pg_nums;
   OSDMapRef try_get_map(epoch_t e);
@@ -205,15 +230,51 @@ public:
   osd_stat_t get_osd_stat();
   uint64_t get_osd_stat_seq();
 
+  bool check_failsafe_full(ostream&) const;
+  bool check_full(ostream&) const;
+  bool check_backfill_full(ostream&) const;
+  bool check_nearfull(ostream&) const;
+  bool is_failsafe_full() const;
+  bool is_full() const;
+  bool is_backfillfull() const;
+  bool is_neaffull() const;
+  // osdmap state needs update
+  bool need_fullness_update();
+  void set_injectfull(s_names, int64_t);
+  bool check_osdmap_full(const set<pg_shared_t>&);
+
+  //  Retrieve the boot_, up_, and bind_ epochs the OSD has set. The params
+  // can be NULL if you don't care about them.
+  void retrieve_epochs(epoch_t*, epoch_t*, epoch_t*) const;
+  // Set the boot, up, and bind epochs. Any NULL params will not be set.
+  void set_epochs(const epoch_t*, const epoch_t*, const epoch_t*);
+  epoch_t get_boot_epoch() const;
+  epoch_t get_up_epoch() const;
+  epoch_t get_bind_epoch() const;
+  void request_osdmap_update(epoch_t);
+  Mutex is_stopping_lock;
+  Cond is_stopping_cond;
+  enum {
+    NOT_STOPPING, PREPARING_TO_STOP, STOPPING };
+  std::atomic_int state{NOT_STOPPING};
+  int get_state() const;
+  void set_state(int);
+  bool is_stopping() const;
+  bool is_preparing_to_stop() const;
+  bool prepare_to_stop();
+  void got_stop_ack();
+
 private:
   Messenger*& cluster_messenger;
   Messenger*& client_messenger;
 
+  // map epoch lower bound
   Mutex pg_epoch_lock;
   Cond pg_cond;
   multiset<epoch_t> pg_epochs;
   map<spg_t, epoch_t> pg_epoch;
 
+  // pre-publish orders before publish
   Mutex publish_lock, pre_publish_lock;
   OSDSuperblock superblock;
 
@@ -236,6 +297,8 @@ private:
   bool agent_valid_iterator;
   int agent_ops;
   int flush_mode_high_count; // ?
+  // once have one pg with FLUSH_MODE_HIGH then flush objects with high
+  // speed
   set<hobject_t> agent_oids;
   bool agent_active;
 
@@ -250,6 +313,7 @@ private:
   Mutex agent_timer_lock;
   SafeTimer agent_timer;
 
+  // throttle promotion attempts
   std::atomic<unsigned int> promote_probability_millis{1000};
   PromoteCounter promote_counter;
   utime_t last_recalibrate;
@@ -272,8 +336,38 @@ private:
   void _queue_for_recovery(pair<epoch_t, PGRef>, uint64_t);
 
   Mutex in_progress_split_lock;
+  // child -> parent
   map<spg_t, spg_t> pending_splits;
+  // parent -> children
   map<spg_t, set<spg_t> > rev_pending_splits;
+  // child
   set<spg_t> in_progress_splists;
 
   friend TestOpsSocketHook;
+  mutable Mutex full_status_lock;
+  enum s_names {
+    INVALID, NONE, NEARFULL, BACKFILL, FULL, FAILSAFE } cur_state;
+  const char* get_full_state_name(s_names) const;
+  s_names get_full_state(string) const;
+  // current utilizatio
+  double cur_ratio;
+  mutable int64_t injectfull = 0;
+  s_names injectfull_state = NONE;
+  float get_failsafe_full_ratio();
+  void check_full_status(float);
+  bool _check_full(s_names, ostream&) const;
+
+  // utex epoch_lock; // protects access to boot_epoch, up_epoch,
+  // bind_epoch
+  mutable Mutex epoch_lock;
+  // _first_ epoch we were marked up (after this process started)
+  epoch_t boot_epoch;
+  // _most_recent_ epoch we were marked up
+  epoch_t up_epoch;
+  // epoch we last did a bind to new ip:ports
+  epoch_t bind_epoch
+
+// @OSDService
+
+class OSD : public Dispatcher, public md_config_obs_t
+
