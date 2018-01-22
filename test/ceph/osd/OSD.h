@@ -377,6 +377,19 @@ public:
   void update_log_config();
   void check_config();
 
+  ClassHandler* class_handler = nullptr;
+  int get_nodeid();
+  static ghobject_t get_osdmap_pobject_name(epoch_t);
+  static ghobject_t get_inc_osdmap_pobject_name(epoch_t);
+  static ghobject_t make_snapmapper_oid();
+  static ghobject_t make_pg_log_oid(spg_t);
+  static ghobject_t make_pg_biginfo_oid(spg_t);
+  static ghobject_t make_infos_oid();
+  static ghobject_t make_pg_log_oid(spg_t);
+  static ghobject_t make_pg_biginfo_oid(spg_t);
+  static ghobject_t make_infos_oid();
+  static void recursive_remove_collection(CephContext*, ObjectStore*, spg_t,
+    coll_t);
 
 private:
   Mutex osd_lock;
