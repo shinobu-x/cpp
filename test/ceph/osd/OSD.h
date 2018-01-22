@@ -370,4 +370,49 @@ private:
 // @OSDService
 
 class OSD : public Dispatcher, public md_config_obs_t
+public:
+  const char** get_tracked_conf_keys() const override;
+  void handle_conf_change(const struct md_config_t,
+    const std::set<std::string>& changed) override;
+  void update_log_config();
+  void check_config();
 
+
+private:
+  Mutex osd_lock;
+  SafeTimer tick_timer;
+  Mutex tick_timer_lock;
+  SafeTimer tick_timer_without_osd_lock;
+
+protected:
+  // interval for tick_timer, tick_timer_without_osd_lock
+  static const double OSD_TICK_INTERVAL;
+  AuthAuthorizedHandlerRegistery* authorize_handler_cluster_registry;
+  authAuthorizedHandlerRegistery* authorize_handler_service_registry;
+  Messanger* cluster_messanger;
+  Messanger* client_messanger;
+  Messanger* objecter_messanger;
+  // check the "monc helpers" list before accessing directoly
+  MonClient* monc;
+  MgrClient mgrc;
+  PerfCounters* logger;
+  PerfCounters* recoverystate_perf;
+  ObjectStore* store;
+  FuseStore* fuse_store = nullptr;
+  LogClient log_client;
+  LogChannelRef clog;
+  int whoami;
+  std::string dev_path, journal_path;
+  bool store_is_rotational = true;
+  bool journal_is_rotational = true;
+  ZTracer::Endpoint trace_endpoint;
+  void create_logger();
+  void create_recoverystate_perf();
+  void tick();
+  void tick_without_osd_lock();
+  void _dispatch(Message*);
+  void dispatch_op(OpRequestRef op);
+  void check_osdmap_features();
+  // asok
+  friend class OSDSocketHook;
+  bool asok_command(string, cmdmap_t&, string, ostream&);
