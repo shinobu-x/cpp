@@ -1,3 +1,4 @@
+#define BOOST_THREAD_FUTURE_BLOCKING
 #define BOOST_THREAD_FUTURE_USES_OPTIONAL
 #define BOOST_THREAD_PROVIDES_EXECUTORS
 #define BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
@@ -88,6 +89,11 @@ struct relocker {
   }
 
   ~relocker() {
+    if (!lock_.owns_lock())
+      lock_.lock();
+  }
+
+  void lock() {
     if (!lock_.owns_lock())
       lock_.lock();
   }
@@ -201,7 +207,7 @@ struct shared_state_base :
     return external_waiters.insert(external_waiters.end(), &cv);
   }
 
-  void unnotify_when_read(notify_when_ready_handle waiter) {
+  void unnotify_when_ready(notify_when_ready_handle waiter) {
     boost::lock_guard<boost::mutex> lock(this->mutex);
     external_waiters.erase(waiter);
   }
@@ -608,5 +614,428 @@ private:
   shared_state& operator=(shared_state const&);
 }; // shared_state
 
+template <typename S>
+struct future_async_shared_state_base : shared_state<S> {
+  typedef shared_state<S> base_type;
+protected:
+  boost::thread th_;
+
+  void join() {
+    if (boost::this_thread::get_id() == th_.get_id()) {
+      th_.detach();
+      return;
+    }
+    if (th_.joinable())
+      th_.join();
+  }
+
+public:
+  future_async_shared_state_base() {
+    this->set_async();
+  }
+
+  ~future_async_shared_state_base() {
+    join();
+  }
+
+  virtual void wait(boost::unique_lock<boost::mutex>& lock, bool rethrow) {
+    {
+      relocker relock(lock);
+      join();
+    }
+    this->base_type::wait(lock, rethrow);
+  }
+}; // future_async_shared_state_base
+
+template <typename S, typename F>
+struct future_async_shared_state : future_async_shared_state_base<S> {
+  future_async_shared_state() {}
+
+  void init(BOOST_THREAD_FWD_REF(F) f) {
+    this->th_ = boost::thread(
+      &future_async_shared_state::run,
+      static_shared_from_this(this),
+      boost::forward<F>(f));
+
+    boost::thread(
+      &future_async_shared_state::run,
+      static_shared_from_this(this),
+      boost::forward<F>(f)).detach();
+  }
+
+  static void run(boost::shared_ptr<future_async_shared_state> that,
+    BOOST_THREAD_FWD_REF(F) f) {
+    try {
+      that->mark_finished_with_result(f());
+    } catch (...) {
+      that->mark_exceptional_finish();
+    }
+  }
+}; // future_async_shared_state
+
+template <typename F>
+struct future_async_shared_state<void, F> :
+  public future_async_shared_state_base<void> {
+
+  void init(BOOST_THREAD_FWD_REF(F) f) {
+    this->th_ = boost::thread(
+      &future_async_shared_state::run,
+      static_shared_from_this(this),
+      boost::move(f));
+  }
+
+  static void run(boost::shared_ptr<future_async_shared_state> that,
+    BOOST_THREAD_FWD_REF(F) f) {
+    try {
+      f();
+      that->mark_finished_with_result();
+    } catch (...) {
+      that->mark_exceptional_finish();
+    }
+  }
+}; // future_async_shared_state
+
+template <typename S, typename F>
+struct future_async_shared_state<S&, F> :
+  future_async_shared_state_base<S&> {
+
+  void init(BOOST_THREAD_FWD_REF(F) f) {
+    this->th_ = boost::thread(
+      &future_async_shared_state::run,
+      static_shared_from_this(this),
+      boost::move(f));
+  }
+
+  static void run(boost::shared_ptr<future_async_shared_state> that,
+    BOOST_THREAD_FWD_REF(F) f) {
+    try {
+      that->mark_finished_with_result(f());
+    } catch (...) {
+      that->mark_exceptional_finish();
+    }
+  }
+}; // future_async_shared_state
+
+template <typename S, typename F>
+struct future_deferred_shared_state : shared_state<S> {
+  F func_;
+
+  explicit future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) :
+    func_(boost::move(f)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      F local_func = boost::move(func_);
+      relocker relock(lock);
+      S r = local_func();
+      relock.lock();
+      this->mark_finished_with_result_internal(boost::move(r), lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
+
+template <typename S, typename F>
+struct future_deferred_shared_state<S&, F> : shared_state<S&> {
+  F func_;
+
+  explicit future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) :
+    func_(std::move(f)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      this->mark_finished_with_result_internal(func_(), lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
+
+template <typename F>
+struct future_deferred_shared_state<void, F> : shared_state<void> {
+  F func_;
+
+  explicit future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) :
+    func_(boost::move(f)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      F locak_func = boost::move(func_);
+      relocker relock(lock);
+      locak_func();
+      relock.lock();
+      this->mark_finished_with_result_internal(lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
+
+class future_waiter {
+public:
+  typedef std::vector<int>::size_type count_type;
+private:
+  struct registered_waiter {
+    boost::shared_ptr<shared_state_base> future_;
+    shared_state_base::notify_when_ready_handle handle_;
+    count_type index_;
+
+    registered_waiter(boost::shared_ptr<shared_state_base> const& future,
+      shared_state_base::notify_when_ready_handle handle, count_type index) :
+      future_(future), handle_(handle), index_(index) {}
+  };
+
+  struct all_futures_lock {
+    typedef std::ptrdiff_t count_type_portable;
+    count_type_portable count;
+    boost::scoped_array<
+      boost::unique_lock<boost::mutex> > locks;
+
+    all_futures_lock(std::vector<registered_waiter>& futures) :
+      count(futures.size()),
+      locks(new boost::unique_lock<boost::mutex>[count]) {
+      for (count_type_portable i = 0; i < count; ++i)
+        locks[i] = BOOST_THREAD_MAKE_RV_REF(
+          boost::unique_lock<boost::mutex>(futures[i].future_->mutex));
+    }
+
+    void lock() {
+      boost::lock(locks.get(), locks.get() + count);
+    }
+
+    void unlock() {
+      for (count_type_portable i = 0; i < count; ++i)
+        if (locks[i].owns_lock())
+          locks[i].unlock();
+    }
+  };
+
+  boost::condition_variable_any cv;
+  std::vector<registered_waiter> futures_;
+  count_type future_count;
+
+public:
+  future_waiter() : future_count(0) {}
+
+  template <typename F>
+  void add(F& f) {
+    if (f.future_) {
+      registered_waiter waiter(f.future_, f.future_->notify_when_ready(cv),
+        future_count);
+
+      try {
+        futures_.push_back(waiter);
+      } catch (...) {
+        f.future_->unnotify_when_ready(waiter.handle_);
+        throw;
+      }
+      ++future_count;
+    }
+  }
+
+  template <typename F1, typename... Fn>
+  void add(F1& f1, Fn& ...fn) {
+    add(f1);
+    add(fn...);
+  }
+
+  count_type wait() {
+    all_futures_lock lock(futures_);
+
+    for (;;) {
+      for (count_type i = 0; i < futures_.size(); ++i) {
+        if (futures_[i].future_->done_) {
+          return futures_[i].index_;
+        }
+      }
+      cv.wait(lock);
+    }
+  }
+
+  ~future_waiter() {
+    for (count_type i = 0; i < futures_.size(); ++i) {
+      futures_[i].future_->unnotify_when_ready(futures_[i].handle_);
+    }
+  }
+};
 } // namespace detail
+
+template <typename R>
+class BOOST_THREAD_FUTURE;
+
+template <typename R>
+class shared_future;
+
+template <typename T>
+struct is_future_type<BOOST_THREAD_FUTURE<T> > : boost::true_type {};
+
+template <typename T>
+struct is_future_type<shared_future<T> > : boost::true_type {};
+
+template <typename F1, typename... Fn>
+typename boost::enable_if<
+  is_future_type<F1>,
+  typename boost::detail::future_waiter::count_type
+  >::type wait_for_any(F1& f1, Fn& ...fn) {
+    boost::detail::future_waiter waiter;
+    waiter.add(f1, fn...);
+    return waiter.wait();
+}
+
+template <typename R>
+class promise;
+
+template <typename R>
+class packaged_task;
+
+namespace detail { // boost::detail
+
+class base_future {
+public:
+};
+
+template <typename R>
+class basic_future : public base_future {
+protected:
+public:
+  typedef typename boost::detail::shared_state<R> shared_state_type;
+  typedef boost::shared_ptr<shared_state_type> future_ptr;
+  typedef typename shared_state_type::move_dest_type move_dest_type;
+
+  static future_ptr make_exceptional_future_ptr(
+    boost::exceptional_ptr const& ex) {
+    return future_ptr(new shared_state_type(ex));
+  }
+
+  future_ptr future_;
+
+  basic_future(future_ptr future) : future_(future) {}
+
+  typedef future_state::state state;
+
+  BOOST_THREAD_MOVABLE_ONLY(basic_future)
+  basic_future() : future_() {}
+
+  basic_future(boost::exceptional_ptr const& ex) :
+    future_(make_exceptional_future_ptr(ex)) {}
+
+  ~basic_future() {}
+
+  basic_future(BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT :
+    future_(BOOST_THREAD_RV(that).future_) {
+    BOOST_THREAD_RV(that).future_.reset();
+  }
+
+  basic_future& operator=(
+    BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT {
+    future_ = BOOST_THREAD_RV(that).future_;
+    BOOST_THREAD_RV(that).future_.reset();
+  }
+
+  void swap(basic_future& that) BOOST_NOEXCEPT {
+    future_.swap(that.future_);
+  }
+
+  state get_state(boost::unique_lock<boost::mutex>& lock) const {
+    if (!future_)
+      return future_state::uninitialized;
+    return future_->get_state(lock);
+  }
+
+  state get_state() const {
+    if (!future_)
+      return future_state::uninitialized;
+    return future_->get_state();
+  }
+
+  bool is_ready() const {
+    return get_state() == future_state::ready;
+  }
+
+  bool is_ready(boost::unique_lock<boost::mutex>& lock) const {
+    return get_state(lock) == future_state::ready;
+  }
+
+  bool has_exception() const {
+    return future_ && future_->has_exception();
+  }
+
+  bool has_value() const {
+    return future_ && future_->has_value();
+  }
+
+  boost::launch launc_policy(boost::unique_lock<boost::mutex>& lock) const {
+    if (future_)
+      return future_->launch_policy(lock);
+    else
+      return boost::launch(boost::launch::none);
+  }
+
+  boost::launch launch_policy() const {
+    if (future_) {
+      boost::unique_lock<boost::mutex> lock(this->future_->mutex);
+      return future_->launch_policy(lock);
+    } else
+      return boost::launch(boost::launch::none);
+  }
+
+  boost::exception_ptr get_exception_ptr() {
+    return future_ ? future_->get_exception_ptr() : boost::exception_ptr();
+  }
+
+  bool valid() const BOOST_NOEXCEPT {
+    return future_.get() != 0 && future_->valid();
+  }
+
+  void wait() const {
+    if (!future_)
+      boost::throw_exception(boost::future_uninitialized());
+    future_->wait(false);
+  }
+
+  typedef boost::detail::shared_state_base base_type;
+  typedef base_type::notify_when_ready_handle notify_when_ready_handle;
+
+  boost::mutex& mutex() {
+    if (!future_)
+      boost::throw_exception(boost::future_uninitialized());
+    return future_->mutex;
+  }
+
+  notify_when_ready_handle notify_when_ready(
+    boost::condition_variable_any& cv) {
+    if (!future_)
+      boost::throw_exception(boost::future_uninitialized());
+    return future_->notify_when_ready(cv);
+  }
+
+  void unnotify_when_ready(notify_when_ready_handle& h) {
+    if(!future_)
+      boost::throw_exception(boost::future_uninitialized());
+    return future_->unnotify_when_ready(h);
+  }
+
+  template <class Rep, class Period>
+  future_status
+  wait_for(const chrono::duration<Rep, Period>& real_time) const {
+    return wait_until(chrono::steady_clock::now() + real_time);
+  }
+
+  template <class Clock, class Duration>
+  future_status
+  wait_until(const chrono::time_point<Clock, Duration>& abs_time) const {
+    if (!future_)
+      boost::throw_exception(future_uninitialized());
+    return future_->wait_until(abs_time);
+  }
+};
+} // boost::detail
+
 } // namespace boost
