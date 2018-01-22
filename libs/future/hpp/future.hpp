@@ -1205,6 +1205,109 @@ namespace detail {
       typename boost::decay<Tn>::type... > > when_any(
       BOOST_THREAD_FWD_REF(T) f,
       BOOST_THREAD_FWD_REF(Tn) ...futures);
+
+    template <class>
+    friend class packaged_task;
+
+    friend class boost::detail::future_waiter;
+
+    template <class S, class F>
+    make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f);
+
+    template <class S, class F>
+    make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f);
+
+    typedef typename base_type::move_dest_type move_dest_type;
+
+    BOOST_THREAD_FUTURE(future_ptr future) : base_type(future) {}
+
+  public:
+    BOOST_THREAD_MOVABLE_ONLY(BOOST_THREAD_FUTURE)
+    typedef boost::future_state::state state;
+    typedef R value_type;
+
+    BOOST_CONSTEXPR BOOST_THREAD_FUTURE() {}
+    BOOST_THREAD_FUTURE(boost::exceptional_ptr const& ex) : base_type(ex) {}
+
+    ~BOOST_THREAD_FUTURE() {}
+
+    BOOST_THREAD_FUTURE(
+      BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
+      base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
+    inline BOOST_THREAD_FUTURE(
+      BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
+
+    BOOST_THREAD_FUTURE& operator=(
+      BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
+      this->base_type::operator=(
+      boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that))));
+      return *this;
+    }
+
+    shared_future<R> share() {
+      return shared_future<R>(boost::move(*this));
+    }
+
+    void swap(BOOST_THREAD_FUTURE& that) {
+      static_cast<base_type*>(this)->swap(that);
+    }
+
+    void set_async() {
+      this->future_->set_async();
+    }
+
+    void set_deferred() {
+      this->future_->set_deferred();
+    }
+
+    bool run_if_is_deferred() {
+      return this->future_->run_if_is_deferred();
+    }
+
+    bool run_if_is_deferred_or_ready() {
+      return this->future_->run_if_is_deferred_or_ready();
+    }
+
+    move_dest_type get() {
+      if (this->future_ == 0) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      boost::unique_lock<boost::mutex> lock(this->future_->mutex);
+
+      if (!this->future_->valid(lock)) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      this->future_->invalidate(lock);
+
+      return this->future_->get(lock);
+    }
+
+    template <typename R2>
+    typename boost::disable_if<
+      boost::is_void<R2>,
+      move_dest_type>::type get_or(BOOST_THREAD_RV_REF(R2) v) {
+      if (this->future_ == 0) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      boost::unique_lock<boost::mutex> lock(this->future_->mutex);
+
+      if (!this->future_->valid(lock) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      this->future_->wait(lock, false);
+      this->future_->invalidate(lock);
+
+      if (this->future_->has_value(lock)) {
+        return this->future_->get(lock);
+      } else {
+        return boost::move(v);
+      }
+    }
+
 }; // BOOST_THREAD_FUTURE
 } // boost::detail
 } // namespace boost
