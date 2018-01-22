@@ -975,7 +975,7 @@ public:
 }; // basic_future
 } // boost::detail
 
-BOOST_THREAD_DCL_MOVABLE_REG(R)
+BOOST_THREAD_DCL_MOVABLE_BEG(R)
   boost::detail::basic_future<R>
 BOOST_THREAD_DCL_MOVABLE_END
 
@@ -1007,7 +1007,7 @@ namespace detail {
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<s>
+  BOOST_THREAD_FUTURE<S>
   make_future_deferred_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
@@ -1065,11 +1065,11 @@ namespace detail {
     BOOST_THREAD_RV_REF(F) f);
 
   template <typename InputIter>
-  typename boost::disable_if(boost::is_future_type<InputIter>,
+  typename boost::disable_if<is_future_type<InputIter>,
     BOOST_THREAD_FUTURE<
       boost::csbl::vector<typename InputIter::value_type
-    > >::type when_all(InputIter first, InputIter last);
-  inline BOOST_THREAD_FUTURE(boost::csbl::tuple<> > when_all();
+    > > >::type when_all(InputIter first, InputIter last);
+  inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all();
 
   template <typename T, typename... Tn>
   BOOST_THREAD_FUTURE<boost::csbl::tuple<
@@ -1079,11 +1079,11 @@ namespace detail {
     BOOST_THREAD_FWD_REF(Tn) ...futures);
 
   template <typename InputIter>
-  typename boost::disable_if<boost::is_future_type<InputIter>,
+  typename boost::disable_if<is_future_type<InputIter>,
     BOOST_THREAD_FUTURE<
       boost::csbl::vector<typename InputIter::value_type
-    > >::type when_any(InputIter first, InputIter last);
-  inline BOOST_THREAD_FUTURE(boost::csbl::tuple<> > when_any();
+    > > >::type when_any(InputIter first, InputIter last);
+  inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_any();
 
   template <typename T, typename... Tn>
   BOOST_THREAD_FUTURE<boost::csbl::tuple<
@@ -1096,7 +1096,115 @@ namespace detail {
   class BOOST_THREAD_FUTURE : public boost::detail::basic_future<R> {
   private:
     typedef boost::detail::basic_future<R> base_type;
-    typedef base_type::future_ptr future_ptr;
+    typedef typename base_type::future_ptr future_ptr;
 
+    friend class shared_future<R>;
+    friend class promise<R>;
+
+    template <typename, typename, typename>
+    friend struct future_async_continuation_shared_state;
+    template <typename, typename, typename>
+    friend struct future_deferred_continuation_shared_state;
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_async_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_sync_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_deferred_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_shared_future_async_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      F f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_shared_future_sync_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      F f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_shared_future_deferred_continuation_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      F f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename E, typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_executor_continuation_shared_state(
+      E& ex,
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename E, typename F, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_shared_future_executor_continuation_shared_state(
+      E& ex,
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
+      BOOST_THREAD_FWD_REF(C) c);
+
+    template <typename E, typename S, typename F>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_executor_shared_state(
+      E& ex,
+      BOOST_THREAD_FWD_REF(F) f);
+
+    template <typename E, typename S, typename C>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_unwrap_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(E) f);
+
+    template <typename F, typename S>
+    friend BOOST_THREAD_FUTURE<S>
+    make_future_unwrap_shared_state(
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f);
+
+    template <typename InputIter>
+    friend typename boost::enable_if<is_future_type<InputIter>,
+      BOOST_THREAD_FUTURE<boost::csbl::vector<typename InputIter::value_type
+      > > >::type when_all(InputIter first, InputIter last);
+
+    template <typename T, typename... Tn>
+    friend BOOST_THREAD_FUTURE<boost::csbl::tuple<
+      typename boost::decay<T>::type,
+      typename boost::decay<Tn>::type...> > when_all(
+      BOOST_THREAD_FWD_REF(T) f,
+      BOOST_THREAD_FWD_REF(Tn) ...futures);
+
+    template <typename InputIter>
+    friend typename boost::disable_if<is_future_type<InputIter>,
+      BOOST_THREAD_FUTURE<boost::csbl::vector<typename InputIter::value_type
+      > > >::type when_any(InputIter first, InputIter last);
+
+    template <typename T, typename... Tn>
+    friend BOOST_THREAD_FUTURE<boost::csbl::tuple<
+      typename boost::decay<T>::type,
+      typename boost::decay<Tn>::type... > > when_any(
+      BOOST_THREAD_FWD_REF(T) f,
+      BOOST_THREAD_FWD_REF(Tn) ...futures);
+}; // BOOST_THREAD_FUTURE
 } // boost::detail
 } // namespace boost
