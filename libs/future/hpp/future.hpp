@@ -1506,5 +1506,72 @@ namespace detail {
 
     BOOST_THREAD_FUTURE(future_ptr future) : base_type(future) {}
 
+  public:
+    BOOST_THREAD_MOVABLE_ONLY(BOOST_THRED_FUTURE)
+    typedef future_state::state state;
+    typedef R value_type
+
+    BOOST_CONSTEXPR BOOST_THREAD_FUTURE() {}
+
+    BOOST_THREAD_FUTURE(boost::exception_ptr const& ex) : base_type(ex) {}
+
+    ~BOOST_THREAD_FUTURE() {}
+
+    BOOST_THREAD_FUTURE(
+      BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) other) BOOST_NOEXCEPT :
+      base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(other)))) {}
+
+    inline BOOST_THREAD_FUTURE(BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) other);
+
+    explicit BOOST_THREAD_FUTURE(BOOST_THREAD_RV_REF(shared_future<R>) other) :
+      base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(other)))) {}
+
+    BOOST_THREAD_FUTURE& operator=(BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE) other) BOOST_NOEXCEPT {
+      this->base_type::operator=(boost::move(static_cast<base_type&>(
+        BOOST_THREAD_RV(other))));
+      return *this;
+    }
+
+    shared_future<R> share() {
+      return shared_future<R>(boost::move(*this));
+    }
+
+    void swap(BOOST_THREAD_FUTURE& that) {
+      static_cast<base_type*>(this)->swap(that);
+    }
+
+    void set_async() {
+      this->future_->set_async();
+    }
+
+    void set_deferred() {
+      this->future_->set_deferred();
+    }
+
+    bool run_if_is_deferred() {
+      return this->future_->run_if_is_deferred();
+    }
+
+    bool run_if_is_deferred_or_ready() {
+      return this->future_->run_if_is_deferred_or_ready();
+    }
+
+    move_dest_type get() {
+      if (this->future_ == 0) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      boost::unique_lock<boost::mutex> lock(this->future_->mutex);
+
+      if (!this->future_->valid(lock)) {
+        boost::throw_exception(boost::future_uninitialized());
+      }
+
+      this->future_->invalidate(lock);
+
+      return this->future_->get(lock);
+    }
 } // boost::detail
 } // namespace boost
