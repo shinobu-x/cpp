@@ -738,9 +738,10 @@ private:
     all_futures_lock(std::vector<registered_waiter>& futures) :
       count(futures.size()),
       locks(new boost::unique_lock<boost::mutex>[count]) {
-      for (count_type_portable i = 0; i < count; ++i)
+      for (count_type_portable i = 0; i < count; ++i) {
         locks[i] = BOOST_THREAD_MAKE_RV_REF(
           boost::unique_lock<boost::mutex>(futures[i].future_->mutex));
+      }
     }
 
     void lock() {
@@ -748,9 +749,11 @@ private:
     }
 
     void unlock() {
-      for (count_type_portable i = 0; i < count; ++i)
-        if (locks[i].owns_lock())
+      for (count_type_portable i = 0; i < count; ++i) {
+        if (locks[i].owns_lock()) {
           locks[i].unlock();
+        }
+      }
     }
   };
 
@@ -909,18 +912,22 @@ public:
   }
 
   boost::launch launch_policy(boost::unique_lock<boost::mutex>& lock) const {
-    if (future_)
+
+    if (future_) {
       return future_->launch_policy(lock);
-    else
+    } else {
       return boost::launch(boost::launch::none);
+    }
   }
 
   boost::launch launch_policy() const {
+
     if (future_) {
       boost::unique_lock<boost::mutex> lock(this->future_->mutex);
       return future_->launch_policy(lock);
-    } else
+    } else {
       return boost::launch(boost::launch::none);
+    }
   }
 
   boost::exception_ptr get_exception_ptr() {
@@ -941,21 +948,26 @@ public:
   typedef base_type::notify_when_ready_handle notify_when_ready_handle;
 
   boost::mutex& mutex() {
-    if (!future_)
+    if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
+    }
     return future_->mutex;
   }
 
   notify_when_ready_handle notify_when_ready(
     boost::condition_variable_any& cv) {
-    if (!future_)
+
+    if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
+    }
     return future_->notify_when_ready(cv);
   }
 
   void unnotify_when_ready(notify_when_ready_handle& h) {
-    if(!future_)
+
+    if(!future_) {
       boost::throw_exception(boost::future_uninitialized());
+    }
     return future_->unnotify_when_ready(h);
   }
 
@@ -968,8 +980,10 @@ public:
   template <class Clock, class Duration>
   future_status
   wait_until(const chrono::time_point<Clock, Duration>& abs_time) const {
-    if (!future_)
+
+    if (!future_) {
       boost::throw_exception(future_uninitialized());
+    }
     return future_->wait_until(abs_time);
   }
 }; // basic_future
@@ -1277,11 +1291,9 @@ public:
     }
 
     boost::unique_lock<boost::mutex> lock(this->future_->mutex);
-
     if (!this->future_->valid(lock)) {
       boost::throw_exception(boost::future_uninitialized());
     }
-
     this->future_->invalidate(lock);
 
     return this->future_->get(lock);
@@ -1565,11 +1577,9 @@ public:
     }
 
     boost::unique_lock<boost::mutex> lock(this->future_->mutex);
-
     if (!this->future_->valid(lock)) {
       boost::throw_exception(boost::future_uninitialized());
     }
-
     this->future_->invalidate(lock);
 
     return this->future_->get(lock);
@@ -1836,11 +1846,9 @@ public:
     lazy_init();
 
     boost::unique_lock<boost::mutex> lock(future_->mutex);
-
     if (future_->done_) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-
     future_->mark_finished_with_result_internal(r, lock);
   }
 
@@ -1848,11 +1856,9 @@ public:
     lazy_init();
 
     boost::unique_lock<boost::mutex> lock(future_->mutex);
-
     if (future_->done_) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-
     future_->mark_finish_with_result_internal(boost::move(r), lock);
   }
 
@@ -1861,16 +1867,59 @@ public:
     lazy_init();
 
     boost::unique_lock<boost::mutex> lock(future_->mutex);
-
     if (future_->done_) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-
     future_->mark_finished_with_result_internal(
       lock, boost::forward<Args>(args)...);
   }
 
-  void set_
-    
+  void set_exception(boost::exception_ptr p) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex);
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    future_->mark_exceptional_finish_internal(p, lock);
+  }
+
+  template <typename E>
+  void set_exception(E e) {
+    set_exception(boost::copy_exception(e)); 
+  }
+
+  void set_value_at_thread_exit(source_reference_type r) {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_value_at_thread_exit(r);
+  }
+
+  void set_value_at_thread_exit(BOOST_THrEAD_RV_REF(R) r) {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_.->set_value_at_thread_exit(boost::move(r));
+  }
+
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_exception_at_thread_exit(e);
+  }
+
+  template <typename E>
+  void set_exception_at_thread_exit(E e) {
+    set_exception_at_thread_exit(boost::copy_exception(e));
+  }
+
+  template <typename F>
+  void set_wait_callback(F f) {
+    lazy_init();
+    future_->set_wait_callback(f, this);
+  }
+}; 
 
 } // namespace boost
