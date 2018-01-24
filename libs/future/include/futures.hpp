@@ -10,6 +10,8 @@
 #define BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #define BOOST_THREAD_USES_CHRONO
 #define BOOST_THREAD_USES_MOVE
+
+#include "../hpp/future.hpp"
  
 #include <boost/thread/detail/config.hpp>
 #include <boost/thread/condition_variable.hpp>
