@@ -390,12 +390,64 @@ public:
   static ghobject_t make_infos_oid();
   static void recursive_remove_collection(CephContext*, ObjectStore*, spg_t,
     coll_t);
+  static CompatSet get_osd_initial_compat_set();
+  static CompatSet get_osd_compat_set();
 
+  // stat
+  typedef enum {
+    STATE_INITIALIZING,
+    STATE_PREBOOT,
+    STATE_BOOTING,
+    STATE_ACTIVE,
+    STATE_STOPPING,
+    STATE_WAITING_FOR_HEALTHY
+  } osd_state_t
+
+  static const char* get_state_name(int);
+
+  int get_state() const;
+  void set_state(int);
+  bool is_initializing() const;
+  bool is_preboot() const;
+  bool is_booting() const;
+  bool is_active() const;
+  bool is_stopping() const;
+  bool is_waiting_for_healthy() const;
+  
 private:
   Mutex osd_lock;
   SafeTimer tick_timer;
   Mutex tick_timer_lock;
   SafeTimer tick_timer_without_osd_lock;
+
+  class C_Tick;
+  class C_Tick_WithoutOSDLock;
+  // config settings
+  float m_osd_pg_epoch_max_lag_factor;
+  // superblock
+  OSDSuperblock superblock;
+  void write_superblock();
+  void write_superblock(ObjectStore::Transaction& t);
+  void clear_temp_objects();
+  CompatSet osd_compat;
+
+  std::atomic<int> state(STATE_INITIALIZING);
+
+  SharedThreadPool osd_op_tp;
+  ThreadPool disk_tp;
+  ThreadPool command_tp;
+
+  // sessions
+  void dispatch_session_waiting(Session*, OSDMapRef);
+  void maybe_share_map(Session*, OpRequestRef, OSDMapRef);
+  Mutex Session_waiting_lock;
+  set<Session*> session_waiting_for_map;
+  // Caller assumes refs for included Sessions
+  void get_sessions_waiting_for_map(set<Session*>);
+  void register_session_waiting_on_map(Session*);
+  void clear_session_waiting_on_map(Session*);
+  void dispatch_sessions_waiting_on_map();
+  void session_handle_reset(Session*);
 
 protected:
   // interval for tick_timer, tick_timer_without_osd_lock
@@ -428,4 +480,5 @@ protected:
   void check_osdmap_features();
   // asok
   friend class OSDSocketHook;
+  class OSDSocketHook* asok_hook;
   bool asok_command(string, cmdmap_t&, string, ostream&);
