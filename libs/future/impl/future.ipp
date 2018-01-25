@@ -2330,5 +2330,66 @@ public:
     task->set_wait_callback(f, this);
   }
 }; // packaged_task
+} // namespace boost
 
+namespace boost {
+namespace container {
+
+  template <typename R, typename Allocator>
+  struct use_allocator<boost::packaged_task<R>, Allocator> : true_type {};
+
+} // namespace container
+} // namespace boost
+
+namespace boost {
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+packaged_task<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
+namespace detail {
+
+template <typename S, typename F>
+BOOST_THREAD_FUTURE<S>
+make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f) {
+  boost::shared_ptr<future_async_shared_state<S, F> > h(
+    new future_async_shared_state<S, F>());
+  h->init(boost::forward<F>(f));
+  return BOOST_THREAD_FUTURE<S>(h);
+}
+
+template <typename S, typename F>
+BOOST_THREAD_FUTURE<S>
+make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) {
+  boost::shared_ptr<future_deferred_shared_state<S, F> > h(
+    new future_deferred_shared_state<S, F>(boost::forward<F>(f)));
+  return BOOST_THREAD_FUTURE<S>(h);
+}
+
+template <typename S, typename... Args>
+BOOST_THREAD_FUTURE<R>
+async(launch policy, R(*f)(BOOST_THREAD_FWD_REF(Args)...),
+  BOOST_THREAD_FWD_REF(Args) ...args) {
+  typedef R(*F)(BOOST_THREAD_FWD_REF(Args)...);
+  typedef boost::detail::invoker<
+    typename boost::decay<F>::type,
+    typename boost::decay<Args>::type...> BF;
+  typedef typename BF::result_type result_type;
+
+  if (underlying_cast<int>(policy) & int(boost::launch::async)) {
+    return BOOST_THREAD_MAKE_RV_REF(
+      boost::detail::make_future_async_shared_state<result_type>(
+        BF(f, boost::thread_detail::decay_copy(
+          boost::forward<Args>(args))...)));
+  } else if (underlying_cast<int>(policy) & int(boost::launch::deferred)) {
+    return BOOST_THREAD_MAKE_RV_REF(
+      boost::detail::make_future_deferred_shared_state<result_type>(
+        BF(f, boost::thread_detail::decay_copy(
+          boost::forward<Args>(args))...)));
+  } else {
+    std::terminate();
+  }
+}
+
+} // namespace detail
 } // namespace boost
