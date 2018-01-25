@@ -1942,9 +1942,7 @@ template <typename R>
 struct task_base_shared_state;
 
 template <typename R, typename... Args>
-struct task_base_shared_state<R(Args ...)>;
-
-shared_state<R> {
+struct task_base_shared_state<R(Args ...)> : shared_state<R> {
   bool started;
 
   task_base_shared_state() : started(false) {}
@@ -1968,8 +1966,187 @@ shared_state<R> {
 
   virtual void do_apply(BOOST_THREAD_RV_REF(Args) ...args) = 0;
   void apply(BOOST_THREAD_RV_REF(Args) ...args) {
-
+    {
+      boost::lock_guard<boost::mutex> lock(this->mutex);
+      if (started) {
+        boost::throw_exception(task_already_started());
+      }
+      started = true;
+    }
+    do_apply(boost::move(args)...);
   }
 
+  void owner_destroyed() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    if (!started) {
+      started = true;
+      this->mark_exceptional_finish_internal(
+        boost::copy_exception(boost::broken_promise()), lock);
+    }
+  }
+}; // shared_state
+
+template <typename F, typename R>
+struct task_shared_state;
+
+template <typename F, typename R, typename... Args>
+struct task_shared_state<F, R(Args ...)> :
+  task_base_shared_state<R(Args ...)> {
+private:
+  task_shared_state(task_shared_state&);
+public:
+  F f_;
+  task_shared_state(F const& f) : f_(f) {}
+
+  task_shared_state(BOOST_THREAD_RV_REF(F) f) : f_(boost::move(f)) {}
+
+  F callable() {
+    return boost::move(f_);
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(args)...));
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->mark_finish_with_result(f_(boost::move(args)...));
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
+
+template <typename F, typename R, typename... Args>
+struct task_shared_state<F, R&(Args...)> :
+  task_base_shared_state<R&(Args...)> {
+private:
+  task_shared_state(task_shared_state&);
+public:
+  F f_;
+  task_shared_state(F const& f) : f_(f) {}
+
+  task_shared_state(BOOST_THREAD_RV_REF(F) f) : f_(boost::move(f)) {}
+
+  F callable() {
+    return f_;
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(args)...));
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(args)...));
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
+
+template <typename R, typename... Args>
+struct task_shared_state<R (*)(Args...), R(Args...)> :
+  task_base_shared_state<R(Args...)> {
+private:
+  task_shared_state(task_shared_state&);
+  typedef R (*CallableType)(Args...);
+public:
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return f_;
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(args)...));
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(args)...));
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
+
+template <typename R, typename... Args>
+struct task_shared_state<R& (*)(Args...), R&(Args...)> :
+  task_base_shared_state<R&(Args...)> {
+private:
+  task_shared_state(task_shared_state&);
+public:
+  typedef R& (*CallableType)(BOOST_THREAD_RV_REF(Args)...);
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return boost::move(f_);
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(args)...));
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(args)...));
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
+
+template <typename F, typename... Args>
+struct task_shared_state<F, void(Args...)> :
+  task_base_shared_state<void(Args...)> {
+private:
+  task_shared_state(task_shared_state&);
+private:
+  typedef F CallableType;
+  F f_;
+
+  task_shared_state(F const& f) : f_(f) {}
+
+  task_shared_state(BOOST_THREAD_RV_REF(F) f) : f_(boost::move(f)) {}
+
+  F callable() {
+    return boost::move(f_);
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      f(boost::move(args)...);
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run() {
+    try {
+      f_();
+    } catch (...) {
+      this->mark_exceptional_finsih();
+    }
+  }
+}; // task_shared_state
 } // namespace detail
 } // namespace boost
