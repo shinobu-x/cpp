@@ -2148,5 +2148,187 @@ private:
     }
   }
 }; // task_shared_state
+
+template <typename... Args>
+struct task_shared_state<void(*)(Args...), void(Args...)> :
+  task_base_shared_state<void(Args...)> {
+private:
+  task_shared_state(task_shared_state&);
+  typedef void (*CallableType)(Args...);
+public:
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return f_;
+  }
+
+  void do_apply(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      f_(boost::move(args)...);
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  }
+
+  void do_run(BOOST_THREAD_RV_REF(Args) ...args) {
+    try {
+      f_(boost::move(args)...);
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
 } // namespace detail
+
+template <typename R, typename... Args>
+class packaged_task<R(Args...)> {
+  typedef boost::detail::task_base_shared_state<R(Args...)> task_state;
+  typedef boost::shared_ptr<task_state> task_ptr;
+  boost::shared_ptr<task_state> task;
+
+  bool future_obtained;
+  struct dummy;
+
+public:
+  typedef R result_type;
+  BOOST_THREAD_MOVABLE_ONLY(packaged_task);
+
+  packaged_task() : future_obtained(false) {}
+
+  explicit packaged_task(R(*f)(), BOOST_THREAD_FWD_REF(Args) ...args) {
+    typedef R(*FR)(BOOST_THREAD_FWD_REF(Args)...);
+    typedef boost::detail::task_shared_state<FR, R(Args...)>
+      task_shared_state_type;
+
+    task = task_ptr(new task_shared_state_type(f, boost::move(args)...));
+    future_obtained = false;
+  }
+
+  template <typename F>
+  explicit packaged_task(BOOST_THREAD_FWD_REF(F) f,
+    typename boost::disable_if<
+      boost::is_same<typename boost::decay<F>::type,
+      packaged_task>, dummy*>::type = 0) {
+    typedef typename boost::decay<F>::type FR;
+    typedef boost::detail::task_shared_state<FR, R(Args...)>
+      task_shared_state_type;
+
+    task = task_ptr(new task_shared_state_type(boost::forward<F>(f)));
+    future_obtained = false;
+  }
+
+  template <typename Allocator>
+  packaged_task(boost::allocator_arg_t, Allocator a, R(*f)()) {
+    typedef R(*FR)();
+    typedef boost::detail::task_shared_state<FR, R(Args...)>
+      task_shared_state_type;
+    typedef typename Allocator::template rebind<
+      task_shared_state_type>::other A2;
+    A2 a2(a);
+
+    typedef boost::thread_detail::allocator_destructor<A2> D;
+
+     task = task_ptr(new(a2.allocate(1)) task_shared_state_type(f), D(a2, 1));
+     future_obtained = false;
+  }
+
+  template <typename F, typename Allocator>
+  packaged_task(boost::allocator_arg_t, Allocator a,
+    BOOST_THREAD_FWD_REF(F) f) {
+    typedef typename boost::decay<F>::type FR;
+    typedef boost::detail::task_shared_state<FR, R(Args...)>
+      task_shared_state_type;
+    typedef typename Allocator::template rebind<
+      task_shared_state_type>::other A2;
+    A2 a2(a);
+
+    typedef boost::thread_detail::allocator_destructor<A2> D;
+
+    task = task_ptr(new(a2.allocate(1)) task_shared_state_type(
+      boost::forward<F>(f)), D(a2, 1));
+    future_obtained = false;
+  }
+
+  ~packaged_task() {
+    if (task) {
+      task->owner_destroyed();
+    }
+  }
+
+  packaged_task(BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT :
+    future_obtained(BOOST_THREAD_RV(that).future_obtained) {
+    task.swap(BOOST_THREAD_RV(that).task);
+    BOOST_THREAD_RV(that).future_obtained = false;
+  }
+
+  packaged_task& operator=(
+    BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT {
+    packaged_task temp(boost::move(that));
+    swap(temp);
+    return *this;
+  }
+
+  void set_executor(executor_ptr_type ex) {
+    if (!valid()) {
+      boost::throw_exception(task_moved());
+    }
+    boost::lock_guard<boost::mutex> lock(task->mutex);
+    task->set_executor_policy(ex, lock);
+  }
+
+  void reset() {
+    if (!valid()) {
+      boost::throw_exception(future_error(
+        boost::system::make_error_code(future_errc::no_state)));
+    }
+    task->reset();
+    future_obtained = false;
+  }
+
+  void swap(packaged_task& that) BOOST_NOEXCEPT {
+    task.swap(that.task);
+    std::swap(future_obtained, that.future_obtained);
+  }
+
+  bool valid() const BOOST_NOEXCEPT {
+    return task.get() != 0;
+  }
+
+  BOOST_THREAD_FUTURE<R> get_future() {
+    if (!task) {
+      boost::throw_exception(task_moved());
+    } else if (!future_obtained) {
+      future_obtained = true;
+      return BOOST_THREAD_FUTURE<R>(task);
+    } else {
+      boost::throw_exception(future_already_retrieved());
+    }
+  }
+
+  void operator()(Args ...args) {
+    if (!task) {
+      boost::throw_exception(task_moved());
+    }
+    task->run(boost::move(args)...);
+  }
+
+  void make_ready_at_thread_exit(Args ...args) {
+    if (!task) {
+      boost::throw_exception(task_moved());
+    }
+
+    if (task->has_value) {
+      boost::throw_exception(promise_already_satisfied());
+    }
+
+    task->apply(boost::move(args)...);
+  }
+
+  template <typename F>
+  void set_wait_callback(F f) {
+    task->set_wait_callback(f, this);
+  }
+}; // packaged_task
+
 } // namespace boost
