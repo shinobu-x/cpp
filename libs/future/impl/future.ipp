@@ -1,3 +1,15 @@
+/**
+ * Template parameters order:
+ * tempalte <
+ *   typename E       // Executor type
+ *   typenema F       // Function type
+ *   typename S       // State type
+ *   typename C       // Callback function type
+     typename... Args // Prameter pack
+ * >
+ * // end template parameters order
+ */
+
 #include "../include/futures.hpp"
 
 namespace boost {
@@ -273,6 +285,12 @@ struct shared_state_base :
     boost::unique_lock<boost::mutex>& lock) {
     exception = ex;
     mark_finished_internal(lock);
+  }
+
+  void mark_exceptional_finish() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    mark_exceptional_finish_internal(
+      boost::current_exception(), lock);
   }
 
   void set_exceptional_at_thread_exit(boost::exception_ptr e) {
@@ -1179,7 +1197,7 @@ private:
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
-  template <typename E, typename S, typename F>
+  template <typename E, typename F, typename S>
   friend BOOST_THREAD_FUTURE<S>
   make_future_executor_shared_state(
     E& ex,
@@ -2387,8 +2405,9 @@ make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) {
 } // namespace detail
 
 template <typename S, typename... Args>
-BOOST_THREAD_FUTURE<S>
-async(launch policy, S(*f)(BOOST_THREAD_FWD_REF(Args)...),
+BOOST_THREAD_FUTURE<S> async(
+  launch policy,
+  S(*f)(BOOST_THREAD_FWD_REF(Args)...),
   BOOST_THREAD_FWD_REF(Args) ...args) {
   typedef S(*F)(BOOST_THREAD_FWD_REF(Args)...);
   typedef boost::detail::invoker<
@@ -2409,17 +2428,209 @@ async(launch policy, S(*f)(BOOST_THREAD_FWD_REF(Args)...),
   } else {
     std::terminate();
   }
-}
-/*
+} // async
+
 template <typename F, typename... Args>
 BOOST_THREAD_FUTURE<typename boost::result_of<
   typename decay<F>::type(
-    typename decay<Args>::type...)>::type>
-async(launch policy, BOOST_THREAD_FWD_REF(F) f,
-  BOOST_THREAD_FWD_REF(Args)... args) {
+    typename decay<Args>::type...)>::type> async(
+  launch policy, BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(Args) ...args) {
   typedef boost::detail::invoker<
     typename decay<F>::type,
     typename decay<Args>::type...> BF;
   typedef typename BF::result_type S;
-*/
+
+  if (underlying_cast<int>(policy) & int(boost::launch::async)) {
+    return BOOST_THREAD_MAKE_RV_REF(
+      boost::detail::make_future_async_shared_state<S>(
+        BF(
+          boost::thread_detail::decay_copy(boost::forward<F>(f)),
+          boost::thread_detail::decay_copy(boost::forward<Args>(args))...
+        )
+      )
+    );
+  } else {
+    std::terminate();
+  }
+} // async
+
+namespace detail {
+
+template <typename S, typename F>
+struct shared_state_nullary_task {
+  typedef boost::shared_ptr<shared_state_base> storage_type;
+  storage_type st_;
+  F f_;
+
+  shared_state_nullary_task(storage_type st, BOOST_THREAD_FWD_REF(F) f) :
+    st_(st), f_(boost::move(f)) {}
+
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(shared_state_nullary_task)
+  shared_state_nullary_task(shared_state_nullary_task const& s) :
+    st_(s.st_), f_(s.f_) {}
+
+  shared_state_nullary_task& operator=(BOOST_THREAD_COPY_ASSIGN_REF(
+    shared_state_nullary_task) s) {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = s.f_;
+    }
+    return *this;
+  }
+
+  shared_state_nullary_task(BOOST_THREAD_RV_REF(shared_state_nullary_task) s) :
+    st_(s.st_), f_(boost::move(s.f_)) {
+    s.st_.reset();
+  }
+
+  shared_state_nullary_task& operator=(
+    BOOST_THREAD_RV_REF(shared_state_nullary_task) s) {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = boost::move(s.f_);
+      s.st_.reset();
+    }
+    return *this;
+  }
+
+  void operator()() {
+    boost::shared_ptr<shared_state<S> > st_ =
+      static_pointer_cast<shared_state<S> >(st_);
+
+    try {
+      st_->mark_finished_with_result(f_());
+    } catch (...) {
+      st_->mark_exceptional_finish();
+    }
+  }
+
+  ~shared_state_nullary_task() {}
+}; // shared_state_nullary_task
+
+template <typename F>
+struct shared_state_nullary_task<void, F> {
+  typedef boost::shared_ptr<shared_state_base> storage_type;
+  storage_type st_;
+  F f_;
+
+  shared_state_nullary_task(storage_type st, BOOST_THREAD_FWD_REF(F) f) :
+    st_(st), f_(boost::move(f)) {}
+
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(shared_state_nullary_task)
+  shared_state_nullary_task(shared_state_nullary_task const& s) :
+    st_(s.st_), f_(s.f_) {}
+
+  shared_state_nullary_task& operator=(
+    BOOST_THREAD_COPY_ASSIGN_REF(shared_state_nullary_task) s) {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = s.f_;
+    }
+    return *this;
+  }
+
+  shared_state_nullary_task(
+    BOOST_THREAD_RV_REF(shared_state_nullary_task) s) BOOST_NOEXCEPT :
+    st_(s.st_), f_(boost::move(s.f_)) {
+    s.st_.reset();
+  }
+
+  shared_state_nullary_task& operator=(
+    BOOST_THREAD_RV_REF(shared_state_nullary_task) s) BOOST_NOEXCEPT {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = boost::move(s.f_);
+      s.st_.reset();
+    }
+    return *this;
+  }
+
+  void operator()() {
+    boost::shared_ptr<shared_state<void> > st_ =
+      static_pointer_cast<shared_state<void> >(st_);
+
+    try {
+      f_();
+      st_->mark_finished_with_result();
+    } catch (...) {
+      st_->mark_exceptional_finish();
+    }
+  }
+}; // shared_state_nullary_task
+
+} // namespace detail
+
+BOOST_THREAD_DCL_MOVABLE_BEG2(R, F)
+boost::detail::shared_state_nullary_task<R, F>
+BOOST_THREAD_DCL_MOVABLE_END
+
+namespace detail {
+
+template <typename S>
+struct future_executor_shared_state : shared_state<S> {
+  typedef shared_state<S> base_type;
+
+  future_executor_shared_state() {}
+
+  template <typename E, typename F>
+  void init(E& ex, BOOST_THREAD_FWD_REF(F) f) {
+    typedef typename decay<F>::type result_type;
+    this->set_executor_policy(executor_ptr_type(new executor_ref<E>(ex)));
+    shared_state_nullary_task<S, result_type> t(
+      this->shared_from_this(), boost::forward<F>(f));
+    ex.submit(boost::move(f));
+  }
+
+  ~future_executor_shared_state() {}
+}; // future_executor_shared_size
+
+template <typename E, typename F, typename S>
+BOOST_THREAD_FUTURE<S>
+make_future_executor_shared_state(E& ex, BOOST_THREAD_FWD_REF(F) f) {
+  boost::shared_ptr<future_executor_shared_state<S> > h(
+    new future_executor_shared_state<S>());
+  h->init(ex, boost::forward<F>(f));
+  return BOOST_THREAD_FUTURE<S>(h);
+} // make_future_executor_shared_state
+} // namespace detail
+
+template <typename E, typename S, typename... Args>
+BOOST_THREAD_FUTURE<S> async(
+  E& ex,
+  S(*f)(BOOST_THREAD_FWD_REF(Args)...),
+  BOOST_THREAD_FWD_REF(Args) ...args) {
+  typedef S(*F)(BOOST_THREAD_FWD_REF(Args)...);
+  typedef boost::detail::invoker<
+    typename decay<F>::type,
+    typename decay<Args>::type...> BF;
+  typedef typename BF::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(ex, BF(
+      f, boost::thread_detail::decay_copy(boost::forward<Args>(args))...
+    ))
+  );
+} // async
+
+template <typename S, typename... Args>
+BOOST_THREAD_FUTURE<S> async(
+  S(*f)(BOOST_THREAD_MAKE_RV_REF(Args)...),
+  BOOST_THREAD_FWD_REF(Args) ...args) {
+  return BOOST_THREAD_MAKE_RV_REF(async(boost::launch(boost::launch::any), f,
+    boost::forward<Args>(args)...));
+} // async
+
+template <typename F, typename... Args>
+BOOST_THREAD_FUTURE<typename boost::result_of<
+  typename decay<F>::type(
+    typename decay<Args>::type...)>::type> async(
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(Args)... args) {
+  return BOOST_THREAD_MAKE_RV_REF(
+    async(boost::launch(boost::launch::any),
+    boost::forward<F>(f),
+    boost::forward<Args>(args)...));
+} // async
+
 } // namespace boost
