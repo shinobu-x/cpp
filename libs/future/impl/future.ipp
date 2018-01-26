@@ -355,14 +355,14 @@ struct shared_state : shared_state_base {
     shared_state_base(ex), result() {}
   ~shared_state() {}
 
-  void mark_finish_with_result_internal(
+  void mark_finished_with_result_internal(
     source_reference_type new_result,
     boost::unique_lock<boost::mutex>& lock) {
     result = new_result;
-    this->mark_finish_internal(lock);
+    this->mark_finished_internal(lock);
   }
 
-  void mark_finish_with_result_internal(
+  void mark_finished_with_result_internal(
     rvalue_source_type new_result,
     boost::unique_lock<boost::mutex>& lock) {
     result = boost::move(new_result);
@@ -379,7 +379,7 @@ struct shared_state : shared_state_base {
 
   void mark_finsihed_with_result(source_reference_type new_result) {
     boost::unique_lock<boost::mutex> lock(this->muetx);
-    this->mark_finish_with_result_internal(new_result, lock);
+    this->mark_finished_with_result_internal(new_result, lock);
   }
 
   void mark_finished_with_result(rvalue_source_type new_result) {
@@ -403,7 +403,7 @@ struct shared_state : shared_state_base {
 
   virtual shared_future_get_result_type get_s(
     boost::unique_lock<boost::mutex>& lock) {
-    return get_storage(lock);
+    return *get_storage(lock);
   }
 
   shared_future_get_result_type get_s() {
@@ -1077,7 +1077,7 @@ namespace detail {
   make_future_unwrap_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f);
-} // boost::detail
+} // namespace detail
 
 template <typename InputIter>
 typename boost::disable_if<is_future_type<InputIter>,
@@ -1779,13 +1779,13 @@ class promise {
   bool future_obtained;
 
   void lazy_init() {
-// #include <boost/detail/atomic_undef_macros.hpp>
+#include <boost/detail/atomic_undef_macros.hpp>
     if (!boost::atomic_load(&future_)) {
       future_ptr blank;
       boost::atomic_compare_exchange(
         &future_, &blank, future_ptr(new boost::detail::shared_state<R>));
     }
-// #include <boost/detail/atomic_redef_macros.hpp>
+#include <boost/detail/atomic_redef_macros.hpp>
   }
 
 public:
@@ -1801,12 +1801,31 @@ public:
     future_obtained = false;
   }
 
+  promise() : future_(), future_obtained(false) {}
+  ~promise() {
+    if (future_) {
+      boost::unique_lock<boost::mutex> lock(future_->mutex);
+
+      if (!future_->done_ && !future_->is_constructed_) {
+        future_->mark_exceptional_finish_internal(
+          boost::copy_exception(broken_promise()), lock);
+      }
+    }
+  }
+
+  // copy
+  promise(BOOST_THREAD_RV_REF(promise) rhs) BOOST_NOEXCEPT :
+    future_(BOOST_THREAD_RV(rhs).future_),
+    future_obtained(BOOST_THREAD_RV(rhs).future_obtained) {
+    BOOST_THREAD_RV(rhs).future_.reset();
+    BOOST_THREAD_RV(rhs).future_obtained = false;
+  }
+
   promise& operator=(BOOST_THREAD_RV_REF(promise) rhs) BOOST_NOEXCEPT {
     future_ = BOOST_THREAD_RV(rhs).future_;
     future_obtained = BOOST_THREAD_RV(rhs).future_obtained;
     BOOST_THREAD_RV(rhs).future_.reset();
     BOOST_THREAD_RV(rhs).future_obtained = false;
-
     return *this;
   }
 
@@ -2336,7 +2355,7 @@ namespace boost {
 namespace container {
 
   template <typename R, typename Allocator>
-  struct use_allocator<boost::packaged_task<R>, Allocator> : true_type {};
+  struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
 
 } // namespace container
 } // namespace boost
@@ -2365,12 +2384,13 @@ make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) {
     new future_deferred_shared_state<S, F>(boost::forward<F>(f)));
   return BOOST_THREAD_FUTURE<S>(h);
 }
+} // namespace detail
 
 template <typename S, typename... Args>
-BOOST_THREAD_FUTURE<R>
-async(launch policy, R(*f)(BOOST_THREAD_FWD_REF(Args)...),
+BOOST_THREAD_FUTURE<S>
+async(launch policy, S(*f)(BOOST_THREAD_FWD_REF(Args)...),
   BOOST_THREAD_FWD_REF(Args) ...args) {
-  typedef R(*F)(BOOST_THREAD_FWD_REF(Args)...);
+  typedef S(*F)(BOOST_THREAD_FWD_REF(Args)...);
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
     typename boost::decay<Args>::type...> BF;
@@ -2390,6 +2410,16 @@ async(launch policy, R(*f)(BOOST_THREAD_FWD_REF(Args)...),
     std::terminate();
   }
 }
-
-} // namespace detail
+/*
+template <typename F, typename... Args>
+BOOST_THREAD_FUTURE<typename boost::result_of<
+  typename decay<F>::type(
+    typename decay<Args>::type...)>::type>
+async(launch policy, BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(Args)... args) {
+  typedef boost::detail::invoker<
+    typename decay<F>::type,
+    typename decay<Args>::type...> BF;
+  typedef typename BF::result_type S;
+*/
 } // namespace boost
