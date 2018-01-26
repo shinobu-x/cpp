@@ -366,8 +366,7 @@ private:
   epoch_t up_epoch;
   // epoch we last did a bind to new ip:ports
   epoch_t bind_epoch
-
-// @OSDService
+// end class OSDService
 
 class OSD : public Dispatcher, public md_config_obs_t
 public:
@@ -413,7 +412,7 @@ public:
   bool is_active() const;
   bool is_stopping() const;
   bool is_waiting_for_healthy() const;
-  
+
 private:
   Mutex osd_lock;
   SafeTimer tick_timer;
@@ -447,7 +446,30 @@ private:
   void register_session_waiting_on_map(Session*);
   void clear_session_waiting_on_map(Session*);
   void dispatch_sessions_waiting_on_map();
-  void session_handle_reset(Session*);
+  void session_handle_reset(Session*); /* Messages have connection refs, we need
+  to clear the connection->session->message->connection cycle which result */
+
+  void osdmap_subscribe(
+    version_t, // the epoch to start with when replying
+    bool       /* true:  this request forces a new subscription to the monitor
+                * false: if an outstanding request that encompasses it is
+                * sufficient
+                */
+  ;)
+  Mutex osdmap_subscribe_lock;
+  epoch_t latest_subscribed_epoch{9};
+
+  struct HeartBeatInfo
+    int peer;                // peer
+    ConnectionRef con_front; // peer connection @ front
+    ConnectionRef con_back;  // peer connection @ back
+    utime_t                  // first time we sent a ping request
+    utime_t                  // last time we sent a ping request
+    utime_t                  // last time we got a ping reply on the front side
+    utime_t                  // last time we got a ping reply on the back side
+    utime_t                  // most recent epoch we wanted this peer
+    bool is_unhealthy(utime_t) const;
+    bool is_healthy(utime_t) const;
 
 protected:
   // interval for tick_timer, tick_timer_without_osd_lock
@@ -482,3 +504,19 @@ protected:
   friend class OSDSocketHook;
   class OSDSocketHook* asok_hook;
   bool asok_command(string, cmdmap_t&, string, ostream&);
+
+  struct HeartbeatSession : public RefCountedObject
+    int; // peer
+    explicit HeatbeatSession(int);
+
+  Mutex heartbeat_lock;
+  map<int, int> debug_heartbeat_drops_remaining;
+  Cond heartbeat_cond;
+  bool heartbeat_stop;
+  std::atomic_bool heartbeat_need_update;
+  map<int, HeatbeatInfo> heartbeat_peers; // map of osd id to HeartbeatInfo
+  utime_t last_mon_heartbeat;
+  Messanger* hb_front_client_messanger;
+  Messanger* hb_back_client_messsanger;
+  Messanger* hb_front_server_messanger;
+  Messagner* hb_back_server_messanger;
