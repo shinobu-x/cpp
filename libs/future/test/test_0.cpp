@@ -1,5 +1,5 @@
 #include "../hpp/future.hpp"
-/*
+
 template <typename T>
 struct test_callback {
   boost::future<T> operator()(boost::future<T> f) const {
@@ -14,7 +14,7 @@ struct test_callback {
     return boost::make_ready_future();
   }
 };
-*/
+
 void doit() {
   {
     boost::promise<int> p;

@@ -2819,7 +2819,27 @@ BOOST_THREAD_FUTURE<T> make_ready_future(BOOST_THREAD_FWD_REF(
   p.set_value(boost::forward<
     typename boost::remove_reference<T>::type>(value));
   return p.get_future();
-}
+} // make_ready-future
 
+template <typename T, typename... Args>
+BOOST_THREAD_FUTURE<T> make_ready_future(Args&& ...args) {
+  promise<T> p;
+  p.emplace(boost::forward<Args>(args)...);
+  return p.get_future();
+} // make_ready_future
+
+inline BOOST_THREAD_FUTURE<void> make_ready_future() {
+  promise<void> p;
+  p.set_value();
+  return p.get_future();
+} // make_ready_future
+
+template <typename T, typename U>
+BOOST_THREAD_FUTURE<T> make_ready_no_decay_future(U value) {
+  typedef T future_value_type;
+  promise<future_value_type> p;
+  p.set_value(value);
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+} // make_ready_no_decay_future
 
 } // namespace boost
