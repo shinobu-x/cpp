@@ -5,7 +5,8 @@
  *   typenema F       // Function type
  *   typename S       // State type
  *   typename C       // Callback function type
-     typename... Args // Prameter pack
+ *   typename Ex      // Exception type
+ *   typename... Args // Prameter pack
  * >
  * // end template parameters order
  */
@@ -1921,8 +1922,8 @@ public:
     future_->mark_exceptional_finish_internal(p, lock);
   }
 
-  template <typename E>
-  void set_exception(E e) {
+  template <typename Ex>
+  void set_exception(Ex e) {
     set_exception(boost::copy_exception(e)); 
   }
 
@@ -1947,8 +1948,8 @@ public:
     future_->set_exception_at_thread_exit(e);
   }
 
-  template <typename E>
-  void set_exception_at_thread_exit(E e) {
+  template <typename Ex>
+  void set_exception_at_thread_exit(Ex e) {
     set_exception_at_thread_exit(boost::copy_exception(e));
   }
 
@@ -2056,8 +2057,8 @@ public:
     future_->mark_exceptional_finish_internal(p, lock);
   }
 
-  template <typename E>
-  void set_exception(E e) {
+  template <typename Ex>
+  void set_exception(Ex e) {
     set_exception(boost::copy_exception(e));
   }
 
@@ -2841,5 +2842,12 @@ BOOST_THREAD_FUTURE<T> make_ready_no_decay_future(U value) {
   p.set_value(value);
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 } // make_ready_no_decay_future
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_exceptional_future(boost::exception_ptr e) {
+  promise<T> p;
+  p.set_exception(e);
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+} // make_exceptional_future
 
 } // namespace boost
