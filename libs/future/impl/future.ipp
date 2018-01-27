@@ -293,7 +293,7 @@ struct shared_state_base :
       boost::current_exception(), lock);
   }
 
-  void set_exceptional_at_thread_exit(boost::exception_ptr e) {
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
     boost::unique_lock<boost::mutex> lock(this->mutex);
 
     if (has_value(lock))
@@ -554,7 +554,7 @@ struct shared_state<void> : shared_state_base {
     this->get_s(lock);
   }
 
-  void set_value_thread_exit() {
+  void set_value_at_thread_exit() {
     boost::unique_lock<boost::mutex> lock(this->mutex);
 
     if (this->has_value(lock))
@@ -2021,7 +2021,7 @@ public:
     std::swap(future_obtained, that.future_obtained);
   }
 
-  BOOST_THREAD_FUTURE<void> get_shared() {
+  BOOST_THREAD_FUTURE<void> get_future() {
     lazy_init();
 
     if (future_.get() == 0) {
@@ -2764,11 +2764,62 @@ BOOST_THREAD_FUTURE<
   p.set_value(boost::forward<future_value_type>(value));
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 } // make_future
-/*
+
 inline BOOST_THREAD_FUTURE<void> make_future() {
   promise<void> p;
   p.set_value();
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }  // make_future
-*/
+
+namespace detail {
+
+template <typename T>
+struct deduced_type_impl {
+  typedef T type;
+};
+
+template <typename T>
+struct deduced_type_impl<boost::reference_wrapper<T> const> {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type_impl<boost::reference_wrapper<T> > {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type {
+  typedef typename deduced_type_impl<typename decay<T>::type>::type type;
+};
+} // namespace detail
+
+template <int = 0, int..., typename T>
+BOOST_THREAD_FUTURE<
+  typename boost::detail::deduced_type<T>::type> make_ready_future(
+    BOOST_THREAD_FWD_REF(T) value) {
+  typedef typename boost::detail::deduced_type<T>::type future_value_type;
+  promise<future_value_type> p;
+  p.set_value(boost::forward<T>(value));
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+} // make_ready_future
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_ready_future(
+  typename boost::remove_reference<T>::type& value) {
+  promise<T> p;
+  p.set_value(value);
+  return p.get_future();
+} // make_ready_future
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_ready_future(BOOST_THREAD_FWD_REF(
+  typename boost::remove_reference<T>::type) value) {
+  promise<T> p;
+  p.set_value(boost::forward<
+    typename boost::remove_reference<T>::type>(value));
+  return p.get_future();
+}
+
+
 } // namespace boost
