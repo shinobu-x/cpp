@@ -26,7 +26,7 @@ void doit() {
     auto r = base_type.get_executor();
     (void)r;
     base_type.set_executor_policy(ex);
-//    base_type.set_executor_policy(ex, lock_guard);
+    base_type.set_executor_policy(ex, lock_guard);
     base_type.set_executor_policy(ex, unique_lock);
   }
   {
@@ -39,6 +39,7 @@ void doit() {
   {
     boost::promise<void> p;
     boost::future<void> f = p.get_future();
+//    f.then(test_callback<void>());
   }
   {
     int a = 10;
