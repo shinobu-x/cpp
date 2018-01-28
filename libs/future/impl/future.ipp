@@ -1006,7 +1006,7 @@ public:
   wait_until(const chrono::time_point<Clock, Duration>& abs_time) const {
 
     if (!future_) {
-      boost::throw_exception(future_uninitialized());
+      boost::throw_exception(boost::future_uninitialized());
     }
     return future_->wait_until(abs_time);
   }
@@ -3324,11 +3324,11 @@ inline BOOST_THREAD_FUTURE<
     F(BOOST_THREAD_FUTURE<S>)>::type future_type;
 
   BOOST_THREAD_ASSERT_PRECONDITION(
-    this->future_.get() != 0, boost::detail::future_uninitialized());
+    this->future_.get() != 0, boost::future_uninitialized());
 
   boost::shared_ptr<
-    boost::detail::shared_state_base> sentinel(this->future_);
-  boost::unique_lock<boost::mutex> lock(sentinel->mutex);
+    boost::detail::shared_state_base> sp(this->future_);
+  boost::unique_lock<boost::mutex> lock(sp->mutex);
 
   /* async */
   if (boost::underlying_cast<int>(policy) &&
@@ -3422,6 +3422,94 @@ inline BOOST_THREAD_FUTURE<
           boost::move(*this),
           boost::forward<F>(f))));
   }
-} // template <typename S> template <typename F> BOOST_THREAD_FUTURE<R>::then
+} // template <typename S>
+  // template <typename F>
+  // BOOST_THREAD_FUTURE<S>::then
+
+/**
+ * template <typename S>
+ * template <typename E, typename F>
+ * auto future<future<S> >::then(E&, F&& f)
+ *   -> BOOST_THREAD_FUTURE<decltype(f(*this))>
+ */
+template <typename S>
+template <typename E, typename F>
+inline BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<S>)>::type> BOOST_THREAD_FUTURE<S>::then(
+      E& ex,
+      BOOST_THREAD_FWD_REF(F) f) {
+  typedef typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<S>)>::type future_type;
+
+  BOOST_THREAD_ASSERT_PRECONDITION(
+    this->future_.get_future() != 0,
+    boost::future_uninitialized());
+
+  boost::shared_ptr<
+    boost::detail::shared_state_base> sp(this->future_);
+  boost::unique_lock<boost::mutex> lock(sp->mutex);
+
+  return BOOST_THREAD_MAKE_RV_REF((
+    boost::detail::make_future_executor_continuation_shared_state<
+      E,
+      BOOST_THREAD_FUTURE<S>,
+      future_type>(
+        ex,
+        lock,
+        boost::move(*this),
+        boost::forward<F>(f))));
+}
+// template <typename S>
+// template <typename E, typename F>
+// auto future<future<S> >::then(E&, F&& f)
+//   -> BOOST_THREAD_FUTURE<decltype(f(*this))>
+
+/**
+ * template <typename S>
+ * template <typename F>
+ * auto future<future<S> >::then(F&& f)
+ *   -> BOOST_THREAD_FUTURE<decltype(f(*this))>
+ */
+template <typename S>
+template <typename F>
+inline BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<S>)>::type> BOOST_THREAD_FUTURE<S>::then(
+      BOOST_THREAD_FWD_REF(F) f) {
+  typedef typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<S>)>::type future_type;
+
+  BOOST_THREAD_ASSERT_PRECONDITION(
+    this->future_->get_future() != 0,
+    boost::future_uninitialized());
+
+  boost::shared_ptr<
+    boost::detail::shared_state_base> sp(this->future_);
+  boost::unique_lock<boost::mutex> lock(sp->mutex);
+
+  boost::launch policy = this->launch_policy(lock);
+
+  /* deferred */
+  if (boost::underlying_cast<int>(policy) &&
+      int(boost::launch::deferred)) {
+    return BOOST_THREAD_MAKE_RV_REF((
+      boost::detail::make_future_deferred_continuation_shared_state<
+        BOOST_THREAD_FUTURE<S>,
+        future_type>(
+          lock,
+          boost::move(*this),
+          boost::forward<F>(f))));
+  /* async */
+  } else {
+    return BOOST_THREAD_MAKE_RV_REF((
+      boost::detail::make_future_async_continuation_shared_state<
+        BOOST_THREAD_FUTURE<S>,
+        future_type>(
+          lock,
+          boost::move(*this),
+          boost::forward<F>(f))));
+  }
+}
 
 } // namespace boost
