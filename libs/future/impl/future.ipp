@@ -1019,11 +1019,11 @@ BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
   template <typename S, typename F>
-  BOOST_THREAD_FUTURE<S>
-  make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f);
+  BOOST_THREAD_FUTURE<S> make_future_async_shared_state(
+  BOOST_THREAD_FWD_REF(F) f);
   template <typename S, typename F>
-  BOOST_THREAD_FUTURE<S>
-  make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f);
+  BOOST_THREAD_FUTURE<S> make_future_deferred_shared_state(
+  BOOST_THREAD_FWD_REF(F) f);
 
   template <typename F, typename S, typename C>
   struct future_async_continuation_shared_state;
@@ -1031,74 +1031,64 @@ namespace detail {
   struct future_deferred_continuation_shared_state;
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_future_async_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_future_async_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(F) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_future_sync_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_future_sync_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_future_deferred_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_future_deferred_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_shared_future_async_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_shared_future_async_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     F f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_shared_future_sync_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_shared_future_sync_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     F f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_shared_future_deferred_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_shared_future_deferred_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     F f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename E, typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_future_executor_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_future_executor_continuation_shared_state(
     E& ex,
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename E, typename F, typename S, typename C>
-  BOOST_THREAD_FUTURE<S>
-  make_shared_future_executor_continuation_shared_state(
+  BOOST_THREAD_FUTURE<S> make_shared_future_executor_continuation_shared_state(
     E& ex,
     boost::unique_lock<boost::mutex>& lock,
     F f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename E, typename F, typename S>
-  BOOST_THREAD_FUTURE<S>
-  make_future_executor_shared_state(
+  BOOST_THREAD_FUTURE<S> make_future_executor_shared_state(
     E& ex,
     BOOST_THREAD_FWD_REF(F) f);
 
   template <typename F, typename S>
   struct future_unwrap_shared_state;
   template <typename F, typename S>
-  inline BOOST_THREAD_FUTURE<S>
-  make_future_unwrap_shared_state(
+  inline BOOST_THREAD_FUTURE<S> make_future_unwrap_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f);
 } // namespace detail
@@ -1146,22 +1136,19 @@ private:
   friend struct future_deferred_continuation_shared_state;
 
   template <typename F, typename S, typename C>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_async_continuation_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_async_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_sync_continuation_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_sync_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename F, typename S, typename C>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_deferred_continuation_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_deferred_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
@@ -1188,8 +1175,7 @@ private:
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename E, typename F, typename S, typename C>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_executor_continuation_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_executor_continuation_shared_state(
     E& ex,
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f,
@@ -1204,20 +1190,17 @@ private:
     BOOST_THREAD_FWD_REF(C) c);
 
   template <typename E, typename F, typename S>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_executor_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_executor_shared_state(
     E& ex,
     BOOST_THREAD_FWD_REF(F) f);
 
   template <typename E, typename S, typename C>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_unwrap_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_unwrap_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(E) f);
 
   template <typename F, typename S>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_unwrap_shared_state(
+  friend BOOST_THREAD_FUTURE<S> make_future_unwrap_shared_state(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f);
 
@@ -1251,12 +1234,12 @@ private:
   friend class boost::detail::future_waiter;
 
   template <class S, class F>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f);
+  friend BOOST_THREAD_FUTURE<S> make_future_async_shared_state(
+    BOOST_THREAD_FWD_REF(F) f);
 
   template <class S, class F>
-  friend BOOST_THREAD_FUTURE<S>
-  make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f);
+  friend BOOST_THREAD_FUTURE<S> make_future_deferred_shared_state(
+    BOOST_THREAD_FWD_REF(F) f);
 
   typedef typename base_type::move_dest_type move_dest_type;
 
@@ -2516,8 +2499,8 @@ BOOST_THREAD_DCL_MOVABLE_END
 namespace detail {
 
 template <typename S, typename F>
-BOOST_THREAD_FUTURE<S>
-make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f) {
+BOOST_THREAD_FUTURE<S> make_future_async_shared_state(
+  BOOST_THREAD_FWD_REF(F) f) {
   boost::shared_ptr<future_async_shared_state<S, F> > h(
     new future_async_shared_state<S, F>());
   h->init(boost::forward<F>(f));
@@ -2525,8 +2508,8 @@ make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f) {
 }
 
 template <typename S, typename F>
-BOOST_THREAD_FUTURE<S>
-make_future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) {
+BOOST_THREAD_FUTURE<S> make_future_deferred_shared_state(
+  BOOST_THREAD_FWD_REF(F) f) {
   boost::shared_ptr<future_deferred_shared_state<S, F> > h(
     new future_deferred_shared_state<S, F>(boost::forward<F>(f)));
   return BOOST_THREAD_FUTURE<S>(h);
@@ -2716,8 +2699,8 @@ struct future_executor_shared_state : shared_state<S> {
 }; // future_executor_shared_size
 
 template <typename E, typename F, typename S>
-BOOST_THREAD_FUTURE<S>
-make_future_executor_shared_state(E& ex, BOOST_THREAD_FWD_REF(F) f) {
+BOOST_THREAD_FUTURE<S> make_future_executor_shared_state(
+  E& ex, BOOST_THREAD_FWD_REF(F) f) {
   boost::shared_ptr<future_executor_shared_state<S> > h(
     new future_executor_shared_state<S>());
   h->init(ex, boost::forward<F>(f));
@@ -3051,6 +3034,7 @@ BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
 
+/* future_executor_continuation_shared_state */
 template <typename F, typename S, typename C>
 struct future_executor_continuation_shared_state :
   boost::detail::continuation_shared_state<F, S, C> {
@@ -3075,6 +3059,7 @@ struct future_executor_continuation_shared_state :
   ~future_executor_continuation_shared_state() {}
 }; // future_executor_continuation_shared_state
 
+/* shared_future_async_continuation_shared_state */
 template <typename F, typename S, typename C>
 struct shared_future_async_continuation_shared_state :
   boost::detail::continuation_shared_state<
@@ -3093,6 +3078,7 @@ struct shared_future_async_continuation_shared_state :
   }
 }; // shared_future_async_continuation_shared_state
 
+/*  shared_future_sync_continuation_shared_state */
 template <typename F, typename S, typename C>
 struct shared_future_sync_continuation_shared_state :
   boost::detail::continuation_shared_state<
@@ -3109,6 +3095,7 @@ struct shared_future_sync_continuation_shared_state :
   }
 }; // shared_future_sync_continuation_shared_state
 
+/* shared_future_executor_continuation_shared_state */
 template <typename F, typename S, typename C>
 struct shared_future_executor_continuation_shared_state :
   boost::detail::continuation_shared_state<F, S, C> {
@@ -3133,6 +3120,7 @@ struct shared_future_executor_continuation_shared_state :
   ~shared_future_executor_continuation_shared_state() {}
 }; // shared_future_executor_continuation_shared_state
 
+/* future_deferred_continuation */
 template <typename F, typename S, typename C>
 struct future_deferred_continuation_shared_state :
   boost::detail::continuation_shared_state<F, S, C> {
@@ -3152,6 +3140,7 @@ struct future_deferred_continuation_shared_state :
   virtual void launch_continuation() {}
 }; // future_deferred_continuation()
 
+/* shared_future_deferred_continuation_shared_state */
 template <typename F, typename S, typename C>
 struct shared_future_deferred_continuation_shared_state :
   boost::detail::continuation_shared_state<F, S, C> {
@@ -3170,5 +3159,42 @@ struct shared_future_deferred_continuation_shared_state :
 
   virtual void launch_continuation() {}
 }; // shared_future_deferred_continuation_shared_state
+
+/*  make_future_async_continuation_shared_state */
+template <typename F, typename S, typename C>
+BOOST_THREAD_FUTURE<S> make_future_async_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename decay<C>::type callback_type;
+
+  boost::shared_ptr<
+    future_async_continuation_shared_state<
+      F, S, callback_type> > h(
+        new future_async_continuation_shared_state<F, S, callback_type>(
+          boost::move(f), boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<S>(h);
+} // make_future_async_continuation_shared_state
+
+/*  make_future_deferred_continuation_shared_state */
+template <typename F, typename S, typename C>
+BOOST_THREAD_FUTURE<S> make_future_deferred_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename decay<C>::type callback_type;
+
+  boost::shared_ptr<
+    future_deferred_continuation_shared_state<
+      F, S, callback_type> > h(
+        new future_deferred_continuation_shared_state<F, S, callback_type>(
+          boost::move(f), boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<S>(c);
+} // make_future_deferred_continuation_shared_state
+
 } // namespace detail
 } // namespace boost
