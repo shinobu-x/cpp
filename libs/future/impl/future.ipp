@@ -3235,5 +3235,58 @@ BOOST_THREAD_FUTURE<S> make_future_executor_continuation_shared_state(
   return BOOST_THREAD_FUTURE<S>(h);
 } // make_future_executor_continuation_shared_state
 
+/* make_shared_future_async_continuation_shared_state */
+template <typename F, typename S, typename C>
+BOOST_THREAD_FUTURE<S> make_shared_future_async_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  F f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::shared_future_async_continuation_shared_state<
+      F, S, callback_type> > h(
+        new boost::detail::shared_future_async_continuation_shared_state<
+          F, S, callback_type>(
+            f, boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<S>(h);
+} // make_shared_future_async_continuation_shared_state
+
+/* make_shared_future_sync_continuation_shared_state */
+template <typename F, typename S, typename C>
+BOOST_THREAD_FUTURE<S> make_shared_future_sync_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  F f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::shared_future_sync_continuation_shared_state<
+      F, S, callback_type> > h(
+        new boost::detail::shared_future_sync_continuation_shared_state<
+          F, S, callback_type>(
+            f, boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<S>(h);
+} // make_shared_future_sync_continuation_shared_state
+
+/* make_shared_future_deferred_continuation_shared_state */
+template <typename F, typename S, typename C>
+BOOST_THREAD_FUTURE<S> make_shared_future_deferred_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  F f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::shared_future_deferred_continuation_shared_state<
+      F, S, callback_type> > h(
+        new boost::detail::shared_future_deferred_continuation_shared_state<
+          F, S, callback_type>(
+            f, boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<S>(h);
+} // make_shared_future_deferred_continuation_shared_state
 } // namespace detail
 } // namespace boost
