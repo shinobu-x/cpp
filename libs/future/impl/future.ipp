@@ -3041,7 +3041,71 @@ struct run_it {
   void operator()() {
     that_->run(that_);
   }
-}; // future_executor_continuation_shared_state
+}; // run_it
 } // namespace detail
 
+BOOST_THREAD_DCL_MOVABLE_BEG(F)
+detail::run_it<F>
+BOOST_THREAD_DCL_MOVABLE_END
+
+namespace detail {
+
+template <typename F, typename S, typename C>
+struct future_executor_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, S, C> {
+  typedef boost::detail::continuation_shared_state<F, S, C> base_type;
+
+  future_executor_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  template <typename Ex>
+  void init(boost::unique_lock<boost::mutex>& lock, Ex& ex) {
+    this->set_executor_policy(
+      executor_ptr_type(new executor_ref<Ex>(ex)), lock);
+    this->base_type::init(lock);
+  }
+
+  void launch_continuation() {
+    run_it<base_type> f(static_shared_from_this(this));
+    this->get_executor()>submit(boost::move(f));
+  }
+
+  ~future_executor_continuation_shared_state() {}
+}; // future_executor_continuation_shared_state
+
+template <typename F, typename S, typename C>
+struct shared_future_async_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::future_async_shared_state_base<S> > {
+  typedef boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::future_async_shared_state_base<S> > base_type;
+
+  shared_future_async_continuation_shared_state(
+    F f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    boost::lock_guard<boost::mutex> lock(this->mutex);
+    this->th_ = boost::thread(&base_type::run, static_shared_from_this(this));
+  }
+}; // shared_future_async_continuation_shared_state
+
+template <typename F, typename S, typename C>
+struct shared_future_sync_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::shared_state<S> > {
+  typedef boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::shared_state<S> > base_type;
+
+  shared_future_sync_continuation_shared_state(
+    F f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    this->call();
+  }
+}; // shared_future_sync_continuation_shared_state
+
+} // namespace detail
 } // namespace boost
