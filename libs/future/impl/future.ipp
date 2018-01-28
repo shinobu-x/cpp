@@ -5,6 +5,7 @@
  *   typenema F       // Function type
  *   typename S       // State type
  *   typename C       // Callback function type
+ *   typenmae St      // Shared state type
  *   typename Ex      // Exception type
  *   typename... Args // Prameter pack
  * >
@@ -358,7 +359,7 @@ private:
 }; // shared_state_base
 
 template <typename T>
-struct shared_state : shared_state_base {
+struct shared_state : boost::detail::shared_state_base {
   typedef boost::optional<T> storage_type;
   typedef typename boost::conditional<
     boost::is_fundamental<T>::value,
@@ -371,7 +372,7 @@ struct shared_state : shared_state_base {
 
   shared_state() : result() {}
   shared_state(boost::exceptional_ptr const& ex) :
-    shared_state_base(ex), result() {}
+    boost::detail::shared_state_base(ex), result() {}
   ~shared_state() {}
 
   void mark_finished_with_result_internal(
@@ -458,7 +459,7 @@ private:
 }; // shared_state
 
 template <typename T>
-struct shared_state<T&> : shared_state_base {
+struct shared_state<T&> : boost::detail::shared_state_base {
   typedef T* storage_type;
   typedef T& source_reference_type;
   typedef T& move_dest_type;
@@ -466,7 +467,8 @@ struct shared_state<T&> : shared_state_base {
   T* result;
 
   shared_state() : result(0) {}
-  shared_state(boost::exception_ptr const& ex) : shared_state_base(ex),
+  shared_state(boost::exception_ptr const& ex) :
+    boost::detail::shared_state_base(ex),
     result(0) {}
   ~shared_state() {}
 
@@ -519,12 +521,13 @@ private:
 }; // shared_state
 
 template <>
-struct shared_state<void> : shared_state_base {
+struct shared_state<void> : boost::detail::shared_state_base {
   typedef void shared_future_get_result_type;
   typedef void move_dest_type;
 
   shared_state() {}
-  shared_state(boost::exceptional_ptr const& ex) : shared_state_base(ex) {}
+  shared_state(boost::exceptional_ptr const& ex) :
+    boost::detail::shared_state_base(ex) {}
   ~shared_state() {}
 
   void mark_finished_with_result_internal(
@@ -739,12 +742,14 @@ public:
   typedef std::vector<int>::size_type count_type;
 private:
   struct registered_waiter {
-    boost::shared_ptr<shared_state_base> future_;
-    shared_state_base::notify_when_ready_handle handle_;
+    boost::shared_ptr<boost::detail::shared_state_base> future_;
+    boost::detail::shared_state_base::notify_when_ready_handle handle_;
     count_type index_;
 
-    registered_waiter(boost::shared_ptr<shared_state_base> const& future,
-      shared_state_base::notify_when_ready_handle handle, count_type index) :
+    registered_waiter(boost::shared_ptr<
+      boost::detail::shared_state_base> const& future,
+      boost::detail::shared_state_base::notify_when_ready_handle handle,
+      count_type index) :
       future_(future), handle_(handle), index_(index) {}
   };
 
@@ -1743,7 +1748,7 @@ public:
   template <typename R2>
   typename boost::disable_if<
     boost::is_void<R2>,
-    typename shared_state::shared_future_get_result>::type get_or(
+    typename shared_state::shared_future_get_result_type>::type get_or(
     BOOST_THREAD_RV_REF(R2) v) const {
     if (!this->future_) {
       boost::throw_exception(boost::future_uninitialized());
@@ -2583,7 +2588,7 @@ namespace detail {
 
 template <typename S, typename F>
 struct shared_state_nullary_task {
-  typedef boost::shared_ptr<shared_state_base> storage_type;
+  typedef boost::shared_ptr<boost::detail::shared_state_base> storage_type;
   storage_type st_;
   F f_;
 
@@ -2634,7 +2639,7 @@ struct shared_state_nullary_task {
 
 template <typename F>
 struct shared_state_nullary_task<void, F> {
-  typedef boost::shared_ptr<shared_state_base> storage_type;
+  typedef boost::shared_ptr<boost::detail::shared_state_base> storage_type;
   storage_type st_;
   F f_;
 
@@ -2849,5 +2854,194 @@ BOOST_THREAD_FUTURE<T> make_exceptional_future(boost::exception_ptr e) {
   p.set_exception(e);
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 } // make_exceptional_future
+
+#if 0
+  template <typename C>
+  make_future<C c) -> BOOST_THREAD_FUTURE<decltype(c())> {
+    typedef decltype(c()) T;
+    promise<T> p;
+    try {
+      p.set_value(c());
+    } catch (...) {
+      p.set_exception(boost::current_exception());
+    }
+    return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+  }
+#endif
+
+template <typename T>
+shared_future<typename decay<T>::type> make_shared_future(
+  BOOST_THREAD_FWD_REF(T) value) {
+  typedef typename decay<T>::type future_type;
+  promise<future_type> p;
+  p.set_value(boost::forward<T>(value));
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
+} // make_shared_future
+
+inline shared_future<void> make_shared_future() {
+  promise<void> p;
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
+} // make_shared_future
+
+namespace detail {
+
+template <typename F, typename S, typename C, typename St = shared_state<S> >
+struct continuation_shared_state : St {
+  F parent;
+  C continuation;
+
+  continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    parent(boost::move(f)), continuation(boost::move(c)) {}
+
+  void init(boost::unique_lock<boost::mutex>& lock) {
+    parent.future_->set_continuation_ptr(this->shared_from_this(), lock);
+  }
+
+  void call() {
+    try {
+      this->mark_finished_with_result(
+        this->continuation(boost::move(this->parent)));
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+    this->parent = F();
+  }
+
+  void call(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      relocker lock(lock);
+      S r = this->continuation(boost::move(this->parent));
+      this->parent = F();
+      lock.lock();
+      this->mark_finish_with_result_internal(boost::move(r), lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+      relocker lock(lock);
+      this->parent = F();
+    }
+  }
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+    continuation_shared_state* that_ =
+      static_cast<continuation_shared_state*>(that.get());
+    that_->call();
+  }
+
+  ~continuation_shared_state() {}
+}; // continuation_shared_state
+
+template <typename F, typename C, typename St>
+struct continuation_shared_state<F, void, C, St> : St {
+  F parent;
+  C continuation;
+
+  continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    parent(boost::move(f)), continuation(boost::move(c)) {}
+
+  void init(boost::unique_lock<boost::mutex>& lock) {
+    parent.future_->set_continuation_ptr(this->shared_from_this(), lock);
+  }
+
+  void call() {
+    try {
+      this->continuation(boost::move(this->parent));
+      this->mark_finished_with_result();
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+    this->parent = F();
+  }
+
+  void call(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      relocker lock(lock);
+      this->continuation(boost::move(this->parent));
+      this->parent = F();
+      this->mark_finished_with_result_internal(lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+      relocker lock(lock);
+      this->parent = F();
+    }
+  }
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+    continuation_shared_state* that_ =
+      static_cast<continuation_shared_state*>(that.get());
+    that_->call();
+  }
+
+  ~continuation_shared_state() {}
+}; // continuation_shared_state
+
+template <typename F, typename S, typename C>
+struct future_async_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, S, C,
+    boost::detail::future_async_shared_state_base<S> > {
+  typedef boost::detail::continuation_shared_state<F, S, C,
+    boost::detail::future_async_shared_state_base<S> > base_type;
+
+  future_async_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    boost::lock_guard<boost::mutex> lock(this->mutex);
+    this->th_ = boost::thread(&future_async_continuation_shared_state::run,
+      static_shared_from_this(this));
+  }
+}; // future_async_continuation_shared_state
+
+template <typename F, typename S, typename C>
+struct future_sync_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::shared_state<S> > {
+  typedef boost::detail::continuation_shared_state<
+    F, S, C, boost::detail::shared_state<S> > base_type;
+
+  future_sync_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    this->call();
+  }
+}; // future_sync_continuation_shared_state
+
+template <typename Ex>
+struct run_it {
+  boost::shared_ptr<Ex> that_;
+
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(run_it)
+  run_it(run_it const& ex) : that_(ex.that_) {}
+
+  run_it& operator=(BOOST_THREAD_COPY_ASSIGN_REF(run_it) ex) {
+    if (this != &ex) {
+      that_ = ex.that_;
+    }
+    return *this;
+  }
+
+  run_it(BOOST_THREAD_RV_REF(run_it) ex) BOOST_NOEXCEPT : that_(ex.that_) {
+    ex.that_.reset();
+  }
+
+  run_it& operator=(BOOST_THREAD_RV_REF(run_it) ex) BOOST_NOEXCEPT {
+    if (this != &ex) {
+      that_ = ex.that_;
+      ex.that_.reset();
+    }
+    return *this;
+  }
+
+  run_it(boost::shared_ptr<Ex> that) : that_(that) {}
+
+  void operator()() {
+    that_->run(that_);
+  }
+}; // future_executor_continuation_shared_state
+} // namespace detail
 
 } // namespace boost
