@@ -71,7 +71,7 @@ struct shared_state_base :
   waiters_list external_waiters;
   boost::function<void()> callback;
   continuations_type continuations;
-  executor_ptr_type executor;
+  boost::executor_ptr_type executor;
 
   virtual void launch_continuation() {}
 
@@ -86,22 +86,22 @@ struct shared_state_base :
 
   virtual ~shared_state_base() {}
 
-  executor_ptr_type get_executor() {
+  boost::executor_ptr_type get_executor() {
     return executor;
   }
 
-  void set_executor_policy(executor_ptr_type ex) {
+  void set_executor_policy(boost::executor_ptr_type ex) {
     set_executor();
     executor = ex;
   }
 
-  void set_executor_policy(executor_ptr_type ex,
+  void set_executor_policy(boost::executor_ptr_type ex,
     boost::lock_guard<boost::mutex>&) {
     set_executor();
     executor = ex;
   }
 
-  void set_executor_policy(executor_ptr_type ex,
+  void set_executor_policy(boost::executor_ptr_type ex,
     boost::unique_lock<boost::mutex>&) {
     set_executor();
     executor = ex;
@@ -613,12 +613,12 @@ struct future_async_shared_state : future_async_shared_state_base<S> {
   void init(BOOST_THREAD_FWD_REF(F) f) {
     this->th_ = boost::thread(
       &future_async_shared_state::run,
-      static_shared_from_this(this),
+      boost::static_shared_from_this(this),
       boost::forward<F>(f));
 
     boost::thread(
       &future_async_shared_state::run,
-      static_shared_from_this(this),
+      boost::static_shared_from_this(this),
       boost::forward<F>(f)).detach();
   }
 
@@ -639,7 +639,7 @@ struct future_async_shared_state<void, F> :
   void init(BOOST_THREAD_FWD_REF(F) f) {
     this->th_ = boost::thread(
       &future_async_shared_state::run,
-      static_shared_from_this(this),
+      boost::static_shared_from_this(this),
       boost::move(f));
   }
 
@@ -661,7 +661,7 @@ struct future_async_shared_state<S&, F> :
   void init(BOOST_THREAD_FWD_REF(F) f) {
     this->th_ = boost::thread(
       &future_async_shared_state::run,
-      static_shared_from_this(this),
+      boost::static_shared_from_this(this),
       boost::move(f));
   }
 
@@ -1858,7 +1858,7 @@ public:
     std::swap(future_obtained, that.future_obtained);
   }
 
-  void set_executor(executor_ptr_type ex) {
+  void set_executor(boost::executor_ptr_type ex) {
     lazy_init();
 
     if (future_.get() == 0) {
@@ -2435,7 +2435,7 @@ public:
     return *this;
   }
 
-  void set_executor(executor_ptr_type ex) {
+  void set_executor(boost::executor_ptr_type ex) {
     if (!valid()) {
       boost::throw_exception(task_moved());
     }
@@ -2705,7 +2705,8 @@ struct future_executor_shared_state : shared_state<S> {
   template <typename E, typename F>
   void init(E& ex, BOOST_THREAD_FWD_REF(F) f) {
     typedef typename decay<F>::type result_type;
-    this->set_executor_policy(executor_ptr_type(new executor_ref<E>(ex)));
+    this->set_executor_policy(
+      boost::executor_ptr_type(new executor_ref<E>(ex)));
     shared_state_nullary_task<S, result_type> t(
       this->shared_from_this(), boost::forward<F>(f));
     ex.submit(boost::move(f));
@@ -2990,7 +2991,7 @@ struct future_async_continuation_shared_state :
   void launch_continuation() {
     boost::lock_guard<boost::mutex> lock(this->mutex);
     this->th_ = boost::thread(&future_async_continuation_shared_state::run,
-      static_shared_from_this(this));
+      boost::static_shared_from_this(this));
   }
 }; // future_async_continuation_shared_state
 
@@ -3062,12 +3063,12 @@ struct future_executor_continuation_shared_state :
   template <typename Ex>
   void init(boost::unique_lock<boost::mutex>& lock, Ex& ex) {
     this->set_executor_policy(
-      executor_ptr_type(new executor_ref<Ex>(ex)), lock);
+      boost::executor_ptr_type(new executor_ref<Ex>(ex)), lock);
     this->base_type::init(lock);
   }
 
   void launch_continuation() {
-    run_it<base_type> f(static_shared_from_this(this));
+    run_it<base_type> f(boost::static_shared_from_this(this));
     this->get_executor()>submit(boost::move(f));
   }
 
@@ -3087,7 +3088,8 @@ struct shared_future_async_continuation_shared_state :
 
   void launch_continuation() {
     boost::lock_guard<boost::mutex> lock(this->mutex);
-    this->th_ = boost::thread(&base_type::run, static_shared_from_this(this));
+    this->th_ = boost::thread(
+      &base_type::run, boost::static_shared_from_this(this));
   }
 }; // shared_future_async_continuation_shared_state
 
@@ -3107,5 +3109,28 @@ struct shared_future_sync_continuation_shared_state :
   }
 }; // shared_future_sync_continuation_shared_state
 
+template <typename F, typename S, typename C>
+struct shared_future_executor_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, S, C> {
+  typedef boost::detail::continuation_shared_state<F, S, C> base_type;
+
+  shared_future_executor_continuation_shared_state(
+    F f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  template <typename Ex>
+  void init(boost::unique_lock<boost::mutex>& lock, Ex& ex) {
+    this->set_executor_policy(
+      boost::executor_ptr_type(new executor_ref<Ex>(ex)), lock);
+    this->base_type::init();
+  }
+
+  void launch_continuation() {
+    run_it<base_type> f(boost::static_shared_from_this(this));
+    this->get_executor()->submit(boost::move(f));
+  }
+
+  ~shared_future_executor_continuation_shared_state() {}
+}; // shared_future_executor_continuation_shared_state
 } // namespace detail
 } // namespace boost
