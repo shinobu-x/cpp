@@ -1259,8 +1259,8 @@ public:
     BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
     base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
 
-  inline explicit BOOST_THREAD_FUTURE(
-    BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
+//  inline explicit BOOST_THREAD_FUTURE(
+//    BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
 
   explicit BOOST_THREAD_FUTURE(BOOST_THREAD_RV_REF(
     BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that) :
@@ -4117,19 +4117,19 @@ namespace detail {
 
   BOOST_CONSTEXPR_OR_CONST input_iterator_tag input_iterator_tag_value = {};
   BOOST_CONSTEXPR_OR_CONST vector_tag vector_tag_value = {};
-  BOOST_CONSTEXPR_OR-CONST values_tag values_tag_value = {};
+  BOOST_CONSTEXPR_OR_CONST values_tag values_tag_value = {};
 
   /**
    * future_async_when_all_shared_state
    */
   template <typename F>
-  struct future_async_when_all_shared_state :
+  struct future_when_all_vector_shared_state :
     future_async_shared_state_base<boost::csbl::vector<F> > {
-    typedef boost;;csbl::vector<F> vector_type;
+    typedef boost::csbl::vector<F> vector_type;
     typedef typename F::value_type value_type;
     vector_type vec_;
 
-    static void run(bost::shared_ptr<bosot::detail::shared_state_base> that) {
+    static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
       future_when_all_vector_shared_state* that_ =
         static_cast<future_when_all_vector_shared_state*>(that.get());
 
@@ -4168,6 +4168,28 @@ namespace detail {
       input_iterator_tag, InputIter first, InputIter last) :
       vec_(std::make_move_iterator(first), std::make_move_iterator(last)) {}
 
+    future_when_all_vector_shared_state(vector_tag,
+      BOOST_THREAD_RV_REF(boost::csbl::vector<F>) v) :
+      vec_(boost::move(v)) {}
 
+    template <typename T, typename... Tn>
+    future_when_all_vector_shared_state(values_tag,
+      BOOST_THREAD_FWD_REF(T) f,
+      BOOST_THREAD_FWD_REF(Tn) ...futures) {
+      vec_.push_back(boost::forward<T>(f));
+
+      typename alias_t<char[]>::type {
+        (
+          vec_.push_back(
+            boost::forward<T>(futures)),
+          '0'
+        )...,
+        '0'
+      };
+    }
+
+    ~future_when_all_vector_shared_state() {}
+  };
 } // namespace detail
+
 } // namespace boost
