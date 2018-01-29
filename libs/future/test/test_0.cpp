@@ -1,14 +1,13 @@
 #include "../hpp/future.hpp"
 
-template <typename T>
 struct test_callback {
-  boost::future<T> operator()(boost::future<T> f) const {
+  boost::future<void> operator()(boost::future<void> f) const {
     assert(f.is_ready());
     f.get();
     return boost::make_ready_future();
   }
 
-  boost::future<T> operator()(boost::future<boost::future<T> > f) const {
+  boost::future<void> operator()(boost::future<boost::future<void> > f) const {
     assert(f.is_ready());
     f.get();
     return boost::make_ready_future();
@@ -38,8 +37,8 @@ void doit() {
   }
   {
     boost::promise<void> p;
-    boost::future<void> f = p.get_future();
-//    f.then(test_callback<void>());
+    boost::future<void> f(p.get_future());
+//    auto f1 = f.then(test_callback());
   }
   {
     int a = 10;
