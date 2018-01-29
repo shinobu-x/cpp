@@ -403,7 +403,7 @@ struct shared_state : boost::detail::shared_state_base {
   }
 
   void mark_finished_with_result(rvalue_source_type new_result) {
-    boost::unique_lock<boost::mutex> lock(this->lock);
+    boost::unique_lock<boost::mutex> lock(this->mutex);
     mark_finished_with_result_internal(boost::move(new_result), lock);
   }
 
@@ -417,7 +417,7 @@ struct shared_state : boost::detail::shared_state_base {
   }
 
   move_dest_type get() {
-    boost::unique_lock<boost::mutex> lock(this->lock);
+    boost::unique_lock<boost::mutex> lock(this->mutex);
     return this->get(lock);
   }
 
@@ -2895,14 +2895,14 @@ struct continuation_shared_state : St {
 
   void call(boost::unique_lock<boost::mutex>& lock) {
     try {
-      relocker lock(lock);
+      relocker relock(lock);
       S r = this->continuation(boost::move(this->parent));
       this->parent = F();
-      lock.lock();
-      this->mark_finish_with_result_internal(boost::move(r), lock);
+      relock.lock();
+      this->mark_finished_with_result_internal(boost::move(r), lock);
     } catch (...) {
       this->mark_exceptional_finish_internal(boost::current_exception(), lock);
-      relocker lock(lock);
+      relocker relock(lock);
       this->parent = F();
     }
   }
@@ -3661,4 +3661,12 @@ inline BOOST_THREAD_FUTURE<typename boost::result_of<
 // auto future<future<S> >::then(launch, F&& f)
 //   -> BOOST_THREAD_FUTURE<decltype(f(*this))>
 
+/**
+ * template <typename S>
+ * template <typename E, typename F>
+ * auto future<future<S> >::then(E&, F&& f)
+ *   -> BOOST_THREAD_FUTURE<decltype(f(*this))>
+ */
+template <typename S>
+template <typename E, typename F>
 } // namespace boost
