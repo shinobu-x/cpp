@@ -1259,6 +1259,13 @@ public:
     BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
     base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
 
+  inline explicit BOOST_THREAD_FUTURE(
+    BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
+
+  explicit BOOST_THREAD_FUTURE(BOOST_THREAD_RV_REF(
+    BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that) :
+    base_type(boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
+
   BOOST_THREAD_FUTURE& operator=(
     BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
     this->base_type::operator=(
