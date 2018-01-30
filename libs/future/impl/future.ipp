@@ -4189,7 +4189,77 @@ namespace detail {
     }
 
     ~future_when_all_vector_shared_state() {}
-  };
+  }; // future_when_all_vector_shared_state
+
+  /**
+   * future_async_when_any_vector_shared_state
+   */
+  template <typename F>
+  struct future_when_any_vector_shared_state :
+    future_async_shared_state_base<boost::csbl::vector<F> > {
+    typedef boost::csbl::vector<F> vector_type;
+    typedef typename F::value_type value_type;
+    vector_type vec_;
+
+    static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+      future_when_any_vector_shared_state* that_ =
+        static_cast<future_when_any_vector_shared_state*>(that.get());
+
+      try {
+        boost::wait_for_any(that_->vec_.begin(), that_->vec_.end());
+        that_->mark_finished_with_result(boost::move(that_->vec_));
+      } catch (...) {
+        that->mark_exceptional_finish();
+      }
+    }
+
+    bool run_deferred() {
+      typename boost::csbl::vector<F>::iterator it = vec_.begin();
+
+      for (; it != vec_.end(); ++it) {
+        if (it->run_if_is_deferred_or_ready()) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    void init() {
+      if (run_deferred()) {
+        future_when_any_vector_shared_state::run(this->shared_from_this());
+        return;
+      }
+
+      this->th_ = boost::thread(&future_when_any_vector_shared_state::run,
+        this->shared_from_this());
+    }
+
+    template <typename InputIter>
+    future_when_any_vector_shared_state(
+      input_iterator_tag, InputIter first, InputIter last) :
+      vec_(std::make_move_iterator(first), std::make_move_iterator(last)) {}
+
+    future_when_any_vector_shared_state(vector_tag,
+      BOOST_THREAD_RV_REF(boost::csbl::vector<F>) v) :
+      vec_(boost::move(v)) {}
+
+    template <typename T, typename... Tn>
+    future_when_any_vector_shared_state(values_tag,
+      BOOST_THREAD_FWD_REF(T) f, BOOST_THREAD_FWD_REF(Tn) ...futures) {
+      vec_.push_back(boost::forward<T>(f));
+
+      typename alias_t<char[]>::type {
+        (
+          vec_.push_back(boost::forward<T>(futures)),
+          '0'
+        )...,
+        '0'
+      };
+    }
+
+    ~future_when_any_vector_shared_state() {}
+  }; // future_when_any_vector_shared_state
 } // namespace detail
 
 } // namespace boost
