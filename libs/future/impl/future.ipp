@@ -161,7 +161,7 @@ struct shared_state_base :
     }
 #else
     void set_executor() {}
-#endif
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 
     notify_when_ready_handle notify_when_ready(
       boost::condition_variable_any&  cv) {
@@ -190,7 +190,7 @@ struct shared_state_base :
     }
 #else
     void do_continuation(boost::unique_lock<boost::mutex>&) {}
-#endif
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
 #if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
     virtual void set_continuation_ptr(continuation_ptr_type continuation,
@@ -201,7 +201,7 @@ struct shared_state_base :
         do_continuation(lock);
       }
     }
-#endif
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
     void mark_finished_internal(boost::unique_lock<boost::mutex>& lock) {
       done_ = true;
@@ -280,8 +280,57 @@ struct shared_state_base :
     }
 
 #if defined BOOST_THREAD_USES_DATETIME
+    bool timed_wait_until(boost::system_time const& target_time) {
+      boost::unique_lock<boost::mutex> lock(this->mutex_);
 
-#endif
+      if (is_deferred_) {
+        return false;
+      }
+
+      do_callback_(lock);
+
+      while (!done_) {
+        bool const success = wiaters_.timed_wait(lock, target_time);
+
+        if (!success && !done_) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+#endif // BOOST_THREAD_USES_DATETIME
+
+#if defined BOOST_THREAD_USES_CHRONO
+    template <typename Clock, typename Duration>
+    future_status wait_until(
+      const chrono::time_point<Clock, Duration>& abs_time) {
+      boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+      if (is_deferred_) {
+        return boost::future_status::deferred;
+      }
+
+      do_callback_(lock);
+
+      while (!done_) {
+        cv_status const status = waiters_.wait_until(lock, abs_time);
+
+        if (status == cv_status::timeout && !done_) {
+          return boost::future_status::timeout;
+        }
+      }
+
+      return boost::future_status::ready;
+    }
+#endif // BOOST_THREAD_USES_CHRONO
+
+    void mark_exceptional_finish_internal(
+      boost::exception_ptr const& e, boost::unique_lock<boost::mutex>& lock) {
+      exception_ = e;
+      mark_finished_internal(lock);
+    }
+
 }; // shared_state_base
 } // namespace detail
 } // namespace boost
