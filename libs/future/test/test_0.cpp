@@ -1,5 +1,13 @@
 #include "../hpp/future.hpp"
 
+int p1() {
+  return 1;
+}
+
+int p2() {                   
+  return 1;                  
+}
+
 struct test_callback {
   boost::future<void> operator()(boost::future<void> f) const {
     assert(f.is_ready());
@@ -36,9 +44,8 @@ void doit() {
     auto r = f.get();
   }
   {
-    boost::promise<void> p;
-    boost::future<void> f(p.get_future());
-//    auto f1 = f.then(test_callback());
+    boost::promise<int> p;
+    boost::future<int> f(p.get_future());
   }
   {
     int a = 10;
