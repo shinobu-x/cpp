@@ -47,6 +47,15 @@ void doit() {
     boost::unique_lock<boost::mutex> lock;
     base_type.do_continuation(lock);
   }
+  {
+    boost::detail::shared_state<int> shared_state;
+  }
+  {
+    boost::detail::shared_state<int&> shared_state;
+  }
+  {
+    boost::detail::shared_state<void> shared_state;
+  }
 }
 
 auto main() -> decltype(0) {

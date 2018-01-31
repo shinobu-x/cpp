@@ -1,17 +1,3 @@
-/**
- * Template parameters order:
- * tempalte <
- *   typename E       // Executor type
- *   typenema F       // Function type
- *   typename S       // State type
- *   typename C       // Callback function type
- *   typenmae St      // Shared state type
- *   typename Ex      // Exception type
- *   typename... Args // Prameter pack
- * >
- * // end template parameters order
- */
-
 #include "../include/futures.hpp"
 
 namespace boost {
@@ -34,6 +20,7 @@ namespace detail {
 
 struct relocker;
 struct shared_state_base;
+template <typename T>
 struct shared_state;
 
 struct relocker {
@@ -179,7 +166,7 @@ struct shared_state_base :
       external_waiters_.erase(it);
     }
 
-#if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
     void do_continuation(boost::unique_lock<boost::mutex>& lock) {
       if (!continuations_.empty()) {
         continuations_type continuations = continuations_;
@@ -196,7 +183,7 @@ struct shared_state_base :
     void do_continuation(boost::unique_lock<boost::mutex>&) {}
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
-#if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
     virtual void set_continuation_ptr(continuation_ptr_type continuation,
       boost::unique_lock<boost::mutex>& lock) {
       continuations_.push_back(continuation);
@@ -283,7 +270,7 @@ struct shared_state_base :
       wait(lock, rethrow);
     }
 
-#if defined BOOST_THREAD_USES_DATETIME
+#ifdef BOOST_THREAD_USES_DATETIME
     bool timed_wait_until(boost::system_time const& target_time) {
       boost::unique_lock<boost::mutex> lock(this->mutex_);
 
@@ -305,7 +292,7 @@ struct shared_state_base :
     }
 #endif // BOOST_THREAD_USES_DATETIME
 
-#if defined BOOST_THREAD_USES_CHRONO
+#ifdef BOOST_THREAD_USES_CHRONO
     template <typename Clock, typename Duration>
     future_status wait_until(
       const chrono::time_point<Clock, Duration>& abs_time) {
@@ -406,5 +393,302 @@ struct shared_state_base :
     shared_state_base(shared_state_base const&);
     shared_state_base& operator=(shared_state_base const&);
 }; // shared_state_base
+
+template <typename T>
+struct shared_state : boost::detail::shared_state_base {
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
+  typedef boost::optional<T> storage_type;
+#else
+  typedef boost::csbl::unique_ptr<T> storage_type;
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+  typedef T const& source_reference_type;
+  typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
+  typedef T move_dest_type;
+#elif defined BOOST_THREAD_USES_MOVE
+  typedef typename boost::conditional<
+    boost::is_fundamental<T>::value, T, T const&>::type source_reference_type;
+  typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
+  typedef T move_dest_type;
+#else
+  typedef T& cource_reference_type;
+  typedef typename boost::conditional<
+    boost::thread_detail::is_convertible<
+      T&,
+      BOOST_THREAD_RV_REF(T)>::value,
+    BOOST_THREAD_RV_REF(T), T const&>::type rvalue_source_type;
+  typedef typename boost::conditional<
+    boost::thread_detail::is_convertible<
+      T&,
+      BOOST_THREAD_RV_REF(T)>::value,
+    BOOST_THREAD_RV_REF(T), T>::type move_dest_type;
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+
+  typedef const T& shared_future_get_result_type;
+  storage_type result_;
+
+  shared_state() : result_() {}
+  shared_state(boost::exceptional_ptr const& ex) :
+    boost::detail::shared_state_base(ex), result_() {}
+  ~shared_state() {}
+
+  void mark_finished_with_result_internal(source_reference_type result,
+    boost::unique_lock<boost::mutex>& lock) {
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
+    result_ = result;
+#else
+    result_.reset(new T(result));
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
+    this->mark_finished_internal(lock);
+  }
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename... Args>
+  void mark_finished_with_result_internal(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_FWD_REF(Args) ...args) {
+#ifdef BOOST_THREAD_FUTURES_USES_OPTIONAL
+    result_.emplace(boost::forward<Args>(args)...);
+#else
+    result_.reset(new T(boost::forward<Args>(args)...));
+#endif // BOOST_THREAD_FUTURES_USES_OPTIONAL
+    this->mark_finished_internal(lock);
+  }
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+  void mark_finished_with_result(source_reference_type result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    this->mark_finished_with_result_internal(result, lock);
+  }
+
+  void mark_finished_with_result(rvalue_source_type result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+    mark_finished_with_result_internal(boost::move(result), lock);
+#else
+    mark_finished_with_result_internal(
+      static_cast<rvalue_source_type>(result), lock);
+#endif
+  }
+
+  storage_type& get_storage(boost::unique_lock<boost::mutex>& lock) {
+    wait_internal(lock);
+    return result_;
+  }
+
+  virtual move_dest_type get(boost::unique_lock<boost::mutex>& lock) {
+    return boost::move(*get_storage(lock));
+  }
+
+  move_dest_type get() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    return this->get(lock);
+  }
+
+  virtual shared_future_get_result_type get_result_type(
+    boost::unique_lock<boost::mutex>& lock) {
+    return *get_storage(lock);
+  }
+
+  shared_future_get_result_type get_result_type() {
+    boost::unique_lock<boost::mutex> lock(this->mutex);
+    return get_result_type(lock);
+  }
+
+  void set_value_at_thread_exit(source_reference_type result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+#ifdef BOOST_THREAD_FUTURES_USES_OPTIONAL
+    result_ = result;
+#else
+    result_.reset(new T(result));
+#endif // BOOST_THREAD_FUTURES_USES_OPTIONAL
+    this->is_constructed_ = true;
+
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+  void set_value_at_thread_exit(rvalue_source_type result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
+    result_ = boost::move(result);
+#else
+    result_.reset(new T(static_cast<rvalue_source_type>(result)));
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
+}; // shared_state
+
+template <typename T>
+struct shared_state<T&> : boost::detail::shared_state_base {
+  typedef T* storage_type;
+  typedef T& source_reference_type;
+  typedef T& move_dest_type;
+  typedef T& shared_future_get_result_type;
+
+  T* result_;
+
+  shared_state() : result_(0) {}
+  shared_state(boost::exceptional_ptr const& ex) :
+    boost::detail::shared_state_base(ex), result_(0) {}
+  ~shared_state() {}
+
+  void mark_finished_with_result_internal(source_reference_type result,
+    boost::unique_lock<boost::mutex>& lock) {
+    result_ = result;
+    mark_finished_internal(lock);
+  }
+
+  void mark_finished_with_result(source_reference_type result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    mark_finished_with_result_internal(result, lock);
+  }
+
+  virtual T& get(boost::unique_lock<boost::mutex>& lock) {
+    wait_internal(lock);
+    return *result_;
+  }
+
+  T& get() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    return get(lock);
+  }
+
+  virtual T& get_result_type(boost::unique_lock<boost::mutex>& lock) {
+    wait_internal(lock);
+    return *result_;
+  }
+
+  T* get_result_type() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    return get_result_type(lock);
+  }
+
+  void set_value_at_thread_exit(T& result) {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    result_ = result;
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
+}; // shared_state
+
+template <>
+struct shared_state<void> :
+  boost::detail::shared_state_base {
+  typedef void shared_future_get_result_type;
+  typedef void move_dest_type;
+
+  shared_state() {}
+  shared_state(boost::exceptional_ptr const& ex) :
+    boost::detail::shared_state_base(ex) {}
+
+  void mark_finished_with_result_internal(
+    boost::unique_lock<boost::mutex>& lock) {
+    mark_finished_internal(lock);
+  }
+
+  void mark_finished_with_result() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    mark_finished_with_result_internal(lock);
+  }
+
+  virtual void get(boost::unique_lock<boost::mutex>& lock) {
+    this->wait_internal(lock);
+  }
+
+  void get() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    this->get(lock);
+  }
+
+  virtual void get_result_type(boost::unique_lock<boost::mutex>& lock) {
+    this->wait_internal(lock);
+  }
+
+  void get_result_type() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    this->get_result_type(lock);
+  }
+
+  void set_value_at_thread_exit() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+  }
+
+private:
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
+}; // shared_state
+
+template <typename S>
+struct future_async_shared_state_base :
+  boost::detail::shared_state<S> {
+  typedef boost::detail::shared_state<S> base_type;
+
+protected:
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+  boost::thread thr_;
+  void join() {
+    if (boost::this_thread::get_id() == thr_.get_id()) {
+      thr_.detach();
+      return;
+    }
+
+    if (thr_.joinable()) {
+      thr_.join();
+    }
+  }
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+public:
+  future_async_shared_state_base() {
+    this->set_async();
+  }
+
+  ~future_async_shared_state_base() {
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    join();
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+  }
+
+  virtual void wait(boost::unique_lock<boost::mutex>& lock, bool rethrow) {
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    {
+      relocker relock(lock);
+      join();
+    }
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+    this->base_type::wait(lock, rethrow);
+  }
+}; // future_async_shared_state_base
 } // namespace detail
 } // namespace boost
