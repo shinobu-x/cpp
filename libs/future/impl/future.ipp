@@ -808,5 +808,63 @@ struct future_deferred_shared_state<R&, F> :
     }
   }
 }; // future_deferred_shared_state
+
+template <typename F>
+struct future_deferred_shared_state<void, F> :
+  boost::detail::shared_state<void> {
+  typedef boost::detail::shared_state<void> base_type;
+  F f_;
+
+  explicit future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) :
+    f_(boost::move(f)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      F f = boost::move(f_);
+      relocker relock(lock);
+      f();
+      relock.lock();
+      this->mark_finished_with_result_internal(lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
+
+class future_waiter {
+public:
+  typedef std::vector<int>::size_type count_type;
+private:
+  struct registered_waiter {
+    boost::shared_ptr<boost::detail::shared_state_base> future_;
+    boost::detail::shared_state_base::notify_when_ready_handle handle_;
+    count_type index_;
+
+    registered_waiter(boost::shared_ptr<
+      boost::detail::shared_state_base> const& future,
+      boost::detail::shared_state_base::notify_when_ready_handle handle,
+      count_type index) :
+      future_(future), handle_(handle), index_(index) {}
+  };
+
+  struct all_futures_lock {
+#ifdef _MANAGED
+    typedef std::ptrdiff_t count_type_portable;
+#else
+    typedef count_type count_type_partable;
+#endif // _MANAGED
+    count_type_portable count_;
+    boost::scoped_array<boost::unique_lock<boost::mutex> > locks_;
+
+    all_futures_lock(std::vector_registered_waiter>& futures) :
+      count_(futures.size()),
+      locks(new boost::unique_lock<boost::mutex>[count_]) {
+
+    }
+  };
+  };
+};
 } // namespace detail
 } // namespace boost
