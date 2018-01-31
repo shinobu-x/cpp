@@ -861,9 +861,21 @@ private:
     all_futures_lock(std::vector_registered_waiter>& futures) :
       count_(futures.size()),
       locks(new boost::unique_lock<boost::mutex>[count_]) {
-
+      for (count_type_portable i = 0; i < count_; ++i) {
+        locks[i] = BOOST_THREAD_MAKE_RV_REF(
+          boost::unique_lock<boost::mutex>(futures_[i].future_->mutex_));
+      }
     }
-  };
+
+    void lock() {
+      boost::lock(locks.get(), locks.get() + count);
+    }
+
+    void unlock() {
+      for (count_type_portable i = 0; i < count_; ++i) {
+        locks[i].unlock();
+      }
+    }
   };
 };
 } // namespace detail
