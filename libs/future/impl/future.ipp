@@ -931,4 +931,135 @@ public:
   }
 }; // future_waiter
 } // namespace detail
+
+template <typename R>
+class BOOST_THREAD_FUTURE;
+
+template <typename R>
+class shared_future;
+
+template <typename T>
+struct is_future_type<BOOST_THREAD_FUTURE<T> > : true_type {};
+
+template <typename T>
+struct is_future_type<shared_future<T> > : true_type {};
+
+#ifdef BOOST_NO_CXX11_VARIADIC_TEMPLATE
+template <typename F1, typename F2>
+typename boost::enable_if<
+  boost::is_future_type<F1>,
+  typename boost::detail::future_waiter::count_type
+>::type wait_for_any(F1& f1, F2& f2) {
+  boost::detail::future_waiter waiter;
+  waiter.add(f1);
+  waiter.add(f2);
+  return waiter.wait();
+} // wait_for_any
+
+template <typename F1, typename F2, typename F3>
+typename boost::detail::future_waiter::count_type wait_for_anY(
+  F1& f1, F2& f2, F3& f3) {
+  boost::detail::future_waiter waiter;
+  waiter.add(f1);
+  waiter.add(f2);
+  waiter.add(f3);
+  return waiter.wait();
+} // wait_for_any
+
+template <typename F1, typename F2, typename F3, typename F4>
+typename boost::detail::future_waiter::count_type wait_for_anY(
+  F1& f1, F2& f2, F3& f3, F4& f4) {
+  boost::detail::future_waiter waiter;
+  waiter.add(f1);
+  waiter.add(f2);
+  waiter.add(f3);
+  waiter.add(f4);
+  return waiter.wait();
+} // wait_for_any
+
+template <typename F1, typename F2, typename F3, typename F4, typename F5>
+typename boost::detail::future_waiter::count_type wait_for_any(
+  F1& f1, F2& f2, F3& f3, F4& f4, F5& f5) {
+  boost::detail::future_waiter waiter;
+  waiter.add(f1);
+  waiter.add(f2);
+  waiter.add(f3);
+  waiter.add(f4);
+  waiter.add(f5);
+  return waiter.wait();
+} // wait_for_any
+#endif
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
+template <typename F, typename... Fs>
+typename boost::enable_if<
+  boost::is_future_type<F>,
+  typename boost::detail::future_waiter::count_type>::type wait_for_any(
+  F& f, Fs ...fs) {
+  boost::detail::future_waiter waiter;
+  waiter.add(f, fs...);
+  return waiter.wait();
+}
+#endif
+
+template <typename R>
+class promise;
+
+template <typename R>
+class packaged_task;
+
+namespace detail {
+
+class base_future {
+public:  
+}; // base_future
+
+template <typename R>
+class basic_future : public base_future {
+protected:
+public:
+  typedef boost::shared_ptr<boost::detail::shared_state<R> > future_ptr;
+  typedef typename boost::detail::shared_state<R>::move_dest_type
+    move_dest_type;
+
+  static future_ptr make_exceptional_future_ptr(
+    boost::exceptional_ptr const& ex) {
+    return future_ptr(new boost::detail::shared_state<R>(ex));
+  }
+
+  future_ptr future_;
+  basic_future(future_ptr future) : future_(future) {}
+  typedef boost::future_state::state state_;
+
+  BOOST_THREAD_MOVABLE_ONLY(basic_future) basic_future() : future_() {}
+
+  basic_future(boost::exceptional_ptr const& ex) :
+    future_(make_exceptional_future_ptr(ex)) {}
+
+  ~basic_future() {}
+
+  basic_future(BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT :
+    future_(BOOST_THREAD_RV(that).future_) {
+    BOOST_THREAD_RV(that).future_.reset();
+  }
+
+  basic_future& operator=(
+    BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT {
+    future_ = BOOST_THREAD_RV(that).future_;
+    BOOST_THREAD_RV(that).future_.reset();
+    return *this;
+  }
+
+  void swap(basic_future& that) BOOST_NOEXCEPT {
+    future_.swap(that.future_);
+  }
+
+  state_get_state(boost::unique_lock<boost::mutex>& lock) const {
+    if (!future_) {
+      return boost::future_state::uninitialized;
+    }
+    return future_->get_state(lock);
+  }
+}; // basic_future
+} // namespace detail
 } // namespace boost
