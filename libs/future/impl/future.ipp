@@ -776,7 +776,37 @@ struct future_deferred_shared_state :
     this->set_deferred();
   }
 
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      F f(boost::move(f_));
+      relocker relock(lock);
+      R r = f();
+      relock.lock();
+      this->mark_finished_with_result_internal(boost::move(r), lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
 
-};
+template <typename R, typename F>
+struct future_deferred_shared_state<R&, F> :
+  boost::detail::shared_state<R&> {
+  typedef boost::detail::shared_state<R&> base_type;
+  F f_;
+
+  explicit future_deferred_shared_state(BOOST_THREAD_FWD_REF(F) f) :
+    f_(boost::move(f)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    try {
+      this->mark_finished_with_result_internal(f_(), lock);
+    } catch (...) {
+      this->mark_exceptional_finish_internal(boost::current_exception(), lock);
+    }
+  }
+}; // future_deferred_shared_state
 } // namespace detail
 } // namespace boost
