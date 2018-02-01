@@ -1,5 +1,11 @@
 #include "../hpp/future.hpp"
 
+struct test {
+  int operator()() {
+    return 0;
+  }
+};
+
 void doit() {
   {
     boost::detail::shared_state_base base_type;  
@@ -48,13 +54,25 @@ void doit() {
     base_type.do_continuation(lock);
   }
   {
-    boost::detail::shared_state<int> shared_state;
+    boost::detail::shared_state<int> shared_state1;
+    boost::detail::shared_state<int&> shared_state2;
+    boost::detail::shared_state<void> shared_state3;
   }
   {
-    boost::detail::shared_state<int&> shared_state;
+    boost::detail::future_async_shared_state_base<int> base_type1;
+    boost::detail::future_async_shared_state_base<int&> base_type2;
+    boost::detail::future_async_shared_state_base<void> base_type3;
   }
   {
-    boost::detail::shared_state<void> shared_state;
+    boost::detail::future_async_shared_state<int, test> shared_state1;
+    boost::detail::future_async_shared_state<int&, test> shared_state2;
+    boost::detail::future_async_shared_state<void, test> shared_state3;
+    boost::detail::future_deferred_shared_state<int, test>
+      deferred_state1(test());
+    boost::detail::future_deferred_shared_state<int&, test>
+      deferred_state2(test());
+    boost::detail::future_deferred_shared_state<void, test>
+      deferred_state3(test());
   }
 }
 
