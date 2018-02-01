@@ -1231,7 +1231,7 @@ BOOST_THREAD_FUTURE<R> make_shared_future_sync_continuation_shared_state(
   BOOST_THREAD_FWD_REF(C) c);
 
 template <typename F, typename R, typename C>
-BOOST_THrEAD_FUTURE<R> make_shared_future_deferred_continuation_shared_state(
+BOOST_THREAD_FUTURE<R> make_shared_future_deferred_continuation_shared_state(
   boost::unique_lock<boost::mutex>& lock,
   F f,
   BOOST_THREAD_FWD_REF(C) c);
@@ -1265,7 +1265,6 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
   boost::unique_lock<boost::mutex>& lock,
   BOOST_THREAD_RV_REF(F) f);
 #endif
-} // detail
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 template <typename InputIter>
@@ -1283,8 +1282,8 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
   BOOST_THREAD_FWD_REF(Ts) ...futures);
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 template <typename InputIter>
-typename boost:disable_if<
-  boost::is_future_<InputIter>,
+typename boost::disable_if<
+  boost::is_future_type<InputIter>,
   BOOST_THREAD_FUTURE<
     boost::csbl::vector<typename InputIter::value_type> > > when_any(
   InputIter first, InputIter last);
@@ -1301,14 +1300,14 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 
-template <typename R>
-class BOOST_THREAD_FUTURE : public boost::detail::basic_future<R> {
+template <typename T>
+class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
 // private
-  typedef boost::detail::basic_future<R> base_type;
+  typedef boost::detail::basic_future<T> base_type;
   typedef typename base_type::future_ptr future_ptr;
 
-  friend class shared_future<R>;
-  friend class promise<R>;
+  friend class shared_future<T>;
+  friend class promise<T>;
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
   template <typename, typename, typename>
@@ -1317,6 +1316,7 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<R> {
   template <typename, typename, typename>
   friend struct boost::detail::future_deferred_continuation_shared_state;
 
+  // future
   template <typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
   boost::detail::make_future_async_continuation_shared_state(
@@ -1338,6 +1338,7 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<R> {
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c);
 
+  // shared_future
   template <typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
   boost::detail::make_shared_future_async_continuation_shared_state(
@@ -1356,7 +1357,44 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<R> {
   friend BOOST_THREAD_FUTURE<R>
   boost::detail::make_shared_future_deferred_continuation_shared_state(
     boost::unique_lock<boost::mutex>& lock,
-    F r,
+    F f,
     BOOST_THREAD_FWD_REF(C) c);
-};
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  template <typename R, typename C, typename E>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_future_executor_shared_state(
+    E& e,
+    BOOST_THREAD_FWD_REF(C) c);
+
+  template <typename E, typename F, typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_future_executor_continuation_shared_state(
+    E& e,
+    boost::unique_lock<boost::mutex>& lock,
+    F f,
+    BOOST_THREAD_FWD_REF(C) c);
+
+  template <typename E, typename F, typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_shared_future_executor_continuation_shared_state(
+    E& e,
+    boost::unique_lock<boost::mutex>& lock,
+    F f,
+    BOOST_THREAD_FWD_REF(C) c);
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+  template <typename F, typename R>
+  friend struct boost::detail::future_unwrap_shared_state;
+
+  template <typename F, typename R>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_future_unwrap_shared_state(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_RV_REF(F) f);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+}; // BOOST_THREAD_FUTURE
+} // namespace detail
 } // namespace boost
