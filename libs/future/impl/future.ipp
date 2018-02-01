@@ -1395,6 +1395,45 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_RV_REF(F) f);
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+  template <typename InputIter>
+  friend typename boost::disable_if<
+    boost::is_future_type<InputIter>,
+    BOOST_THREAD_FUTURE<boost::csbl::vector<typename InputIter::value_type> >
+  >::type when_all(InputIter first, InputIter last);
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename U, typename... Us>
+  friend BOOST_THREAD_FUTURE<
+    boost::csbl::tuple<typename boost::decay<U>::type,
+    typename boost::decay<Us>::type...> > when_all(
+      BOOST_THREAD_FWD_REF(U) f,
+      BOOST_THREAD_FWD_REF(Us) ...futures);
+#endif
+
+  template <typename InputIter>
+  friend typename boost::disable_if<
+    boost::is_future_type<InputIter>,
+    BOOST_THREAD_FUTURE<boost::csbl::vector<typename InputIter::value_type> >
+  >::type when_any(InputIter first, InputIter last);
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename U, typename... Us>
+  friend BOOST_THREAD_FUTURE<
+    boost::csbl::tuple<typename boost::decay<U>::type,
+    typename boost::decay<Us>::type...> > when_any(
+      BOOST_THREAD_FWD_REF(U) f,
+      BOOST_THREAD_FWD_REF(Us) ...futures);
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+#endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  template <class>
+  friend class packaged_task;
+#else
+  friend class packaged_task<T>;
+#endif
 }; // BOOST_THREAD_FUTURE
 } // namespace detail
 } // namespace boost
