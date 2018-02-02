@@ -2273,6 +2273,61 @@ public:
     future_->mark_exceptional_finish_internal(ex, lock);
   }
 
+  template <typename Ex>
+  void set_exception(Ex ex) {
+    set_exception(boost::copy_exception(ex));
+  }
+
+#ifdef BOOST_NO_CXX11_RVALUE_REFERENCES
+  template <typename T>
+  typename boost::enable_if<
+    boost::is_copy_constructible<T>::value &&
+    boost::is_same<
+      R,
+      T>::value,
+    void>::type set_value_at_thread_exit(T const& v) {
+    if (future_->get() == 0) {
+      boost::throw_exception(boost::promise_move());
+    }
+
+    future_->set_value_at_thread_exit(v);
+  }
+#else
+  void set_value_at_thread_exit(source_reference_type v) {
+    if (future_->get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    future_->set_value_at_thread_exit();
+  }
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+
+  void set_value_at_thread_exit(BOOST_THREAD_RV_REF(R) v) {
+    if (future_->get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    future_->set_value_at_thread_exit(boost::move(v));
+  }
+
+  void set_exception_at_thread_exit(boost::exception_ptr ex) {
+    if (future_->get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    future_->set_exception_at_thread_exit(ex);
+  }
+
+  template <typename Ex>
+  void set_exception_at_thread_exit(Ex ex) {
+    set_exception_at_thread_exit(boost::copy_exception(ex));
+  }
+
+  template <typename C>
+  void set_wait_callback(C c) {
+    lazy_init();
+    future_->set_wait_callback(c, this);
+  }
 
 }; // promise
 } // namespace boost
