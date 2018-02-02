@@ -2565,86 +2565,110 @@ BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
-  template <typename R>
-  struct task_base_shared_state;
+template <typename R>
+struct task_base_shared_state;
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
-  template <typename R, typename... Rs>
-  struct task_base_shared_state<R(Rs...)> :
+template <typename R, typename... Ts>
+struct task_base_shared_state<R(Ts...)> :
 #else
-  template <typename R>
-  struct task_base_shared_state<R()> :
+template <typename R>
+struct task_base_shared_state<R()> :
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else
-  template <typename R>
-  struct task_base_shared_state :
+template <typename R>
+struct task_base_shared_state :
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
-    boost::detail::shared_state<R> {
-      bool started_;
+boost::detail::shared_state<R> {
+  bool started_;
 
-      task_base_shared_state() : started_(false) {}
+  task_base_shared_state() : started_(false) {}
 
-      void reset() {
-        started_ = false;
-        this->validate();
+  void reset() {
+    started_ = false;
+    this->validate();
+  }
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  virtual void do_run(BOOST_THREAD_RV_REF(Ts) ...ts) = 0;
+  void run(BOOST_THREAD_RV_REF(Ts) ...ts) {
+#else
+  virtual void do_run() = 0;
+  void run() {
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    {
+      boost::lock_guard<boost::mutex> lock(this->mutex_);
+      if (started_) {
+        boost::throw_exception(boost::task_already_started());
       }
 
+      started_ = false;
+    }
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
-      virtual void do_run(BOOST_THREAD_RV_REF(Rs) ...rs) = 0;
-      void run(BOOST_THREAD_RV_REF(Rs) ...rs) {
+    do_run(boost::move(ts)...);
 #else
-      virtual void do_run() = 0;
-      void run() {
-#endif
-        {
-          boost::lock_guard<boost::mutex> lock(this->mutex_);
-          if (started_) {
-            boost::throw_exception(boost::task_already_started());
-          }
-
-          started_ = false;
-        }
+    do_run();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  } // run
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
-        do_run(boost::move(rs)...);
+  virtual void do_apply(BOOST_THREAD_RV_REF(Ts) ...ts) = 0;
+  void apply(BOOST_THREAD_RV_REF(Ts) ...ts) {
 #else
-        do_run();
-#endif
-      } // run
+  virtual void do_apply() = 0;
+  void apply() {
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    {
+      boost::lock_guard<boost::mutex> lock(this->mutex_);
+      if (started_) {
+        boost::throw_exception(boost::task_already_started());
+      }
 
-#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
-    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
-      virtual void do_apply(BOOST_THREAD_RV_REF(Rs) ...rs) = 0;
-      void apply(BOOST_THREAD_RV_REF(Rs) ...rs) {
-#else
-      virtual void do_apply() = 0;
-      void apply() {
-#endif
-        {
-          boost::lock_guard<boost::mutex> lock(this->mutex_);
-          if (started_) {
-            boost::throw_exception(boost::task_already_started());
-          }
-
-          started_ = true;
-        }
+      started_ = true;
+    }
 #if  defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                \
      defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
-        do_apply(boost::move(rs)...);
+    do_apply(boost::move(ts)...);
 #else
-        do_apply();
-#endif
-      } // apply
+    do_apply();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  } // apply
 
-      void owner_destroyed() {
-        boost::unique_lock<boost::mutex> lock(this->mutex_);
-        if (!started_) {
-          started_ = true;
-          this->mark_exceptional_finish_internal(
-            boost::copy_exception(boost::broken_promise()), lock);
-        }
-      }
-    };
+  void owner_destroyed() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    if (!started_) {
+      started_ = true;
+      this->mark_exceptional_finish_internal(
+        boost::copy_exception(boost::broken_promise()), lock);
+    }
+  }
+}; // task_base_shared_state
+
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+template <typename F, typename R>
+struct task_shared_state;
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename F, typename R, typename ...Ts>
+struct task_shared_state<F, R(Ts...)> :
+  task_base_shared_state<R(Ts...)> {
+#else
+template <typename F, typename R>
+struct task_shared_state<F, R()> :
+  task_base_shared_state<R()> {
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+template <typename F, typename R>
+struct task_shared_state :
+  task_base_shared_state<R> {
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+private:
+  
+}; // task_shared_state
 } // detail
 } // boost
