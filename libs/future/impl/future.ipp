@@ -967,7 +967,7 @@ typename boost::enable_if<
 } // wait_for_any
 
 template <typename F1, typename F2, typename F3>
-typename boost::detail::future_waiter::count_type wait_for_anY(
+typename boost::detail::future_waiter::count_type wait_for_any(
   F1& f1, F2& f2, F3& f3) {
   boost::detail::future_waiter waiter;
   waiter.add(f1);
@@ -977,7 +977,7 @@ typename boost::detail::future_waiter::count_type wait_for_anY(
 } // wait_for_any
 
 template <typename F1, typename F2, typename F3, typename F4>
-typename boost::detail::future_waiter::count_type wait_for_anY(
+typename boost::detail::future_waiter::count_type wait_for_any(
   F1& f1, F2& f2, F3& f3, F4& f4) {
   boost::detail::future_waiter waiter;
   waiter.add(f1);

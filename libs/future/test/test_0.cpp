@@ -74,6 +74,16 @@ void doit() {
     boost::detail::future_deferred_shared_state<void, test>
       deferred_state3(test());
   }
+  {
+    boost::detail::future_waiter waiter;
+  }
+  {
+    boost::shared_ptr<boost::detail::shared_state<int> > fp;
+    boost::exceptional_ptr const ep;
+    boost::detail::basic_future<int> bf1;
+    boost::detail::basic_future<int> bf2(fp);
+    boost::detail::basic_future<int> bf3(ep);
+  }
 }
 
 auto main() -> decltype(0) {
