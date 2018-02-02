@@ -2668,7 +2668,53 @@ struct task_shared_state :
   task_base_shared_state<R> {
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 private:
-  
+  task_shared_state(task_shared_state&);
+public:
+  F f_;
+  task_shared_state(F const& f) : f_(f) {}
+  task_shared_state(BOOST_THREAD_RV_REF(F) f) : f_(boost::move(f)) {}
+
+  F callable() {
+    return boost::move(f_);
+  }
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_apply(BOOST_THREAD_RV_REF(Ts) ...ts) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(ts)...));
+#else
+  void do_apply() {
+    try {
+      this->set_value_at_thread_exit(f_());
+
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  } // do_apply
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_run(BOOST_THREAD_RV_REF(Ts) ...ts) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(ts)...));
+#else
+  void do_run() {
+    try {
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+      R res((f_()));
+      this->mark_finished_with_result(boost::move(res));
+#else
+      this->mark_finished_with_result(f_());
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
 }; // task_shared_state
 } // detail
 } // boost
