@@ -2777,5 +2777,135 @@ public:
     }
   } // do_run
 }; // task_shared_state
+
+#ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename R, typename... Ts>
+struct task_shared_state<R(*)(Ts...), R(Ts...)> :
+  task_base_shared_state<Ts..>
+#else
+template <typename R>
+struct task_shared_state<R(*)(), R()> :
+  task_base_shared_state<R()>
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+template <typename R>
+struct task_shared_state<R(*)(), R> :
+  task_base_shared_state<R>
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+{
+private:
+  task_shared_state(task_shared_state&);
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  typedef R (*CallableType)(Ts ...);
+#else
+  typedef R (*Callabletype)();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+public:
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return f_;
+  }
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_apply(BOOST_THREAD_RV_REF(Ts) ...ts) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(ts)...));
+#else
+  void do_apply() {
+    try {
+      R r(f_());
+      this->set_value_at_thread_exit(boost::move(r));
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    } catch (...) {
+      this->set_exception_at_thread_exit(boost::current_exception());
+    }
+  } // do_apply
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_run(BOOST_THREAD_RV_REF(Ts) ...ts) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(ts)...);
+#else
+  void do_run() {
+    try {
+      R r(f_());
+      this->mark_finished_with_result(boost::move(r));
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  }
+}; // task_shared_state
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK)
+#if defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+template <typename R, typename... Ts>
+struct task_shared_state<R&(*)(Ts...), R&(Ts...)> :
+  task_state_base<R&(Ts...)>
+#else
+template <typename R>
+struct task_shared_state<R&(*)(), R&()> :
+  task_state_base<R&()>
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename R>
+struct task_shared_state<R&(*)(), R&> :
+  task_base_shared_state<R&>
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+{
+private:
+  task_shared_state(task_shared_state&);
+public:
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  typedef R& (*CallableType)(BOOST_THREAD_RV_REF(Ts)...);
+#else
+  typedef R& (*CallableType)();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+
+public:
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_apply(BOOST_THREAD_RV_REF(Ts) ...TS) {
+    try {
+      this->set_value_at_thread_exit(f_(boost::move(ts)...));
+#else
+  void do_apply() {
+    try {
+      this->set_value_at_thread_exit(f_());
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VAIRADIC_THREAD
+    } catch (...) {
+      this-.set_exception_at_thread_exit(boost::current_exception());
+    }
+  } // do_apply
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_run(BOOST_THREAD_RV_REF(Ts) ...ts) {
+    try {
+      this->mark_finished_with_result(f_(boost::move(ts)...));
+#else
+  void do_run() {
+    try {
+      this->mark_finished_with_result(f_());
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  } // do_run
+}; // task_shared_state
+#endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
 } // detail
 } // boost
