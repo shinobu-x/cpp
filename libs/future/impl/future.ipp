@@ -2055,5 +2055,224 @@ public:
       boost::move(v);
     }
   }
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<typename boost::result_of<
+    F(shared_future)>::type> then(
+      BOOST_THREAD_FWD_REF(F) f) const;
+
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<typename boost::result_of<
+    F(shared_future)>::type> then(
+      boost::launch policy,
+      BOOST_THREAD_FWD_REF(F) f) const;
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  template <typename E, typename F>
+  inline BOOST_THREAD_FUTURE<typename boost::result_of<
+    F(shared_future)>::type> then(
+      E& e,
+      BOOST_THREAD_FWD_REF(F) f) const;
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 }; //shared_future
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+boost::shared_future<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
+template <typename R>
+class promise {
+  typedef typename boost::detail::shared_state<R> shared_state;
+  typedef boost::shared_ptr<shared_state> future_ptr;
+  typedef typename shared_state::source_reference_type source_reference_type;
+  typedef typename shared_state::rvalue_source_type rvalue_source_type;
+  typedef typename shared_state::move_dest_type move_dest_type;
+  typedef typename shared_state::shared_future_get_result_type
+    shared_future_get_result_type;
+
+  future_ptr future_;
+  bool future_obtained_;
+
+  void lazy_init() {
+#ifdef BOOST_THREAD_PROVIDES_PROMISE_LAZY
+#include <boost/detail/atomic_undef_macros.hpp>
+    if (!boost::atomic_load(&future_)) {
+      future_ptr blanck;
+
+      boost::atomic_compare_exchange(
+        &future_, &blanck, future_ptr(new shared_state));
+    }
+#include <boost/detail/atomic_redef_macros.hpp>
+#endif // BOOST_THREAD_PROVIDES_PROMISE_LAZY
+  }
+
+public:
+  BOOST_THREAD_MOVABLE_ONLY(promise)
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+  template <typename Alloc>
+  promise(boost::allocator_arg_t, Alloc alloc) {
+    typedef typename Alloc::template rebind<shared_state>::other Alloc2;
+
+    Alloc2 alloc2(alloc);
+
+    typedef boost::thread_detail::allocator_destructor<Alloc2> Dtor;
+
+    future_ = future_ptr(
+      new(alloc2.allocate(1)) shared_state(), Dtor(alloc2, 1));
+
+      future_obtained_ = false;
+  }
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
+  promise() :
+#ifdef BOOST_THREAD_PROVIDES_PROMISE_LAZY
+    future_(),
+#else
+    future_(new shared_state),
+#endif // BOOST_THREAD_PROVIDES_PROMISE_LAZY
+    future_obtained_(false) {}
+
+  ~promise() {
+    if (future_) {
+      boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+      if (!future_->done_ && !future_->is_constructed_) {
+        future_->mark_exceptional_finish_internal(
+          boost::copy_exception(boost::broken_promise()), lock);
+      }
+    }
+  }
+
+  promise(BOOST_THREAD_RV_REF(promise) that) BOOST_NOEXCEPT :
+    future_(BOOST_THREAD_RV(that).future_),
+    future_obtained_(BOOST_THREAD_RV(that).future_obtained_) {
+    BOOST_THREAD_RV(that).future_.reset();
+    BOOST_THREAD_RV(that).future_obtained_ = false;
+  }
+
+  promise& operator=(BOOST_THREAD_RV_REF(promise) that) BOOST_NOEXCEPT {
+    future_ = BOOST_THREAD_RV(that).future_;
+    future_obtained_ = BOOST_THRED_RV(that).future_obtained_;
+    BOOST_THREAD_RV(that).future_.reset();
+    BOOST_THREAD_RV(that).future_obtained_ = false;
+
+    return *this;
+  }
+
+  void swap(promise& that) {
+    future_.swap(that.future_);
+    std::swap(future_obtained_, that.future_obtained_);
+  }
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  void set_executor(executor_ptr_type e) {
+    lazy_init();
+
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    boost::lock_guard<boost::mutex> lock(future_->mutex_);
+    future_->set_executor_policy(e, lock);
+  }
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+  BOOST_THREAD_FUTURE<R> get_future() {
+    lazy_init();
+
+    if (future_.get() += 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    if (future_obtained_) {
+      boost::throw_exception(boost::future_already_retrieved());
+    }
+
+    future_obtained_ = true;
+
+    return BOOST_THREAD_FUTURE<R>(future_);
+  }
+
+#ifdef BOOST_NO_CXX11_RVALUE_REFERENCES
+  template <typename T>
+  typename boost::enable_if<
+    boost::is_copy_constructible<T>::value &&
+    boost::is_same<
+      R,
+      T>::value,
+    void>::type set_value(T const& v) {
+    lazyinit();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    future_->mark_finished_with_result_internal(v, lock);
+  }
+#else
+  void set_value(source_reference_type v) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    future_->mark_finished_with_result_internal(v, lock);
+  }
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+
+  void set_value(rvalue_source_type v) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+    future_->mark_finished_with_result_internal(boost::move(v), lock);
+#else
+    future_->mark_finished_with_result_internal(
+      static_cast<rvalue_source_type(v), lock);
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+  }
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename... Args>
+  void emplace(BOOST_THREAD_FWD_REF(Args) ...args) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    future_->mark_finished_with_result_internal(
+      lock, boost::forward<Args>(args)...);
+  }
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+  void set_exception(boost::exception_ptr ex) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+
+    future_->mark_exceptional_finish_internal(ex, lock);
+  }
+
+
+}; // promise
 } // namespace boost
