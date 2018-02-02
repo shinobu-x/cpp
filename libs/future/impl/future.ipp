@@ -1236,7 +1236,7 @@ BOOST_THREAD_FUTURE<R> make_shared_future_deferred_continuation_shared_state(
   F f,
   BOOST_THREAD_FWD_REF(C) c);
 
-#ifdef BOOST_THREAD_PROVIDES_EXECUTOR
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R, typename C, typename E>
 BOOST_THREAD_FUTURE<R> make_future_executor_shared_state(
   E& e,
@@ -1251,9 +1251,9 @@ BOOST_THREAD_FUTURE<R> make_future_executor_continuation_shared_state(
 template <typename E, typename F, typename R, typename C>
 BOOST_THREAD_FUTURE<R> make_shared_future_executor_continuation_shared_state(
   E& e,
-  BOOST_THREAD_RV_REF(F) f,
+  F f,
   BOOST_THREAD_FWD_REF(C) c);
-#endif // BOOST_THREAD_PROVIDES_EXECUTOR
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
@@ -1265,14 +1265,15 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
   boost::unique_lock<boost::mutex>& lock,
   BOOST_THREAD_RV_REF(F) f);
 #endif
+} // namespace detail
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 template <typename InputIter>
 typename boost::disable_if<
   boost::is_future_type<InputIter>,
   BOOST_THREAD_FUTURE<
-    boost::csbl::vector<typename InputIter::value_type> >
->::type when_all(InputIter first, InputIter last);
+    boost::csbl::vector<typename InputIter::value_type> > >::type when_all(
+  InputIter first, InputIter last);
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
 template <typename T, typename ...Ts>
 BOOST_THREAD_FUTURE<boost::csbl::tuple<
@@ -1472,9 +1473,9 @@ public:
 #endif // BOOST_PROVIDES_FUTURE_UNWRAP
 
   explicit BOOST_THREAD_FUTURE(
-    BOOST_THREAD_RV_REF(shared_future<R>) that) :
+    BOOST_THREAD_RV_REF(shared_future<T>) that) :
       base_type(boost::move(
-        static_cast<base_type&>(BOOST_THREAD_RV(other)))) {}
+        static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
 
   BOOST_THREAD_FUTURE& operator=(
     BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
@@ -1528,55 +1529,92 @@ public:
   typename boost::disable_if<
     boost::is_void<T2>,
     move_dest_type>::type get_or(BOOST_THREAD_RV_REF(T2) v) {
-      if (this->future_.get() == 0) {
-        boost::throw_exception(boost::future_uninitialized());
-      }
+    if (this->future_.get() == 0) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
 
-      boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
 
-      if (!this->future_->valid(lock)) {
-        boost::throw_exception(boost::future_uninitialized());
-      }
+    if (!this->future_->valid(lock)) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
 
-      this->future_->wait(lock, false);
+    this->future_->wait(lock, false);
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
-      this->future_->invalidate(lock);
+    this->future_->invalidate(lock);
 #endif  // BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
 
-      if (this->future_->has_value(lock)) {
-        return this->future_->get(lock);
-      } else {
-        return boost::move(v);
-      }
+    if (this->future_->has_value(lock)) {
+      return this->future_->get(lock);
+    } else {
+      return boost::move(v);
+    }
   }
 
   template <typename T2>
   typename boost::disable_if<
     boost::is_void<T2>,
     move_dest_type>::type get_or(T2 const& v) {
-      if (this->future_.get() == 0) {
-        boost::throw_exception(boost::future_uninitialized());
-      }
+    if (this->future_.get() == 0) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
 
-      boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
 
-      if (!this->future_->valid(lock)) {
-        boost::throw_exception(boost::future_uninitialized());
-      }
+    if (!this->future_->valid(lock)) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
 
-      this->future_->wait(lock, false);
+    this->future_->wait(lock, false);
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
-      this->future_->invalidate(lock);
+    this->future_->invalidate(lock);
 #endif  // BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
 
-      if (this->future_->has_valid(lock) {
-        return this->future_->get(lock);
-      } else {
-        return v;
-      }
+    if (this->future_->has_valid(lock)) {
+      return this->future_->get(lock);
+    } else {
+      return v;
+    }
   }
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<F(BOOST_THREAD_FUTURE)>::type> then(
+      BOOST_THREAD_FWD_REF(F) f);
+
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<F(BOOST_THREAD_FUTURE)>::type> then(
+      boost::launch policy,
+      BOOST_THREAD_FWD_REF(F) f);
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  template <typename E, typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<F(BOOST_THREAD_FUTURE)>::type> then(
+      E& e,
+      BOOST_THREAD_FWD_REF(F) f);
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+  template <typename T2>
+  inline typename boost::disable_if<
+    boost::is_void<T2>,
+    BOOST_THREAD_FUTURE<T> >::type fallback_to(
+      BOOST_THREAD_RV_REF(T2) v);
+
+  template <typename T2>
+  inline typename boost::disable_if<
+    boost::is_void<T2>,
+    BOOST_THREAD_FUTURE<T> >::type fallback_to(
+      T2 const& v);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 }; // BOOST_THREAD_FUTURE
-} // namespace detail
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+BOOST_THREAD_FUTURE<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
 } // namespace boost
