@@ -1932,7 +1932,7 @@ class shared_future : public boost::detail::basic_future<T> {
   typedef boost::detail::basic_future<T> base_type;
   typedef typename base_type::future_ptr future_ptr;
 
-  friend class boost::detail::future-waiter;
+  friend class boost::detail::future_waiter;
   friend class boost::promise<T>;
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
@@ -1986,14 +1986,34 @@ public:
   shared_future(boost::exceptional_ptr const& ex) : base_type(ex) {}
   ~shared_future() {}
 
-  shared_future& operator=(BOOST_THREAD_COPY_ASSIG_REF(shared_future) that) {
+  shared_future& operator=(BOOST_THREAD_COPY_ASSIGN_REF(shared_future) that) {
     this->future_ = that.future_;
     return *this;
   }
 
-  shard_future(BOOST_THREAD_RV_REF(shared_future) that) BOOST_NOEXCEPT :
+  shared_future(BOOST_THREAD_RV_REF(shared_future) that) BOOST_NOEXCEPT :
     base_type(boost::move(
       static_cast<base_type&>(
         BOOST_THREAD_RV(that)))) {}
+
+  shared_future(BOOST_THREAD_RV_REF(
+    BOOST_THREAD_FUTURE<T>) that) BOOST_NOEXCEPT :
+      base_type(boost::move(
+      static_cast<base_type&>(
+        BOOST_THREAD_RV(that)))) {}
+
+  shared_future& operator=(
+    BOOST_THREAD_RV_REF(shared_future) that) BOOST_NOEXCEPT {
+    base_type::operator=(
+      boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that))));
+    return *this;
+  }
+
+  shared_future& operator=(
+    BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<T>) that) BOOST_NOEXCEPT {
+    base_type::operator=(
+      boost::move(static_cast<base_type&>(BOOST_THREAD_RV(that))));
+    return *this;
+  }
 }; //shared_future
 } // namespace boost
