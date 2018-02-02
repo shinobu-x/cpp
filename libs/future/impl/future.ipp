@@ -2540,5 +2540,111 @@ public:
     return *this;
   }
 }; // promise
+} // boost
 
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+namespace boost {
+namespace container {
+  template <typename R, typename Allocator>
+  struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+} // container
+} // boost
+#ifndef BOOST_NO_CXX11_ALLOCATOR
+namespace std {
+  template <typename R, typename Allocator>
+  struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+} // std
+#endif // BOOST_NO_CXX11_ALLOCATOR
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
+namespace boost {
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+promise<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
+namespace detail {
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  template <typename R>
+  struct task_base_shared_state;
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  template <typename R, typename... Rs>
+  struct task_base_shared_state<R(Rs...)> :
+#else
+  template <typename R>
+  struct task_base_shared_state<R()> :
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+  template <typename R>
+  struct task_base_shared_state :
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+    boost::detail::shared_state<R> {
+      bool started_;
+
+      task_base_shared_state() : started_(false) {}
+
+      void reset() {
+        started_ = false;
+        this->validate();
+      }
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+      virtual void do_run(BOOST_THREAD_RV_REF(Rs) ...rs) = 0;
+      void run(BOOST_THREAD_RV_REF(Rs) ...rs) {
+#else
+      virtual void do_run() = 0;
+      void run() {
+#endif
+        {
+          boost::lock_guard<boost::mutex> lock(this->mutex_);
+          if (started_) {
+            boost::throw_exception(boost::task_already_started());
+          }
+
+          started_ = false;
+        }
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+        do_run(boost::move(rs)...);
+#else
+        do_run();
+#endif
+      } // run
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+      virtual void do_apply(BOOST_THREAD_RV_REF(Rs) ...rs) = 0;
+      void apply(BOOST_THREAD_RV_REF(Rs) ...rs) {
+#else
+      virtual void do_apply() = 0;
+      void apply() {
+#endif
+        {
+          boost::lock_guard<boost::mutex> lock(this->mutex_);
+          if (started_) {
+            boost::throw_exception(boost::task_already_started());
+          }
+
+          started_ = true;
+        }
+#if  defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                \
+     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+        do_apply(boost::move(rs)...);
+#else
+        do_apply();
+#endif
+      } // apply
+
+      void owner_destroyed() {
+        boost::unique_lock<boost::mutex> lock(this->mutex_);
+        if (!started_) {
+          started_ = true;
+          this->mark_exceptional_finish_internal(
+            boost::copy_exception(boost::broken_promise()), lock);
+        }
+      }
+    };
+} // detail
 } // boost
