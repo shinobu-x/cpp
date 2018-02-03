@@ -3374,3 +3374,26 @@ void set_wait_callback(F f) {
 }
 }; // packaged_task
 } // boost
+
+#if defined BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+namespace boost {
+namespace container {
+template <typename R, typename Allocator>
+struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
+} // container
+} // boost
+#ifndef BOOST_NO_CXX11_ALLOCATOR
+namespace std {
+template <typename R, typename Allocator>
+struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
+} // std
+#endif // BOOST_NO_CXX11_ALLOCATOR
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
+namespace boost {
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+packaged_task<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
+} // boost
