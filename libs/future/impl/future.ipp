@@ -2783,7 +2783,7 @@ public:
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R, typename... Ts>
 struct task_shared_state<R(*)(Ts...), R(Ts...)> :
-  task_base_shared_state<Ts..>
+  task_base_shared_state<R(Ts...)>
 #else
 template <typename R>
 struct task_shared_state<R(*)(), R()> :
@@ -2833,7 +2833,7 @@ public:
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   void do_run(BOOST_THREAD_RV_REF(Ts) ...ts) {
     try {
-      this->mark_finished_with_result(f_(boost::move(ts)...);
+      this->mark_finished_with_result(f_(boost::move(ts)...));
 #else
   void do_run() {
     try {
@@ -2851,12 +2851,13 @@ public:
 #if defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
 template <typename R, typename... Ts>
 struct task_shared_state<R&(*)(Ts...), R&(Ts...)> :
-  task_state_base<R&(Ts...)>
+  task_base_shared_state<R&(Ts...)>
 #else
 template <typename R>
 struct task_shared_state<R&(*)(), R&()> :
-  task_state_base<R&()>
+  task_base_shared_state<R&()>
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
 template <typename R>
 struct task_shared_state<R&(*)(), R&> :
   task_base_shared_state<R&>
@@ -2876,7 +2877,7 @@ public:
 public:
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
-  void do_apply(BOOST_THREAD_RV_REF(Ts) ...TS) {
+  void do_apply(BOOST_THREAD_RV_REF(Ts) ...ts) {
     try {
       this->set_value_at_thread_exit(f_(boost::move(ts)...));
 #else
@@ -2886,7 +2887,7 @@ public:
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
        // BOOST_THREAD_PROVIDES_VAIRADIC_THREAD
     } catch (...) {
-      this-.set_exception_at_thread_exit(boost::current_exception());
+      this->set_exception_at_thread_exit(boost::current_exception());
     }
   } // do_apply
 
