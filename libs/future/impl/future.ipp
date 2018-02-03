@@ -3549,4 +3549,121 @@ BOOST_THREAD_FUTURE<
 }
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+namespace detail {
+
+/* shared_state_nullary_task */
+template <typename R, typename F>
+struct shared_state_nullary_task {
+  typedef boost::shared_ptr<boost::detail::shared_state_base> storage_type;
+  storage_type st_;
+  F f_;
+
+  shared_state_nullary_task(storage_type st, BOOST_THREAD_FWD_REF(F) f) :
+    st_(st), f_(f) {}
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+  // copy
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(shared_state_nullary_task)
+  shared_state_nullary_task(shared_state_nullary_task const& s) :
+    st_(s.st_), f_(s.f_) {}
+
+  shared_state_nullary_task& operator=(BOOST_THREAD_COPY_ASSIGN_REF(
+    shared_state_nullary_task) s) {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = s.f_;
+    }
+    return *this;
+  }
+
+  // move
+  shared_state_nullary_task(BOOST_THREAD_RV_REF(shared_state_nullary_task) s) :
+    st_(s.st_), f_(boost::move(s.f_)) {
+    s.st_.reset();
+  }
+
+  shared_state_nullary_task& operator=(BOOST_THREAD_RV_REF(
+    shared_state_nullary_task) s) {
+    if (this != &s) {
+      st_ = s.st_;
+      f_ = boost::move(s.f_);
+      s.st_.reset();
+    }
+    return *this;
+  }
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+
+  void operator()() {
+    boost::shared_ptr<boost::detail::shared_state<R> > st =
+      static_pointer_cast<boost::detail::shared_state<R> >(st_);
+
+    try {
+      st->mark_finished_with_result(f_());
+    } catch (...) {
+      st->mark_exceptional_finish();
+    }
+  }
+};
+
+template <typename F>
+struct shared_state_nullary_task<void, F> {
+  typedef boost::shared_ptr<boost::detail::shared_state_base> storage_type;
+  storage_type st_;
+  F f_;
+
+  shared_state_nullary_task(storage_type st, BOOST_THREAD_FWD_REF(F) f) :
+    st_(st), f_(f) {}
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+  // copy
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(shared_state_nullary_task)
+  shared_state_nullary_task(shared_state_nullary_task const& s) :
+    st_(s.st_), f_(s.f_) {}
+
+  shared_state_nullary_task& operator=(BOOST_THREAD_COPY_ASSIGN_REF(
+    shared_state_nullary_task) s) {
+    if (this != s) {
+      st_ = s.st_;
+      f_ = s.f_;
+    }
+    return *this;
+  }
+
+  // move
+  shared_state_nullary_task(
+    BOOST_THREAD_RV_REF(shared_state_nullary_task) s) BOOST_NOEXCEPT :
+    st_(s.st_), f_(boost::move(s.f_)) {
+    s.st_.reset();
+  }
+
+  shared_state_nullary_task& operator=(BOOST_THREAD_RV_REF(
+    shared_state_nullary_task) s) BOOST_NOEXCEPT {
+    if (this != s) {
+      st_ = s.st_;
+      f_ = boost::move(s.f_);
+      s.st_.reset();
+    }
+    return *this;
+  }
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+  void operator()() {
+    boost::shared_ptr<boost::detail::shared_state<void> > st =
+      static_pointer_cast<boost::detail::shared_state<void> >(st_);
+
+    try {
+      f_();
+      st->mark_finished_with_result();
+    } catch (...) {
+      st->mark_exceptional_finish();
+    }
+  }
+};
+} // detail
+
+BOOST_THREAD_DCL_MOVABLE_BEG2(R, F)
+boost::detail::shared_state_nullary_task<R, F>
+BOOST_THREAD_DCL_MOVABLE_END
+
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 } // boost
