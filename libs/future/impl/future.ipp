@@ -1618,7 +1618,7 @@ public:
 }; // BOOST_THREAD_FUTURE
 
 BOOST_THREAD_DCL_MOVABLE_BEG(T)
-BOOST_THREAD_FUTURE<T>
+boost::BOOST_THREAD_FUTURE<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
 template <typename T2>
@@ -2560,7 +2560,7 @@ namespace std {
 namespace boost {
 
 BOOST_THREAD_DCL_MOVABLE_BEG(T)
-promise<T>
+boost::promise<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
@@ -3393,7 +3393,7 @@ struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
 namespace boost {
 
 BOOST_THREAD_DCL_MOVABLE_BEG(T)
-packaged_task<T>
+boost::packaged_task<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
@@ -3665,5 +3665,43 @@ BOOST_THREAD_DCL_MOVABLE_BEG2(R, F)
 boost::detail::shared_state_nullary_task<R, F>
 BOOST_THREAD_DCL_MOVABLE_END
 
+namespace detail {
+
+/* future_executor_shared_state */
+template <typename R>
+struct future_executor_shared_state :
+  boost::detail::shared_state<R> {
+  typedef boost::detail::shared_state<R> base_type;
+
+  future_executor_shared_state() {}
+
+  template <typename F, typename Ex>
+  void init(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+    typedef typename boost::decay<F>::type callback_type;
+
+    this->set_executor_policy(
+      boost::executor_ptr_type(new executor_ref<Ex>(ex)));
+
+    boost::detail::shared_state_nullary_task<R, callback_type> t(
+      this->shared_from_this(), boost::forward<F>(f));
+
+    ex.submit(boost::move(t));
+  }
+
+  ~future_executor_shared_state() {}
+};
+
+/* make_future_executor_shared_state */
+template <typename R, typename F, typename Ex>
+BOOST_THREAD_FUTURE<R>
+  make_future_executor_shared_state(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+  boost::shared_ptr<boost::detail::future_executor_shared_state<R> > h(
+    new boost::detail::future_executor_shared_state<R>());
+
+  h->init(ex, boost::forward<F>(f));
+
+  return BOOST_THREAD_FUTURE<R>(h);
+};
+} // detail
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
 } // boost
