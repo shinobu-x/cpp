@@ -3396,4 +3396,18 @@ BOOST_THREAD_DCL_MOVABLE_BEG(T)
 packaged_task<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
+namespace detail {
+
+/* make_future_async_shared_state */
+template <typename R, typename  F>
+BOOST_THREAD_FUTURE<R>
+  make_future_async_shared_state(BOOST_THREAD_FWD_REF(F) f) {
+    boost::shared_ptr<
+      boost::detail::future_async_shared_state<R, F> > h(
+        new boost::detail::future_async_shared_state<R, F>());
+    h->init(boost::forward<F>(f));
+
+    return BOOST_THREAD_FUTURE<R>(h);
+}
+} // detail
 } // boost
