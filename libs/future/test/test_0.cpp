@@ -1,14 +1,15 @@
 #include "../hpp/future.hpp"
 
-struct test {
-  int operator()() {
-    return 0;
-  }
-};
+struct test {};
+
+template <typename T>
+void set_thread(boost::promise<T>* p) {
+  p->set_value(1);
+}
 
 void doit() {
   {
-    boost::detail::shared_state_base base_type;  
+    boost::detail::shared_state_base base_type;
   }
 
   {
@@ -83,6 +84,28 @@ void doit() {
     boost::detail::basic_future<int> bf1;
     boost::detail::basic_future<int> bf2(fp);
     boost::detail::basic_future<int> bf3(ep);
+  }
+  {
+    boost::promise<int> p;
+    boost::future<int> f = p.get_future();
+    p.set_value(1);
+    auto v = f.get();
+    assert(v == 1);
+    assert(f.is_ready());
+    assert(f.has_value());
+    assert(!f.has_exception());
+    assert(f.get_state() == boost::future_state::ready);
+  }
+  {
+    boost::promise<int> p;
+    boost::future<int> f = p.get_future(); 
+    boost::thread(set_thread<int>, &p);
+    auto v = f.get();
+    assert(v == 1);
+    assert(f.is_ready());
+    assert(f.has_value());
+    assert(!f.has_exception());
+    assert(f.get_state() == boost::future_state::ready);
   }
 }
 
