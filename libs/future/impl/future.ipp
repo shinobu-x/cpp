@@ -4026,7 +4026,7 @@ inline BOOST_THREAD_FUTURE<void> make_future() {
 #endif // BOOST_THREAD_USES_MOVE
 
 namespace detail {
-/* make_future_ready */
+/* make_ready_future */
 template <typename T>
 struct deduced_type_impl {
   typedef T type;
@@ -4078,4 +4078,166 @@ BOOST_THREAD_FUTURE<T> make_ready_future(
 
   return p.get_future();
 }
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+template <typename T, typename... Ts>
+BOOST_THREAD_FUTURE<T> make_ready_future(Ts&& ...ts) {
+
+  boost::promise<T> p;
+  p.emplace(boost::forward<Ts>(ts)...);
+
+  return p.get_future();
+}
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+/* make_exceptional_future */
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_exceptional_future(boost::exception_ptr e) {
+
+  boost::promise<T> p;
+  p.set_exception(boost::copy_exception(e));
+
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+}
+
+template <typename T, typename E>
+BOOST_THREAD_FUTURE<T> make_exceptional_future(E e) {
+
+  boost::promise<T> p;
+  p.set_exception(boost::copy_exception(e));
+
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+}
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_exceptional_future() {
+
+  boost::promise<T> p;
+  p.set_exception(boost::current_exception());
+
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+}
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_ready_future(boost::exception_ptr e) {
+  return make_exceptional_future<T>(e);
+}
+
+/* make_shared_future */
+template <typename T>
+shared_future<typename boost::decay<T>::type>
+  make_shared_future(BOOST_THREAD_FWD_REF(T) v) {
+
+  typedef typename boost::decay<T>::type future_type;
+  boost::promise<future_type> p;
+  p.set_value(boost::forward<T>(v));
+
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
+}
+
+inline shared_future<void> make_shared_future() {
+  boost::promise<void> p;
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
+}
+
+namespace detail {
+
+template <
+  typename F,
+  typename R,
+  typename C,
+  typename S = boost::detail::shared_state<R> >
+struct continuation_shared_state : S {
+  F f_;
+  C c_;
+
+  continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_FWD_REF(C) c) : f_(boost::move(f)), c_(boost::move(c)) {}
+
+  void init(boost::unique_lock<boost::mutex>& lock) {
+    f_.future_->set_continuation_ptr(this->shared_from_this(), lock);
+  }
+
+  void call() {
+
+   try {
+     this->mark_finish_with_result(
+       this->continuation(boost::move(this->f_)));
+   } catch (...) {
+     this->mark_exceptional_finish();
+   }
+   this->f_ = F();
+  }
+
+  void call(boost::unique_lock<boost::mutex>& lock) {
+
+    try {
+      relocker relock(lock);
+      R r = this->continuation(boost::move(this->f_));
+      this->f_ = F();
+      relock.lock();
+      this->mark_finished_with_result_internal(boost::move(r), lock);
+    } catch (...) {
+      relocker relock(lock);
+      this->f_ = F();
+    }
+  }
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+
+    continuation_shared_state* that_ =
+      static_cast<continuation_shared_state*>(that.get());
+    that_->call();
+  }
+
+  ~continuation_shared_state() {}
+};
+
+template <typename F, typename C, typename S>
+struct continuation_shared_state<F, void, C, S> : S {
+  F f_;
+  C c_;
+
+  continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_RV_REF(C) c) : f_(boost::move(f)), c_(boost::move(c)) {}
+
+  void init(boost::unique_lock<boost::mutex>& lock) {
+    f_.future_->set_continuation_ptr(this->shared_from_this(), lock);
+  }
+
+  void call() {
+
+    try {
+      this->continuation(boost::move(this->f_));
+      this->mark_finished_with_result();
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+    this->f_ = F();
+  }
+
+  void call(boost::unique_lock<boost::mutex>& lock) {
+
+    try {
+      relocker relock(lock);
+      this->continuation(boost::move(this->f_));
+      this->f_ = F();
+    } catch (...) {
+      relocker relock(lock);
+      this->f_ = F();
+    }
+  }
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+
+    continuation_shared_state* that_ =
+      static_cast<continuation_shared_state*>(that.get());
+    that_->call();
+  }
+
+  ~continuation_shared_state() {}
+};
+} // detail
 } // boost
