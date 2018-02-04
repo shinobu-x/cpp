@@ -4239,5 +4239,70 @@ struct continuation_shared_state<F, void, C, S> : S {
 
   ~continuation_shared_state() {}
 };
+
+/* future_async_continuation_shared_state */
+template <typename F, typename R, typename C>
+struct future_async_continuation_shared_state :
+  continuation_shared_state<
+    F, R, C, boost::detail::future_async_shared_state_base<R> > {
+  typedef continuation_shared_state<
+    F, R, C, boost::detail::future_async_shared_state_base<R> > base_type;
+
+  future_async_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    this->thr_ =
+      boost::thread(&future_async_continuation_shared_state::run,
+        static_shared_from_this(this));
+#else
+    boost::thread(&base_type::run, static_shared_from_this(this)).detach();
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+  }
+};
+
+/* future_async_continuation_shared_state */
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+template <typename S>
+struct run_it {
+  boost::shared_ptr<S> ex_;
+
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+  BOOST_THREAD_COPYABLE_AND_MOVABLE(run_it)
+  run_it(run_it const& ex) : ex_(ex.ex_) {}
+
+  run_it& operator=(BOOST_THREAD_COPY_ASSIGN_REF(run_it) ex) {
+
+    if (this != &ex) {
+      ex_ = ex.ex_;
+    }
+    return *this;
+  }
+
+  run_it(BOOST_THREAD_RV_REF(run_it) ex) BOOST_NOEXCEPT : ex_(ex.ex_) {
+    ex.ex_.reset();
+  }
+
+  run_it& operator=(BOOST_THREAD_RV_REF(run_it) ex) BOOST_NOEXCEPT {
+
+    if (this != &ex) {
+      ex_ = ex.ex_;
+      ex.ex_.reset();
+    }
+    return *this;
+  }
+#endif // BOSOT_NO_CXX11_RVALUE_REFERENCES
+
+  run_it(boost::shared_ptr<S> ex) : ex_(ex) {}
+
+  void operator()() {
+    ex_->run(ex_);
+  }
+};
 } // detail
+
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 } // boost
