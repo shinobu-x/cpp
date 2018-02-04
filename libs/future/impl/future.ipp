@@ -3594,6 +3594,7 @@ BOOST_THREAD_FUTURE<
   async(
     boost::launch policy,
     BOOST_THREAD_FWD_REF(F) f) {
+
     typedef typename boost::result_of<
       typename boost::decay<F>::type()>::type R;
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -3639,6 +3640,7 @@ struct shared_state_nullary_task {
 
   shared_state_nullary_task& operator=(BOOST_THREAD_COPY_ASSIGN_REF(
     shared_state_nullary_task) s) {
+
     if (this != &s) {
       st_ = s.st_;
       f_ = s.f_;
@@ -3654,6 +3656,7 @@ struct shared_state_nullary_task {
 
   shared_state_nullary_task& operator=(BOOST_THREAD_RV_REF(
     shared_state_nullary_task) s) {
+
     if (this != &s) {
       st_ = s.st_;
       f_ = boost::move(s.f_);
@@ -3664,6 +3667,7 @@ struct shared_state_nullary_task {
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
 
   void operator()() {
+
     boost::shared_ptr<boost::detail::shared_state<R> > st =
       static_pointer_cast<boost::detail::shared_state<R> >(st_);
 
@@ -3692,6 +3696,7 @@ struct shared_state_nullary_task<void, F> {
 
   shared_state_nullary_task& operator=(BOOST_THREAD_COPY_ASSIGN_REF(
     shared_state_nullary_task) s) {
+
     if (this != s) {
       st_ = s.st_;
       f_ = s.f_;
@@ -3708,6 +3713,7 @@ struct shared_state_nullary_task<void, F> {
 
   shared_state_nullary_task& operator=(BOOST_THREAD_RV_REF(
     shared_state_nullary_task) s) BOOST_NOEXCEPT {
+
     if (this != s) {
       st_ = s.st_;
       f_ = boost::move(s.f_);
@@ -3717,6 +3723,7 @@ struct shared_state_nullary_task<void, F> {
   }
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
   void operator()() {
+
     boost::shared_ptr<boost::detail::shared_state<void> > st =
       static_pointer_cast<boost::detail::shared_state<void> >(st_);
 
@@ -3746,6 +3753,7 @@ struct future_executor_shared_state :
 
   template <typename F, typename Ex>
   void init(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+
     typedef typename boost::decay<F>::type callback_type;
 
     this->set_executor_policy(
@@ -3764,6 +3772,7 @@ struct future_executor_shared_state :
 template <typename R, typename F, typename Ex>
 BOOST_THREAD_FUTURE<R>
   make_future_executor_shared_state(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+
   boost::shared_ptr<boost::detail::future_executor_shared_state<R> > h(
     new boost::detail::future_executor_shared_state<R>());
 
@@ -3783,6 +3792,7 @@ BOOST_THREAD_FUTURE<R>
   async(
     Ex& ex, R(*f)(BOOST_THREAD_FWD_REF(Ts)...),
     BOOST_THREAD_FWD_REF(Ts) ...ts) {
+
   typedef R(*F)(BOOST_THREAD_FWD_REF(Ts)...);
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
@@ -3807,6 +3817,7 @@ BOOST_THREAD_FUTURE<
     Ex& ex,
     BOOST_THREAD_FWD_REF(F) f,
     BOOST_THREAD_FWD_REF(Ts) ...ts) {
+
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
     typename boost::decay<Ts>::type...> callback_type;
@@ -3825,6 +3836,7 @@ BOOST_THREAD_FUTURE<
 template <typename Ex, typename R>
 BOOST_THREAD_FUTURE<R>
   async(Ex& ex, R(*f)()) {
+
   typedef R(*F)();
   typedef boost::detail::invoker<F> callback_type;
   typedef typename callback_type::result_type result_type;
@@ -3842,6 +3854,7 @@ BOOST_THREAD_FUTURE<R>
     Ex& ex,
     R(*f)(BOOST_THREAD_FWD_REF(A)),
     BOOST_THREAD_FWD_REF(A) a) {
+
   typedef R(*F)(BOOST_THREAD_FWD_REF(A));
   typedef boost::detail::invoker<
     F,
@@ -3865,6 +3878,7 @@ BOOST_THREAD_FUTURE<
   async(
     Ex& ex,
     BOOST_THREAD_FWD_REF(F) f) {
+
   typedef boost::detail::invoker<
     typename boost::decay<F>::type> callback_type;
   typedef typename callback_type::result_type result_type;
@@ -3884,6 +3898,7 @@ BOOST_THREAD_FUTURE<
     Ex& ex,
     BOOST_THREAD_FWD_REF(F) f,
     BOOST_THREAD_FWD_REF(T1) t1) {
+
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
     typename boost::decay<T1>::type> callback_type;
@@ -3908,6 +3923,7 @@ BOOST_THREAD_FUTURE<
     BOOST_THREAD_FWD_REF(F) f,
     BOOST_THREAD_FWD_REF(T1) t1,
     BOOST_THREAD_FWD_REF(T2) t2) {
+
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
     typename boost::decay<T1>::type,
@@ -3933,6 +3949,7 @@ BOOST_THREAD_FUTURE<R>
   async(
     R(*f)(BOOST_THREAD_FWD_REF(Ts)...),
     BOOST_THREAD_FWD_REF(Ts) ...ts) {
+
   return BOOST_THREAD_MAKE_RV_REF(
     boost::async(
       boost::launch(
@@ -3944,6 +3961,7 @@ BOOST_THREAD_FUTURE<R>
 template <typename R>
 BOOST_THREAD_FUTURE<R>
   async(R(*f)()) {
+
   return BOOST_THREAD_MAKE_RV_REF(
     boost::sync(
       boost::launch(
@@ -3962,6 +3980,7 @@ BOOST_THREAD_FUTURE<
   async(
     BOOST_THREAD_FWD_REF(F) f,
     BOOST_THREAD_FWD_REF(Ts) ...ts) {
+
   return BOOST_THREAD_MAKE_RV_REF(
     boost::async(
       boost::launch(
@@ -3974,6 +3993,7 @@ template <typename F>
 BOOST_THREAD_FUTURE<
   typename boost::result_of<F()>::type>
   async(BOOST_THREAD_FWD_REF(F) f) {
+
   return BOOST_THREAD_MAKE_RV_REF(
     boost::async(
       boost::launch(
@@ -3987,16 +4007,20 @@ template <typename T>
 BOOST_THREAD_FUTURE<typename boost::decay<T>::type>
   make_future(
     BOOST_THREAD_FWD_REF(T) value) {
+
   typedef typename boost::decay<T>::type future_value_type;
   boost::promise<future_value_type> p;
   p.set_value(boost::forward<future_value_type>(value));
+
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 
 #ifdef BOOST_THREAD_USES_MOVE
 inline BOOST_THREAD_FUTURE<void> make_future() {
+
   boost::promise<void> p;
   p.set_value();
+
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 #endif // BOOST_THREAD_USES_MOVE
@@ -4029,4 +4053,29 @@ struct deduced_type {
     typename boost::decay<T>::type>::type type;
 };
 } // detail
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+template <int = 0, int..., typename T>
+#else
+template <typename T>
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
+BOOST_THREAD_FUTURE<typename boost::detail::deduced_type<T>::type>
+  make_ready_future(BOOST_THREAD_FWD_REF(T) value) {
+
+  typedef typename boost::detail::deduced_type<T>::type future_value_type;
+  boost::promise<future_value_type> p;
+  p.set_value(boost::forward<T>(value));
+
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+}
+
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_ready_future(
+  typename boost::remove_reference<T>::typ& v) {
+
+  boost::promise<T> p;
+  p.set_value(boost::forward<typename boost::remove_reference<T>::type>(v));
+
+  return p.get_future();
+}
 } // boost
