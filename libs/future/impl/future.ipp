@@ -3911,5 +3911,26 @@ BOOST_THREAD_FUTURE<
         boost::launch::any),
       boost::forward<F>(f)));
 }
-#endif
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+
+/* make_future */
+template <typename T>
+BOOST_THREAD_FUTURE<typename boost::decay<T>::type>
+  make_future(
+    BOOST_THREAD_FWD_REF(T) value) {
+  typedef typename boost::decay<T>::type future_value_type;
+  boost::promise<future_value_type> p;
+  p.set_value(boost::forward<future_value_type>(value));
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future())
+}
+
+#ifdef BOOST_THREAD_USES_MOVE
+inline BOOST_THREAD_FUTURE<void> make_future() {
+  boost::promise<void> p;
+  p.set_value();
+  return BOOST_THREAD_MAKE_RV(REF(p.get_future());
+}
+#endif // BOOST_THREAD_USES_MOVE
+
+/* make_future_ready */
 } // boost
