@@ -2177,7 +2177,7 @@ public:
   BOOST_THREAD_FUTURE<R> get_future() {
     lazy_init();
 
-    if (future_.get() += 0) {
+    if (future_.get() == 0) {
       boost::throw_exception(boost::promise_moved());
     }
 
@@ -2538,6 +2538,75 @@ public:
     BOOST_THREAD_RV(that).future_.reset();
     BOOST_THREAD_RV(that).future_obtained_ = false;
     return *this;
+  }
+
+  void swap(promise& that) {
+    future_.swap(that.future_);
+    std::swap(future_obtained_, that.future_obtained_);
+  }
+
+  BOOST_THREAD_FUTURE<void> get_future() {
+    lazy_init();
+
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+
+    if (future_obtained_) {
+      boost::throw_exception(boost::future_already_retrieved());
+    }
+
+    return BOOST_THREAD_FUTURE<void>(future_);
+  }
+
+  void set_value() {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    future_->mark_finished_with_result_internal(lock);
+  }
+
+  void set_exception(boost::exception_ptr p) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    future_->mark_exceptional_finish_internal(p, lock);
+  }
+
+  template <typename E>
+  void set_exception(E e) {
+    set_exception(boost::copy_exception(e));
+  }
+
+  void set_value_at_thread_exit() {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_value_at_thread_exit();
+  }
+
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_exception_at_thread_exit(e);
+  }
+
+  template <typename E>
+  void set_exception_at_thread_exit(E e) {
+    set_exception_at_thread_exit(boost::copy_exception(e));
+  }
+
+  template <typename C>
+  void set_wait_callback(C c) {
+    lazy_init();
+    future_->set_wait_callback(c, this);
   }
 }; // promise
 } // boost
@@ -3921,16 +3990,43 @@ BOOST_THREAD_FUTURE<typename boost::decay<T>::type>
   typedef typename boost::decay<T>::type future_value_type;
   boost::promise<future_value_type> p;
   p.set_value(boost::forward<future_value_type>(value));
-  return BOOST_THREAD_MAKE_RV_REF(p.get_future())
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 
 #ifdef BOOST_THREAD_USES_MOVE
 inline BOOST_THREAD_FUTURE<void> make_future() {
   boost::promise<void> p;
   p.set_value();
-  return BOOST_THREAD_MAKE_RV(REF(p.get_future());
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 #endif // BOOST_THREAD_USES_MOVE
 
+namespace detail {
 /* make_future_ready */
+template <typename T>
+struct deduced_type_impl {
+  typedef T type;
+};
+
+template <typename T>
+struct deduced_type_impl<reference_wrapper<T> const> {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type_impl<reference_wrapper<T> > {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type_impl<std::reference_wrapper<T> > {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type {
+  typedef typename boost::detail::deduced_type_impl<
+    typename boost::decay<T>::type>::type type;
+};
+} // detail
 } // boost
