@@ -4243,9 +4243,9 @@ struct continuation_shared_state<F, void, C, S> : S {
 /* future_async_continuation_shared_state */
 template <typename F, typename R, typename C>
 struct future_async_continuation_shared_state :
-  continuation_shared_state<
+  boost::detail::continuation_shared_state<
     F, R, C, boost::detail::future_async_shared_state_base<R> > {
-  typedef continuation_shared_state<
+  typedef boost::detail::continuation_shared_state<
     F, R, C, boost::detail::future_async_shared_state_base<R> > base_type;
 
   future_async_continuation_shared_state(
@@ -4262,6 +4262,24 @@ struct future_async_continuation_shared_state :
     boost::thread(&base_type::run, static_shared_from_this(this)).detach();
 #endif // BOOST_THREAD_FUTURE_BLOCKING
   }
+};
+
+/* future_sync_continuation_shared_state */
+template <typename F, typename R, typename C>
+struct future_sync_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F, R, C, boost::detail::shared_state<R> >{
+  typedef boost::detail::continuation_shared_state<
+    F, R, C, boost::detail::shared_state<R> > base_type;
+
+  future_sync_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    this->call();
+  }
+
 };
 
 /* future_async_continuation_shared_state */
@@ -4402,5 +4420,103 @@ struct shared_future_executor_continuation_shared_state :
   ~shared_future_executor_continuation_shared_state() {}
 };
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+/* future_deferred_continuation_shared_state */
+template <typename F, typename R, typename C>
+struct future_deferred_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, R, C> {
+  typedef boost::detail::continuation_shared_state<F, R, C> base_type;
+
+  future_deferred_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    this->parent_wait();
+    this->call(lock);
+  }
+
+  virtual void launch_continuation() {}
+};
+
+/* shared_future_deferred_continuation_shared_state */
+template <typename F, typename R, typename C>
+struct shared_future_deferred_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, R, C> {
+  typedef boost::detail::continuation_shared_state<F, R, C> base_type;
+
+  shared_future_deferred_continuation_shared_state(
+    F f, BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {
+    this->set_deferred();
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>& lock) {
+    this->parent_wait();
+    this->call(lock);
+  }
+
+  virtual void launch_continuation() {}
+};
+
+/* make_future_async_continuation_shared_state */
+template <typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R>
+  make_future_async_continuation_shared_state(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_FWD_REF(C) c) {
+
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::future_async_continuation_shared_state<
+      F, R, callback_type> > h(
+        new boost::detail::future_async_continuation_shared_state<
+          F, R, callback_type>(boost::move(f), boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
+
+/* make_future_sync_continuaiton_shared_state */
+template <typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R>
+  make_future_sync_continuation_shared_state(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_FWD_REF(C) c) {
+
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::future_sync_continuation_shared_state<
+      F, R, callback_type> > h(
+        new boost::detail::future_sync_continuation_shared_state<
+          F, R, callback_type>(boost::move(f), boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
+
+/* make_future_deferred_continuation_shared_state */
+template <typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R>
+  make_future_deferred_continuation_shared_state(
+    boost::unique_lock<boost::mutex>& lock,
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_FWD_REF(C) c) {
+
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::future_deferred_continuation_shared_state<
+      F, R, callback_type> > h(
+        new boost::detail::future_deferred_continuation_shared_state<
+          F, R, callback_type>(boost::move(f), boost::forward<C>(c)));
+
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
 } // detail
 } // boost
