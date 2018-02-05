@@ -8,13 +8,13 @@ struct callback {
     f.get();
     return boost::make_ready_future();
   }
-/*
+
   boost::future<void> operator()(boost::future<boost::future<void> > f) const {
     assert(f.is_ready());
     f.get();
     return boost::make_ready_future();
   }
-*/
+
 };
 
 template <typename T>
@@ -124,8 +124,8 @@ void doit() {
   }
   {
     boost::promise<void> p;
-    boost::future<void> f(p.get_future());
-    boost::future<void> f1 = f.then(callback());
+    auto f(p.get_future());
+    auto f1 = f.then(callback());
   }
 }
 
