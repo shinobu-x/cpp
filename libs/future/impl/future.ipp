@@ -5185,10 +5185,10 @@ namespace detail {
 template <typename F, typename R>
 struct future_unwrap_shared_state : boost::detail::shared_state<R> {
   F wrapped_;
-  typename F::value_type wnwrapped_;
+  typename F::value_type unwrapped_;
 
   explicit future_unwrap_shared_state(BOOST_THREAD_RV_REF(F) f) :
-    wrapped_(boost::move(f) {}
+    wrapped_(boost::move(f)) {}
 
   void launch_continuation() {
     boost::unique_lock<boost::mutex> lock(this->mutex_);
@@ -5206,9 +5206,15 @@ struct future_unwrap_shared_state : boost::detail::shared_state<R> {
             this->shared_from_this(), lock_);
         } else {
           this->mark_exceptional_finish_internal(
+            boost::copy_exception(boost::future_uninitialized()), lock);
+        }
+      }
+    } else {
+      this->mark_finished_with_result_internal(unwrapped_.get(), lock);
     }
   }
-
 };
+
+#endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 } // detail
 } // boost
