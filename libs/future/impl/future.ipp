@@ -401,6 +401,11 @@ struct shared_state_base :
     shared_state_base& operator=(shared_state_base const&);
 }; // shared_state_base
 
+
+
+
+
+
 template <typename T>
 struct shared_state : boost::detail::shared_state_base {
 #ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
@@ -419,7 +424,7 @@ struct shared_state : boost::detail::shared_state_base {
   typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
   typedef T move_dest_type;
 #else
-  typedef T& cource_reference_type;
+  typedef T& source_reference_type;
   typedef typename boost::conditional<
     boost::thread_detail::is_convertible<
       T&,
@@ -447,6 +452,18 @@ struct shared_state : boost::detail::shared_state_base {
 #else
     result_.reset(new T(result));
 #endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
+    this->mark_finished_internal(lock);
+  }
+
+  void mark_finished_with_result_internal(rvalue_source_type result,
+    boost::unique_lock<boost::mutex>& lock) {
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
+    result_ = boost::move(result);
+#elif !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
+    result_.reset(new T(boost::move(result)));
+#else
+    result_.reset(new T(static_cast<rvalue_source_type>(result)));
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
     this->mark_finished_internal(lock);
   }
 
@@ -4079,6 +4096,15 @@ BOOST_THREAD_FUTURE<T> make_ready_future(
   return p.get_future();
 }
 
+template <typename T>
+BOOST_THREAD_FUTURE<T> make_ready_future(
+  BOOST_THREAD_FWD_REF(
+    typename boost::remove_reference<T>::type) v) {
+  boost::promise<T> p;
+  p.set_value(boost::forward<typename boost::remove_reference<T>::type>(v));
+  return p.get_future();
+}
+
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 template <typename T, typename... Ts>
 BOOST_THREAD_FUTURE<T> make_ready_future(Ts&& ...ts) {
@@ -4089,6 +4115,23 @@ BOOST_THREAD_FUTURE<T> make_ready_future(Ts&& ...ts) {
   return p.get_future();
 }
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+template <typename T1, typename T2>
+BOOST_THREAD_FUTURE<T1> make_ready_no_decay_future(T2 v) {
+  typedef T1 future_value_type;
+  boost::promise<future_value_type> p;
+  p.set_value(v);
+  return BOOST_THREAD_MAKE_RV_REF(p.get_future());
+}
+
+#if !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATE) ||                             \
+    defined(BOOST_THREAD_USES_MOVE)
+inline BOOST_THREAD_FUTURE<void> make_ready_future() {
+  boost::promise<void> p;
+  p.set_value();
+  return p.get_future();
+}
+#endif
 
 /* make_exceptional_future */
 template <typename T>
@@ -4162,8 +4205,8 @@ struct continuation_shared_state : S {
   void call() {
 
    try {
-     this->mark_finish_with_result(
-       this->continuation(boost::move(this->f_)));
+     this->mark_finished_with_result(
+       this->c_(boost::move(this->f_)));
    } catch (...) {
      this->mark_exceptional_finish();
    }
@@ -4174,11 +4217,13 @@ struct continuation_shared_state : S {
 
     try {
       relocker relock(lock);
-      R r = this->continuation(boost::move(this->f_));
+      R r = this->c_(boost::move(this->f_));
       this->f_ = F();
       relock.lock();
       this->mark_finished_with_result_internal(boost::move(r), lock);
     } catch (...) {
+      this->mark_exceptional_finish_internal(
+        boost::current_exception(), lock);
       relocker relock(lock);
       this->f_ = F();
     }
@@ -4210,7 +4255,7 @@ struct continuation_shared_state<F, void, C, S> : S {
   void call() {
 
     try {
-      this->continuation(boost::move(this->f_));
+      this->c_(boost::move(this->f_));
       this->mark_finished_with_result();
     } catch (...) {
       this->mark_exceptional_finish();
@@ -4222,7 +4267,7 @@ struct continuation_shared_state<F, void, C, S> : S {
 
     try {
       relocker relock(lock);
-      this->continuation(boost::move(this->f_));
+      this->c_(boost::move(this->f_));
       this->f_ = F();
     } catch (...) {
       relocker relock(lock);
@@ -4434,7 +4479,7 @@ struct future_deferred_continuation_shared_state :
   }
 
   virtual void execute(boost::unique_lock<boost::mutex>& lock) {
-    this->parent_wait();
+    this->f_.wait();
     this->call(lock);
   }
 
@@ -4454,7 +4499,7 @@ struct shared_future_deferred_continuation_shared_state :
   }
 
   virtual void execute(boost::unique_lock<boost::mutex>& lock) {
-    this->parent_wait();
+    this->f_.wait();
     this->call(lock);
   }
 
