@@ -2,6 +2,21 @@
 
 struct test {};
 
+struct callback {
+  boost::future<void> operator()(boost::future<void> f) const {
+    assert(f.is_ready());
+    f.get();
+    return boost::make_ready_future();
+  }
+/*
+  boost::future<void> operator()(boost::future<boost::future<void> > f) const {
+    assert(f.is_ready());
+    f.get();
+    return boost::make_ready_future();
+  }
+*/
+};
+
 template <typename T>
 void set_thread(boost::promise<T>* p) {
   p->set_value(1);
@@ -106,6 +121,11 @@ void doit() {
     assert(f.has_value());
     assert(!f.has_exception());
     assert(f.get_state() == boost::future_state::ready);
+  }
+  {
+    boost::promise<void> p;
+    boost::future<void> f(p.get_future());
+    boost::future<void> f1 = f.then(callback());
   }
 }
 
