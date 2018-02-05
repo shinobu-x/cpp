@@ -4183,6 +4183,8 @@ inline shared_future<void> make_shared_future() {
   return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
 }
 
+#if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+
 namespace detail {
 
 template <
@@ -4723,7 +4725,7 @@ inline BOOST_THREAD_FUTURE<
         boost::detail::make_future_executor_continuation_shared_state<
           BOOST_THREAD_FUTURE<R>, future_type>(
             lock, boost::move(*this), boost::forward<F>(f))));
-#endif
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
     } else {
 
       return BOOST_THREAD_MAKE_RV_REF((
@@ -5224,4 +5226,43 @@ inline typename boost::disable_if<
   return then(boost::detail::cfallbacker_to<R>(v));    
 }
 
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+namespace detail {
+
+template <typename F, typename R>
+struct future_unwrap_shared_state : boost::detail::shared_state<R> {
+
+  F wrapped_;
+  typename F::value_type unwrapped_;
+
+  explicit future_unwrap_shared_state(BOOST_THREAD_RV_REF(F) f) :
+    wrapped_(boost::move(f)) {}
+
+  void launch_continuation() {
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+
+    if (!unwrapped_.valid()) {
+      if (unwrapped_.has_exception()) {
+        this->mark_exceptional_finish_internal(
+          wrapped_.get_exception_ptr(), lock);
+      } else {
+        unwrapped_ = wrapped_.get();
+        if (unwrapped_.valid()) {
+          lock.unlock();
+          boost::unique_lock<boost::mutex> lock_(unwrapped_.future_->mutex);
+          unwrapped_.future_->set_continuation_ptr(
+          this->shared_from_this(), lock_);
+        } else {
+          this->mark_exceptional_finish_internal(
+            boost::copy_exception(boost::future_uninitialized()), lock);
+        }
+      }
+    }
+  }
+};
+
+#endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+} // detail 
 } // boost
