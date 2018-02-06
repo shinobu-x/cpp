@@ -5253,11 +5253,50 @@ struct future_unwrap_shared_state : boost::detail::shared_state<R> {
           lock.unlock();
           boost::unique_lock<boost::mutex> lock_(unwrapped_.future_->mutex);
           unwrapped_.future_->set_continuation_ptr(
-          this->shared_from_this(), lock_);
+            this->shared_from_this(), lock_);
         } else {
           this->mark_exceptional_finish_internal(
             boost::copy_exception(boost::future_uninitialized()), lock);
         }
+      }
+    }
+  }
+};
+
+template <typename F>
+struct future_unwrap_shared_state<F, void> : boost::detail::shared_state<void> {
+
+  F wrapped_;
+  typename F::value_type unwrapped_;
+
+  explicit future_unwrap_shared_state(BOOST_THREAD_RV_REF(F) f) :
+    wrapped_(boost::move(f)) {}
+
+  void launch_continuation() {
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+
+    if (!unwrapped_.valid()) {
+      if (wrapped_.has_exception()) {
+        this->mark_exceptional_finish_internal(
+          wrapped_.get_exception_ptr(), lock);
+      } else {
+        unwrapped_ = wrapped_.get();
+        if (unwrapped_.valid()) {
+          lock.unlock();
+          boost::unique_lock<boost::mutex> lock_(unwrapped_.future_->mutex);
+          unwrapped_.future_->set_continuation_ptr(
+            this->shared_from_this, lock_);
+        } else {
+          this->mark_exceptional_finish_internal(
+            boost::copy_exception(boost::future_uninitialized()), lock);
+        }
+      }
+    } else {
+      if (unwrapped_.has_exception()) {
+        this->mark_exceptional_finish_internal(
+          unwrapped_.get_exception_ptr(), lock);
+      } else {
+        this->mark_finished_with_result_internal(lock);
       }
     }
   }
