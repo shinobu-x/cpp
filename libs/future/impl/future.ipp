@@ -401,11 +401,6 @@ struct shared_state_base :
     shared_state_base& operator=(shared_state_base const&);
 }; // shared_state_base
 
-
-
-
-
-
 template <typename T>
 struct shared_state : boost::detail::shared_state_base {
 #ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
@@ -5302,6 +5297,83 @@ struct future_unwrap_shared_state<F, void> : boost::detail::shared_state<void> {
   }
 };
 
+template <typename F, typename R>
+BOOST_THREAD_FUTURE<R>
+  make_future_unwrap_shared_state(
+    boost::unique_lock<boost::mutex>& lock, BOOST_THREAD_RV_REF(F) f) {
+  boost::shared_ptr<boost::detail::future_unwrap_shared_state<F, R>(
+    boost::move(f));
+
+  return BOOST_THREAD_FUTURE<R>(h);
+} // detail
+
+template <typename R>
+inline BOOST_THREAD_FUTURE<R>::BOOST_THREAD_FUTURE(
+  BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that) :
+  boost::detail::base_type(that.unwrap()) {}
+
+template <typename R>
+BOOST_THREAD_FUTURE<R>
+  BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >::unwrap() {
+  BOOST_THREAD_ASSERT_PRECONDITION(
+    this->future_.get != 0,
+    boost::future_uninitialized());
+
+  boost::shared_ptr<
+    boost::detail::shared_state_base> shared_state(this->future_);
+  boost::unique_lock<boost::mutex> lock(shared_state->mutex_);
+
+  return boost::detail::make_future_unwrap_shared_state<
+    BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<
+      R2> >, R2>(lock, boost::move(*this));
+}
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+namespace detail {
+
+  struct input_iterator_tag {};
+  struct vector_tag {};
+  struct values_tag {};
+  template <typename T>
+  struct alias_t {
+    typedef T type;
+  }
+
+  BOOST_CONSTEXPR_OR_CONST input_iterator_tag input_iterator_tag_value = {}
+  BOOST_CONSTEXPR_OR_CONST vector_tag vector_tag_value = {}
+  BOOST_CONSTEXPR_OR_CONST values_tag values_tag_value = {}
+
+  template <template F>
+  struct future_when_all_vector_shared_state :
+    boost::detail::future_async_shared_state<
+      boost::csbl::vector<F> > {
+    typedef boost::csbl::vector<F> vector_type;
+    typedef typename F::value_type value_type;
+    vector_type v_;
+
+    static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+      future_when_all_vector_shared_state* that_ =
+        static_cast<future_when_all_vector_shared_state*>(that.get());
+
+      try {
+        boost::wait_for_all(that_->v_.begin, that->v_.end());
+        that_->mark_finished_with_result(boost::move(that_->v_));
+      } catch (...) {
+        that_->mark_exceptional_finish()
+      }
+    }
+
+    bool run_deferred() {
+      bool r = false;
+
+      typename boost::csbl::vector<F>::iterator it = v_.begin();
+      for (; it != v_.end(); ++it) {
+        if (!it->run_if_is_deferred()) {
+          r = true;
+        }
+      }
+      return r;
+    }
+  };
 } // detail 
 } // boost
