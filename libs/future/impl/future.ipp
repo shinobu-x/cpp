@@ -5510,7 +5510,62 @@ struct apply_any_run_if_is_deferred_or_ready<T, 0> {
     return false;
   }
 };
+
+template <typename T, typename N, typename... Ns>
+struct future_when_any_tuple_shared_state :
+  boost::detail::future_async_shared_state_base<T> {
+  T t_;
+  typedef typename boost::detail::make_tuple_indices<
+    1 + sizeof ...(Ns)>::type index;
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+    future_when_any_tuple_shared_state* that_ =
+      static_cast<future_when_any_tuple_shared_state*>(that.get());
+
+    try {
+      that_->wait_for_any(index());
+    } catch (...) {
+      that_->mark_exceptional_finish();
+    }
+  }
+
+  template <size_t... I>
+  void wait_for_any(boost::detail::tuple_indices<I...>) {
+#ifdef BOOST_THREAD_PROVIDES_INVOKE
+    return invoke<void>(wait_for_any_fctr(), boost::csbl::get<I>(t_)...);
+#else
+    return wait_for_any_fctr()(boost::csbl::get<I>(t_)...);
+#endif
+  }
+
+  bool run_deferred() {
+    return apply_any_run_if_is_deferred_or_ready<T>()(t_);
+  }
+
+  void init() {
+    if (run_deferred()) {
+      future_when_any_tuple_shared_state::run(this->shared_from_this());
+      return;
+    }
+
+#ifdef BOOST_FUTURE_BLOCKING
+    this->thr_ = boost::thread(&future_when_any_tuple_shared_state::run,
+      this->shared_from_this());
+#else
+    boost::thread(&future_when_any_tuple_shared_state::run,
+      this->shared_from_this()).detach();
+#endif
+  }
+
+  template <typename F, typename... Fs>
+  future_when_any_tuple_shared_state(values_tag,
+    BOOST_THREAD_FWD_REF(F) f, BOOST_THREAD_FWD_REF(Fs) ...fs) :
+      t_(boost::csbl::make_tuple(
+        boost::forward<F>(f), boost::forward<Fs>(fs)...)) {}
+
+  ~future_when_any_tuple_shared_state() {}
+};
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+} // detail
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
-} // detail 
 } // boost
