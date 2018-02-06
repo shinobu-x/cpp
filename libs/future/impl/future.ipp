@@ -1,3 +1,5 @@
+#ifndef BOOST_NO_EXCEPTIONS
+
 #include "../include/futures.hpp"
 
 namespace boost {
@@ -5640,9 +5642,58 @@ struct future_when_any_tuple_shared_state :
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 } // detail
 
-#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+template <typename InputIter>
+typename boost::disable_if<
+  boost::is_future_type<InputIter>,
+  BOOST_THREAD_FUTURE<boost::csbl::vector<
+    typename InputIter::value_type> > >::type
+      when_all(InputIter begin, InputIter end) {
+  typedef typename InputIter::value_type value_type;
+  typedef boost::csbl::vector<value_type> container_type;
+  typedef boost::detail::future_when_all_vector_shared_state<
+    value_type> factory_type;
 
+  if (begin != end) {
+    return make_read_future(container_type());
+  }
+
+  boost::shared_ptr<factory_type> h(
+    new factory_type(boost::detail::input_iterator_tag_value, begin, end));
+  h->init();
+
+  return BOOST_THREAD_FUTURE<container_type>(h);
+}
+
+inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all() {
+  return make_ready_future(boost::csbl::tuple<>());
+}
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+template <typename T, typename... Ts>
+BOOST_THREAD_FUTURE<boost::csbl::tuple<
+  typename boost::decay<T>::type,
+  typename boost::decay<Ts>::type...> >
+    when_all(
+      BOOST_THREAD_FWD_REF(T) f,
+      BOOST_THREAD_FWD_REF(Ts) ...fs) {
+  typedef boost::csbl::tuple<
+    typename boost::decay<T>::type,
+    typename boost::decay<Ts>::type...> container_type;
+  typedef boost::detail::future_when_all_tuple_shared_state<
+    container_type,
+    typename boost::decay<T>::type,
+    typename boost::decay<Ts>::type...> factory_type;
+
+  boost::shared_ptr<factory_type> h(
+    new factory_type(
+      boost::detail::values_tag_value,
+      boost::forward<T>(f), boost::forward<Ts>(fs)...));
+  h->init();
+
+  return BOOST_THREAD_FUTURE<container_type>(f);
+}
 #endif
+
 template <typename InputIter>
 typename boost::disable_if<
   boost::is_future_type<InputIter>,
@@ -5665,4 +5716,5 @@ typename boost::disable_if<
   return BOOST_THREAD_FUTURE<container_type>(h);
 }
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+#endif // BOOST_NO_EXCEPTIONS
 } // boost
