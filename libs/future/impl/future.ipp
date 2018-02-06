@@ -18,18 +18,6 @@ typedef boost::shared_ptr<executor> executor_ptr_type;
 
 namespace detail {
 
-struct relocker;
-struct shared_state_base;
-template <typename T>
-struct shared_state;
-template <typename T>
-struct future_async_shared_state_base;
-template <typename S, typename F>
-struct future_async_shared_state;
-template <typename R, typename F>
-struct future_deferred_shared_state;
-class future_waiter;
-
 struct relocker {
 
   boost::unique_lock<boost::mutex>& lock_;
@@ -1935,7 +1923,7 @@ public:
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
-  inline BOOST_THREAD_FUTURE<T> unwrap();
+  inline BOOST_THREAD_FUTURE<T2> unwrap();
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 }; // BOOST_THREAD_FUTURE
 
@@ -5301,16 +5289,20 @@ template <typename F, typename R>
 BOOST_THREAD_FUTURE<R>
   make_future_unwrap_shared_state(
     boost::unique_lock<boost::mutex>& lock, BOOST_THREAD_RV_REF(F) f) {
-  boost::shared_ptr<boost::detail::future_unwrap_shared_state<F, R>(
-    boost::move(f));
+
+  boost::shared_ptr<boost::detail::future_unwrap_shared_state<F, R> > h(
+    new boost::detail::future_unwrap_shared_state<F, R>(boost::move(f)));
+
+  h->wrapped_.future_->set_continuation_ptr(h, lock);
 
   return BOOST_THREAD_FUTURE<R>(h);
+}
 } // detail
 
 template <typename R>
 inline BOOST_THREAD_FUTURE<R>::BOOST_THREAD_FUTURE(
   BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that) :
-  boost::detail::base_type(that.unwrap()) {}
+    base_type(that.unwrap()) {}
 
 template <typename R>
 BOOST_THREAD_FUTURE<R>
@@ -5325,7 +5317,7 @@ BOOST_THREAD_FUTURE<R>
 
   return boost::detail::make_future_unwrap_shared_state<
     BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<
-      R2> >, R2>(lock, boost::move(*this));
+      R> >, R>(lock, boost::move(*this));
 }
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
@@ -5337,16 +5329,16 @@ namespace detail {
   template <typename T>
   struct alias_t {
     typedef T type;
-  }
+  };
 
-  BOOST_CONSTEXPR_OR_CONST input_iterator_tag input_iterator_tag_value = {}
-  BOOST_CONSTEXPR_OR_CONST vector_tag vector_tag_value = {}
-  BOOST_CONSTEXPR_OR_CONST values_tag values_tag_value = {}
+  BOOST_CONSTEXPR_OR_CONST input_iterator_tag input_iterator_tag_value = {};
+  BOOST_CONSTEXPR_OR_CONST vector_tag vector_tag_value = {};
+  BOOST_CONSTEXPR_OR_CONST values_tag values_tag_value = {};
 
-  template <template F>
+  template <typename F>
   struct future_when_all_vector_shared_state :
     boost::detail::future_async_shared_state<
-      boost::csbl::vector<F> > {
+      void, boost::csbl::vector<F> > {
     typedef boost::csbl::vector<F> vector_type;
     typedef typename F::value_type value_type;
     vector_type v_;
@@ -5356,10 +5348,10 @@ namespace detail {
         static_cast<future_when_all_vector_shared_state*>(that.get());
 
       try {
-        boost::wait_for_all(that_->v_.begin, that->v_.end());
+        boost::wait_for_all(that_->v_.begin, that_->v_.end());
         that_->mark_finished_with_result(boost::move(that_->v_));
       } catch (...) {
-        that_->mark_exceptional_finish()
+        that_->mark_exceptional_finish();
       }
     }
 
@@ -5374,6 +5366,50 @@ namespace detail {
       }
       return r;
     }
+
+    void init() {
+      if (!run_deferred()) {
+        future_when_all_vector_shared_state::run(this->shared_from_this());
+        return;
+      }
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+      this->thr_ = boost::thread(
+        &future_when_all_vector_shared_state::run,
+        this->shared_from_this()).detach();
+#else
+      boost::thread(&future_when_all_vector_shared_state::run,
+        this->shared_from_this()).detach();
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+    }
+
+    template <typename InputIter>
+    future_when_all_vector_shared_state(
+      input_iterator_tag, InputIter begin, InputIter end) :
+        v_(std::make_move_iterator(begin), std::make_move_iterator(end)) {}
+
+    future_when_all_vector_shared_state(
+      vector_tag, BOOST_THREAD_RV_REF(boost::csbl::vector<F>) v) :
+        v_(boost::move(v)) {}
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+    template <typename T, typename... Ts>
+    future_when_all_vector_shared_state(
+      values_tag, BOOST_THREAD_FWD_REF(T) f, BOOST_THREAD_FWD_REF(Ts) ...fs) {
+      v_.push_back(boost::forward<T>(f));
+
+      typename alias_t<char[]>::type {
+        (
+          v_.push_back(boost::forward<T>(fs)),
+          '0'
+        )...,
+        '0'
+      };
+    }
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+    ~future_when_all_vector_shared_state() {}
   };
+
+#endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // detail 
 } // boost
