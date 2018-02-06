@@ -5494,6 +5494,22 @@ struct future_when_all_tuple_shared_state :
 
   ~future_when_all_tuple_shared_state() {}
 };
+
+template <typename T, std::size_t s = boost::csbl::tuple_size<T>::value>
+struct apply_any_run_if_is_deferred_or_ready {
+  bool operator()(T& t) {
+    if (boost::csbl::get<s - 1>(t).run_if_is_deferred_or_ready()) {
+      return true;
+    }
+  }
+};
+
+template <typename T>
+struct apply_any_run_if_is_deferred_or_ready<T, 0> {
+  bool operator()(T&) {
+    return false;
+  }
+};
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // detail 
