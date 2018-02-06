@@ -5410,6 +5410,53 @@ struct future_when_all_vector_shared_state :
   ~future_when_all_vector_shared_state() {}
 };
 
+template <typename F>
+struct future_when_any_vector_shared_state :
+  boost::detail::future_async_shared_state_base<boost::csbl::vector<F> > {
+  typedef boost::csbl::vector<F> vector_type;
+  typedef typename F::value_type value_type;
+  vector_type v_;
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+    future_when_any_vector_shared_state* that_ =
+      static_cast<future_when_any_vector_shared_state*>(that.get());
+
+    try {
+      boost::wait_for_any(that->v_.begin(), that_->v_.end());
+      that_->mark_finished_with_result(boost::move(that_->v_));
+    } catch (...) {
+      that_->mark_exceptional_finish();
+    }
+  }
+
+  bool run_deferred() {
+    boost::csbl::vector<F>::iterator it = v_.begin();
+    for (; it != v_.end(); ++it) {
+      if (it->run_if_is_deferred_or_ready()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void init() {
+    if (run_deferred()) {
+      future_when_any_vector_shared_state::run(this->shared_from_this());
+      return;
+    }
+
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    this->thr_ = boost::thread(&future_when_any_vector_shared_state::run,
+      this->shared_from_this());
+#else
+    boost::thread(&future_when_any_vector_shared_state::run,
+      this->shared_from_this()).detach();
+#endif
+  }
+
+  template <type
+  }
+};
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 struct wait_for_all_fctr {
   template <typename... T>
@@ -5567,5 +5614,30 @@ struct future_when_any_tuple_shared_state :
 };
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 } // detail
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+#endif
+template <typename InputIter>
+typename boost::disable_if<
+  boost::is_future_type<InputIter>,
+  BOOST_THREAD_FUTURE<boost::csbl::vector<
+    typename InputIter::value_type> > >::type
+      when_any(InputIter begin, InputIter end) {
+  typedef typename InputIter::value_type value_type;
+  typedef boost::csbl::vector<value_type> container_type;
+  typedef boost::detail::future_when_any_vector_shared_state<
+    value_type> factory_type;
+
+  if (begin == end) {
+    return boost::make_ready_future(container_type());
+  }
+
+  boost::shared_ptr<factory_type> h(
+    new factory_type(boost::detail::input_iterator_tag_value, begin, end));
+  h->init();
+
+  return BOOST_THREAD_FUTURE<container_type>(h);
+}
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // boost
