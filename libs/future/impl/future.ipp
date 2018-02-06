@@ -5384,7 +5384,7 @@ struct future_when_all_vector_shared_state :
 
   template <typename InputIter>
   future_when_all_vector_shared_state(
-    input_iterator_tag, InputIter begin, InputIter end) :
+    boost::detail::input_iterator_tag, InputIter begin, InputIter end) :
       v_(std::make_move_iterator(begin), std::make_move_iterator(end)) {}
 
   future_when_all_vector_shared_state(
@@ -5422,7 +5422,7 @@ struct future_when_any_vector_shared_state :
       static_cast<future_when_any_vector_shared_state*>(that.get());
 
     try {
-      boost::wait_for_any(that->v_.begin(), that_->v_.end());
+      boost::wait_for_any(that_->v_.begin(), that_->v_.end());
       that_->mark_finished_with_result(boost::move(that_->v_));
     } catch (...) {
       that_->mark_exceptional_finish();
@@ -5430,7 +5430,7 @@ struct future_when_any_vector_shared_state :
   }
 
   bool run_deferred() {
-    boost::csbl::vector<F>::iterator it = v_.begin();
+    typename boost::csbl::vector<F>::iterator it = v_.begin();
     for (; it != v_.end(); ++it) {
       if (it->run_if_is_deferred_or_ready()) {
         return true;
@@ -5454,9 +5454,34 @@ struct future_when_any_vector_shared_state :
 #endif
   }
 
-  template <type
+  template <typename InputIter>
+  future_when_any_vector_shared_state(
+    boost::detail::input_iterator_tag, InputIter begin, InputIter end) :
+      v_(std::make_move_iterator(begin), std::make_move_iterator(end)) {}
+
+  future_when_any_vector_shared_state(vector_tag,
+    BOOST_THREAD_RV_REF(boost::csbl::vector<F>) v) :
+      v_(boost::move(v)) {}
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename T, typename... Ts>
+  future_when_any_vector_shared_state(values_tag,
+    BOOST_THREAD_FWD_REF(T) f, BOOST_THREAD_FWD_REF(Ts) ...fs) {
+    v_.push_back(boost::forward<T>(f));
+
+    typename alias_t<char[]>::type {
+      (
+        v_.push_back(boost::forward<T>(fs)),
+        '0'
+      )...,
+      '0'
+    };
   }
+#endif
+
+  ~future_when_any_vector_shared_state() {}
 };
+
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 struct wait_for_all_fctr {
   template <typename... T>
