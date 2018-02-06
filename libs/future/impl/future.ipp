@@ -5665,7 +5665,7 @@ typename boost::disable_if<
 }
 
 inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all() {
-  return make_ready_future(boost::csbl::tuple<>());
+  return boost::make_ready_future(boost::csbl::tuple<>());
 }
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
@@ -5715,6 +5715,31 @@ typename boost::disable_if<
 
   return BOOST_THREAD_FUTURE<container_type>(h);
 }
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+template <typename T, typename... Ts>
+BOOST_THREAD_FUTURE<boost::csbl::tuple<
+  typename boost::decay<T>::type,
+  typename boost::decay<Ts>::type...> >
+    when_any(
+      BOOST_THREAD_FWD_REF(T) f,
+      BOOST_THREAD_FWD_REF(Ts) ...fs) {
+  typedef boost::csbl::tuple<
+    typename boost::decay<T>::type,
+    typename boost::decay<Ts>::type...> container_type;
+  typedef boost::detail::future_when_any_tuple_shared_state<
+    container_type,
+    typename boost::decay<T>::type,
+    typename boost::decay<Ts>::type...> factory_type;
+
+  boost::shared_ptr<factory_type> h(
+    new factory_type(boost::detail::values_tag_value,
+      boost::forward<T>(f), boost::forward<Ts>(fs)...));
+  h->init();
+
+  return BOOST_THREAD_FUTURE<container_type>(h);
+}
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
-#endif // BOOST_NO_EXCEPTIONS
 } // boost
+#endif // BOOST_NO_EXCEPTIONS
