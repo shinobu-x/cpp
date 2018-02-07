@@ -1,3 +1,6 @@
+#ifndef FUTURE_IPP
+#define FUTURE_IPP
+
 #ifndef BOOST_NO_EXCEPTIONS
 
 #include "../include/futures.hpp"
@@ -5357,3 +5360,5 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // boost
 #endif // BOOST_NO_EXCEPTIONS
+
+#endif // FUTURE_IPP

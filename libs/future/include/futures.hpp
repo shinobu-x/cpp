@@ -70,18 +70,3 @@
 #include <list>
 #include <vector>
 #include <utility>
-
-namespace boost {
-
-// forward declaration
-class executor;
-
-namespace detail {
-
-// forward declaration
-struct relocker;
-struct shared_state_base;
-template <typename T>
-struct shared_state;
-} // detail
-} // boost

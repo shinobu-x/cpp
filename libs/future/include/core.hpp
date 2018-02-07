@@ -1,3 +1,6 @@
+#ifndef CORE_HPP
+#define CORE_HPP
+
 namespace boost {
 
 template <typename T>
@@ -45,3 +48,5 @@ private:
 
 } // detail
 } // boost
+
+#endif // CORE_HPP

@@ -1,3 +1,6 @@
+#ifndef SHARED_STATE_BASE_IPP
+#define SHARED_STATE_BASE_IPP
+
 #include "../include/futures.hpp"
 #include "../include/core.hpp"
 
@@ -406,3 +409,5 @@ private:
 };
 } // detail
 } // boost
+
+#endif // SHARED_STATE_BASE_IPP
