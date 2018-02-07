@@ -291,7 +291,7 @@ struct shared_state_base :
 
 #ifdef BOOST_THREAD_USES_CHRONO
     template <typename Clock, typename Duration>
-    future_status wait_until(
+    boost::future_status wait_until(
       const chrono::time_point<Clock, Duration>& abs_time) {
       boost::unique_lock<boost::mutex> lock(this->mutex_);
 
@@ -302,9 +302,9 @@ struct shared_state_base :
       do_callback(lock);
 
       while (!done_) {
-        cv_status const status = waiters_.wait_until(lock, abs_time);
+        boost::cv_status const status = waiters_.wait_until(lock, abs_time);
 
-        if (status == cv_status::timeout && !done_) {
+        if (status == boost::cv_status::timeout && !done_) {
           return boost::future_status::timeout;
         }
       }
@@ -324,11 +324,11 @@ struct shared_state_base :
       mark_exceptional_finish_internal(boost::current_exception(), lock);
     }
 
-    void set_exception_at_thread_exit(exception_ptr e) {
+    void set_exception_at_thread_exit(boost::exception_ptr e) {
       boost::unique_lock<boost::mutex> lock(this->mutex_);
 
       if (has_value(lock)) {
-        boost::throw_exception(promise_already_satisfied());
+        boost::throw_exception(boost::promise_already_satisfied());
       }
 
       exception_ = e;

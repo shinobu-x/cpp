@@ -280,5 +280,56 @@ struct shared_state_base :
     }
     return true;
   }
+#endif // BOOST_THREAD_USES_DATETIME
+
+#ifdef BOOST_THREAD_USES_CHRONO
+  template <typename Clock, typename Duration>
+  boost::future_status wait_until(
+    const boost::chrono::time_point<Clock, Duration>& abs_time) {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    if (is_deferred_) {
+      return boost::future_status::deferred;
+    }
+    do_callback(lock);
+
+    while (!done_) {
+      boost::cv_status const status = waiters_.wait_until(lock, abs_time);
+      if (status == boost::cv_status::timeout && !done_) {
+        return boost::future_status::timeout;
+      }
+    }
+    return boost::future_status::ready;
+
+  }
+#endif // BOOST_THREAD_USES_CHRONO
+
+  void mark_exceptional_finish_internal(boost::exceptional_ptr const& e,
+    boost::unique_lock<boost::mutex>& lock) {
+
+    exception_ = e;
+    mark_finished_internal(lock);
+
+  }
+
+  void mark_exceptional_finish() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    mark_exceptional_finish_internal(boost::current_exception(), lock);
+
+  }
+
+  void set_exception_at _thread_exit(boost::exception_ptr e) {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    if (has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    exception_ = e;
+
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+
+  }
 } // detail
 } // boost
