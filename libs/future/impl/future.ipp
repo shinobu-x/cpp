@@ -3,7 +3,7 @@
 #include "../include/futures.hpp"
 
 namespace boost {
-
+/*
 template <class T>
 boost::shared_ptr<T> static_shared_from_this(T* that) {
   return boost::static_pointer_cast<T>(that->shared_from_this());
@@ -13,7 +13,7 @@ template <class T>
 boost::shared_ptr<T const> static_shared_from_this(T const* that) {
   return boost::static_pointer_cast<T const>(that->shared_from_this());
 }
-
+*/
 namespace detail {
 
 template <typename T>
