@@ -19,7 +19,8 @@
 
 #include "../hpp/future.hpp"
 #include "../hpp/shared_state_base.hpp"
- 
+// #include "../hpp/shared_state.hpp"
+
 #include <boost/thread/detail/config.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/detail/move.hpp>
@@ -80,5 +81,7 @@ namespace detail {
 // forward declaration
 struct relocker;
 struct shared_state_base;
+template <typename T>
+struct shared_state;
 } // detail
 } // boost
