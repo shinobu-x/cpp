@@ -1,4 +1,5 @@
 #include "../include/futures.hpp"
+#include "../include/core.hpp"
 
 namespace boost {
 namespace detail {
@@ -6,10 +7,10 @@ namespace detail {
 struct shared_state_base :
   boost::enable_shared_from_this<shared_state_base> {
 
-  typedef std::list<boost::conditional_variable_any*> waiter_list;
+  typedef std::list<boost::condition_variable_any*> waiter_list;
   typedef waiter_list::iterator notify_when_ready_handle;
   typedef boost::shared_ptr<shared_state_base> continuation_ptr_type;
-  typedef std::vector<continuation_ptr_type> continuation_type;
+  typedef std::vector<continuation_ptr_type> continuations_type;
 
   bool done_;
   bool is_valid_;
@@ -31,7 +32,7 @@ struct shared_state_base :
     is_valid_(true),
     is_deferred_(false),
     is_constructed_(false),
-    policy_(boost::launch::noen),
+    policy_(boost::launch::none),
     continuations_(),
     ex_() {}
 
@@ -83,7 +84,7 @@ struct shared_state_base :
 
   bool valid() {
 
-    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
     valid(lock);
 
   }
@@ -101,10 +102,23 @@ struct shared_state_base :
 
   }
 
+  void validate(boost::unique_lock<boost::mutex>&) {
+
+    is_valid_ = true;
+
+  }
+
+  void validate() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    validate(lock);
+
+  }
+
   void set_async() {
 
     is_deferred_ = false;
-    policy_ = boost::luanch::async;
+    policy_ = boost::launch::async;
 
   }
 
@@ -148,10 +162,10 @@ struct shared_state_base :
 
     if (!continuations_.empty()) {
 
-      continuation_type continuations = continuations_;
+      continuations_type continuations = continuations_;
       continuations_.clear();
       relocker relock(lock);
-      continuation_type::iterator it = continuations.begin();
+      continuations_type::iterator it = continuations.begin();
 
       for (; it != continuations.end(); ++it) {
         (*it)->launch_continuation();
@@ -177,7 +191,7 @@ struct shared_state_base :
 
   void mark_finished_internal(boost::unique_lock<boost::mutex>& lock) {
 
-    done_ = true
+    done_ = true;
     waiters_.notify_all();
     waiter_list::const_iterator it = external_waiters_.begin();
 
@@ -197,7 +211,7 @@ struct shared_state_base :
   void do_callback(boost::unique_lock<boost::mutex>& lock) {
 
     if (callback_ && !done_) {
-      boost::function<void> callback = callback_;
+      boost::function<void()> callback = callback_;
       relocker relock(lock);
       callback();
     }
@@ -304,7 +318,7 @@ struct shared_state_base :
   }
 #endif // BOOST_THREAD_USES_CHRONO
 
-  void mark_exceptional_finish_internal(boost::exceptional_ptr const& e,
+  void mark_exceptional_finish_internal(boost::exception_ptr const& e,
     boost::unique_lock<boost::mutex>& lock) {
 
     exception_ = e;
@@ -319,7 +333,7 @@ struct shared_state_base :
 
   }
 
-  void set_exception_at _thread_exit(boost::exception_ptr e) {
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
 
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (has_value(lock)) {
@@ -331,5 +345,64 @@ struct shared_state_base :
     boost::detail::make_ready_at_thread_exit(shared_from_this());
 
   }
+
+  bool has_value() const {
+
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    return done_ && !exception_;
+
+  }
+
+  bool has_value(boost::unique_lock<boost::mutex>&) const {
+
+    return done_ && !exception_;
+
+  }
+
+  bool has_exception() const {
+
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    return done_ && exception_;
+
+  }
+
+  boost::launch launch_policy(boost::unique_lock<boost::mutex>&) const {
+
+    return policy_;
+
+  }
+
+  boost::future_state::state get_state() const {
+
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    if (!done_) {
+      return boost::future_state::waiting;
+    } else {
+      return boost::future_state::ready;
+    }
+
+  }
+
+  boost::exception_ptr get_exception_ptr() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    wait_internal(lock, false);
+
+  }
+
+  template <typename F, typename U>
+  void set_wait_callback(F f, U* u) {
+
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    callback_ = boost::bind(f, boost::ref(*u));
+
+  }
+
+  virtual void execute(boost::unique_lock<boost::mutex>&) {}
+
+private:
+  shared_state_base(shared_state_base const&);
+  shared_state_base& operator=(shared_state_base const&);
+};
 } // detail
 } // boost
