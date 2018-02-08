@@ -276,8 +276,66 @@ struct shared_state<void> : boost::detail::shared_state_base {
   // Constructor
   shared_state() {}
   shared_state(boost::exceptional_ptr const& e) :
-    boost::detail::shared_state_base(*e) {}
+    boost::detail::shared_state_base(e) {}
   // Destructor
   ~shared_state() {}
+
+  void mark_finished_with_result_internal(
+    boost::unique_lock<boost::mutex>& lock) {
+
+    mark_finished_internal(lock);
+
+  }
+
+  void mark_finished_with_result() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    mark_finished_with_result_internal(lock);
+
+  }
+
+  virtual void get(
+    boost::unique_lock<boost::mutex>& lock) {
+
+    this->wait_internal(lock);
+
+  }
+
+  void get() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    this->get(lock);
+
+  }
+
+  virtual void get_result_type(
+    boost::unique_lock<boost::mutex>& lock) {
+
+    this->wait_internal(lock);
+
+  }
+
+  void get_result_type() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    this->get_result_type(lock);
+
+  }
+
+  void set_value_at_thread_exit() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+
+  }
+
+private:
+  // Copy constructor and assignment
+  shared_state(shared_state const&);
+  shared_state operator=(shared_state const&);
 };
 #endif // SHARED_STATE_IPP

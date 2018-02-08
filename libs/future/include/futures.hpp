@@ -19,7 +19,6 @@
 
 #include "../hpp/future.hpp"
 #include "../hpp/shared_state_base.hpp"
-// #include "../hpp/shared_state.hpp"
 
 #include <boost/thread/detail/config.hpp>
 #include <boost/thread/condition_variable.hpp>
