@@ -4,12 +4,15 @@
 #ifndef BOOST_NO_EXCEPTIONS
 
 #include "../include/futures.hpp"
+#include "../include/core.hpp"
 #include "../hpp/shared_state_base.hpp"
 #include "../hpp/shared_state.hpp"
 #include "../hpp/future_async_shared_state_base.hpp"
+#include "../hpp/future_async_shared_state.hpp"
+
 namespace boost {
 namespace detail {
-
+/*
 template <typename S, typename F>
 struct future_async_shared_state :
   boost::detail::future_async_shared_state_base<S> {
@@ -81,7 +84,7 @@ struct future_async_shared_state<R&, F> :
     }
   }
 }; // future_async_shared_state
-
+*/
 /* future_deferred_shared_state */
 template <typename R, typename F>
 struct future_deferred_shared_state :

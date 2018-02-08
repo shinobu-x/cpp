@@ -2,7 +2,6 @@
 #define SHARED_STATE_BASE_IPP
 
 #include "../include/futures.hpp"
-#include "../include/core.hpp"
 
 namespace boost {
 namespace detail {
