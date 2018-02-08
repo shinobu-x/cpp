@@ -74,11 +74,11 @@ struct shared_state : boost::detail::shared_state_base {
   void mark_finished_with_result_internal(
     boost::unique_lock<boost::mutex>& lock,
     BOOST_THREAD_FWD_REF(Args) ...args) {
-#ifdef BOOST_THREAD_FUTURES_USES_OPTIONAL
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
     result_.emplace(boost::forward<Args>(args)...);
 #else
     result_.reset(new T(boost::forward<Args>(args)...));
-#endif // BOOST_THREAD_FUTURES_USES_OPTIONAL
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->mark_finished_internal(lock);
   }
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
@@ -128,11 +128,11 @@ struct shared_state : boost::detail::shared_state_base {
     if (this->has_value(lock)) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-#ifdef BOOST_THREAD_FUTURES_USES_OPTIONAL
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
     result_ = result;
 #else
     result_.reset(new T(result));
-#endif // BOOST_THREAD_FUTURES_USES_OPTIONAL
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
 
     boost::detail::make_ready_at_thread_exit(shared_from_this());
