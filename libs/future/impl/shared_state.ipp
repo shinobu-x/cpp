@@ -22,7 +22,7 @@ struct shared_state : boost::detail::shared_state_base {
     T const&>::type source_reference_type;
   typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
   typedef T move_dest_type;
-#else
+#else // BOOST_NO_CXX11_RVALUE_REFERENCES
   typedef T& source_reference_type;
   typedef typename boost::conditional<
     boost::thread_detail::is_convertible<
@@ -53,7 +53,7 @@ struct shared_state : boost::detail::shared_state_base {
 
 #ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
     result_ = result;
-#endif
+#else
     result_.reset(new T(result));
 #endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->mark_finished_internal(lock);
@@ -70,7 +70,7 @@ struct shared_state : boost::detail::shared_state_base {
     result_.reset(new T(boost::move(result)));
 #else
     result_.reset(new T(static_cast<rvalue_source_type>(result)));
-#endif
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->mark_finished_internal(lock);
   }
 
@@ -160,12 +160,12 @@ struct shared_state : boost::detail::shared_state_base {
 #endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
 
-    boost::detail::make_read_at_thread_exit(shared_from_this());
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
 
   }
 
   void set_value_at_thread_exit(
-    rvalue_source_tyep result) {
+    rvalue_source_type result) {
 
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (this->has_value()) {
@@ -179,7 +179,7 @@ struct shared_state : boost::detail::shared_state_base {
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
        // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
-    boost::detail::make_ready_at_thread_exit(shared_from_this(());
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
 
   }
 
