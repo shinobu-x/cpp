@@ -3,6 +3,9 @@
 
 #include "../include/futures.hpp"
 
+namespace boost {
+namespace detail {
+
 template <typename T>
 struct shared_state : boost::detail::shared_state_base {
 #ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
@@ -338,4 +341,8 @@ private:
   shared_state(shared_state const&);
   shared_state operator=(shared_state const&);
 };
+
+} // detail
+} // boost
+
 #endif // SHARED_STATE_IPP

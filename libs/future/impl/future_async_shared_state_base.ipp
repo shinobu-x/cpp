@@ -5,11 +5,12 @@
 namespace boost {
 namespace detail {
 
+// template <typename S>
 template <typename S>
 struct future_async_shared_state_base :
   boost::detail::shared_state<S> {
   typedef boost::detail::shared_state<S> base_type;
- 
+
 protected:
 #ifdef BOOST_THREAD_FUTURE_BLOCKING
   boost::thread thr_;
@@ -18,7 +19,7 @@ protected:
       thr_.detach();
       return;
     }
- 
+
     if (thr_.joinable()) {
       thr_.join();
     }
@@ -28,13 +29,13 @@ public:
   future_async_shared_state_base() {
     this->set_async();
   }
- 
+
   ~future_async_shared_state_base() {
 #ifdef BOOST_THREAD_FUTURE_BLOCKING
     join();
 #endif // BOOST_THREAD_FUTURE_BLOCKING
   }
- 
+
   virtual void wait(boost::unique_lock<boost::mutex>& lock, bool rethrow) {
 #ifdef BOOST_THREAD_FUTURE_BLOCKING
     {
