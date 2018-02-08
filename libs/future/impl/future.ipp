@@ -118,7 +118,7 @@ struct shared_state : boost::detail::shared_state_base {
   }
 
   shared_future_get_result_type get_result_type() {
-    boost::unique_lock<boost::mutex> lock(this->mutex);
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
     return get_result_type(lock);
   }
 
