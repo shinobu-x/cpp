@@ -107,4 +107,5 @@ struct future_async_shared_state<S&, F> :
 
 } // detail
 } // boost
+
 #endif // FUTURE_ASYNC_SHARED_STATE_IPP

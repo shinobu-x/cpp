@@ -1,5 +1,5 @@
-#ifndef FUTURE_DEFERRED_SHARED_STATE
-#define FUTURE_DEFERRED_SHARED_STATE
+#ifndef FUTURE_DEFERRED_SHARED_STATE_IPP
+#define FUTURE_DEFERRED_SHARED_STATE_IPP
 #include "../include/futures.hpp"
 
 namespace boost {
@@ -22,7 +22,7 @@ struct future_deferred_shared_state :
 
     try {
       F f(boost::move(f_));
-      boost::relocker relock(lock);
+      boost::detail::relocker relock(lock);
       S r = f();
       relock.lock();
       this->mark_finished_with_result_internal(boost::move(r), lock);
@@ -37,7 +37,7 @@ struct future_deferred_shared_state :
 template <typename S, typename F>
 struct future_deferred_shared_state<S&, F> :
   boost::detail::shared_state<S&> {
-  typedef boost::detail::shared_state base_type;
+  typedef boost::detail::shared_state<S&> base_type;
   F f_;
 
   // Constructor
@@ -60,8 +60,8 @@ struct future_deferred_shared_state<S&, F> :
 };
 
 template <typename F>
-struct future_deferred_shared_state :
-  boost::detail::shared_state<void, F> {
+struct future_deferred_shared_state<void, F> :
+  boost::detail::shared_state<void> {
   typedef boost::detail::shared_state<void> base_type;
   F f_;
 
@@ -87,4 +87,4 @@ struct future_deferred_shared_state :
 } // detail
 } // boost
 
-#endif // FUTURE_DEFERRED_SHARED_STATE
+#endif // FUTURE_DEFERRED_SHARED_STATE_IPP

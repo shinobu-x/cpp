@@ -9,11 +9,13 @@
 #include "../hpp/shared_state.hpp"
 #include "../hpp/future_async_shared_state_base.hpp"
 #include "../hpp/future_async_shared_state.hpp"
+#include "../hpp/future_deferred_shared_state.hpp"
 
 namespace boost {
 namespace detail {
 
 /* future_deferred_shared_state */
+/*
 template <typename R, typename F>
 struct future_deferred_shared_state :
   boost::detail::shared_state<R> {
@@ -81,7 +83,7 @@ struct future_deferred_shared_state<void, F> :
     }
   }
 }; // future_deferred_shared_state
-
+*/
 class future_waiter {
 public:
   typedef std::vector<int>::size_type count_type;
