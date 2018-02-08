@@ -12,79 +12,7 @@
 
 namespace boost {
 namespace detail {
-/*
-template <typename S, typename F>
-struct future_async_shared_state :
-  boost::detail::future_async_shared_state_base<S> {
-  future_async_shared_state() {}
 
-  void init(BOOST_THREAD_FWD_REF(F) f) {
-#ifdef BOOST_THREAD_FUTURE_BLOCKING
-    this->thr_ = boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::forward<F>(f));
-#else
-    boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::forward<F>(f)).detach();
-#endif // BOOST_THREAD_FUTURE_BLOCKING
-  }
-
-  static void run(boost::shared_ptr<future_async_shared_state> that,
-    BOOST_THREAD_FWD_REF(F) f) {
-    try {
-      that->mark_finished_with_result(f());
-    } catch (...) {
-      that->mark_exceptional_finish();
-    }
-  }
-}; // future_async_shared_state
-
-template <typename F>
-struct future_async_shared_state<void, F> :
-  public boost::detail::future_async_shared_state_base<void> {
-  void init(BOOST_THREAD_FWD_REF(F) f) {
-#ifdef BOOST_THREAD_FUTURE_BLOCKING
-    this->thr_ = boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::move(f));
-#else
-    boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::move(f)).detach();
-#endif // BOOST_THREAD_FUTURE_BLOCKING
-  }
-
-  static void run(boost::shared_ptr<future_async_shared_state> that,
-    BOOST_THREAD_FWD_REF(F) f) {
-    try {
-      f();
-      that->mark_finished_with_result();
-    } catch (...) {
-      that->mark_exceptional_finish();
-    }
-  }
-}; // future_async_shared_state
-
-template <typename R, typename F>
-struct future_async_shared_state<R&, F> :
-  boost::detail::future_async_shared_state_base<R&> {
-  void init(BOOST_THREAD_FWD_REF(F) f) {
-#ifdef BOOST_THREAD_FUTURE_BLOCKING
-    this->thr_ = boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::move(f));
-#else
-    boost::thread(&future_async_shared_state::run,
-      static_shared_from_this(this), boost::move(f)).detach();
-#endif // BOOST_THREAD_FUTURE_BLOCKING
-  }
-
-  static void run(boost::shared_ptr<future_async_shared_state> that,
-    BOOST_THREAD_FWD_REF(F) f) {
-    try {
-      that->mark_finished_with_result(f());
-    } catch (...) {
-      that->mark_exceptional_finish();
-    }
-  }
-}; // future_async_shared_state
-*/
 /* future_deferred_shared_state */
 template <typename R, typename F>
 struct future_deferred_shared_state :
