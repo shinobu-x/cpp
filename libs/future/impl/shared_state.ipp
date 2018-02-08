@@ -189,4 +189,95 @@ private:
   shared_state& operator=(shared_state const&);
 };
 
+template <typename T>
+struct shared_state<T&> : boost::detail::shared_state_base {
+  typedef T* storage_type;
+  typedef T& source_reference_type;
+  typedef T& move_dest_type;
+  typedef T& shared_future_get_result_type;
+
+  T* result_;
+
+  // Constructor
+  shared_state() : result_(0) {}
+  shared_state(boost::exceptional_ptr const& e) :
+    boost::detail::shared_state_base(e), result_(0) {}
+  // Destructor
+  ~shared_state() {}
+
+  void mark_finished_with_result_internal(
+    source_reference_type result,
+    boost::unique_lock<boost::mutex>& lock) {
+
+    result_ = result;
+    mark_finished_internal(lock);
+
+  }
+
+  void mark_finished_with_result(
+    source_reference_type result) {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    mark_finished_with_result_internal(result, lock);
+
+  }
+
+  virtual T& get(
+    boost::unique_lock<boost::mutex>& lock) {
+
+    return *result_;
+  }
+
+  T& get() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    return get(lock);
+
+  }
+
+  virtual T& get_result_type(
+    boost::unique_lock<boost::mutex>& lock) {
+
+    wait_internal(lock);
+    return *result_;
+
+  }
+
+  T* get_result_type() {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    return get_result_type(lock);
+
+  }
+
+  void set_value_at_thread_exit(T& result) {
+
+    boost::unique_lock<boost::mutex> lock(this->mutex_);
+    if (this->has_value(lock)) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    result_ = result;
+    this->is_constructed_ = true;
+    boost::detail::make_ready_at_thread_exit(shared_from_this());
+
+  }
+
+private:
+  // Copy constructor and assignment
+  shared_state(shared_state const&);
+  shared_state& operator=(shared_state const&);
+};
+
+template <>
+struct shared_state<void> : boost::detail::shared_state_base {
+  typedef void shared_future_get_result_type;
+  typedef void move_dest_type;
+
+  // Constructor
+  shared_state() {}
+  shared_state(boost::exceptional_ptr const& e) :
+    boost::detail::shared_state_base(*e) {}
+  // Destructor
+  ~shared_state() {}
+};
 #endif // SHARED_STATE_IPP
