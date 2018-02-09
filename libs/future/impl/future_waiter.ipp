@@ -21,7 +21,7 @@ private:
       boost::shared_ptr<shared_state_base> const& future,
       shared_state_base::notify_when_ready_handle handle,
       count_type index) :
-      future_(future_, handle_(handle), index_(index) {}
+      future_(future), handle_(handle), index_(index) {}
   };
 
   struct all_futures_lock {
@@ -38,15 +38,15 @@ private:
       std::vector<registered_waiter>& futures) :
       count_(futures.size()),
       locks_(new boost::unique_lock<boost::mutex>[count_]) {
-      for (count_type_portable i = 0; i < count; ++i) {
+      for (count_type_portable i = 0; i < count_; ++i) {
         locks_[i] = BOOST_THREAD_MAKE_RV_REF(
-          boost::unique_lock<boost::mutex>(futures[i].future_->mutex));
+          boost::unique_lock<boost::mutex>(futures[i].future_->mutex_));
       }
     }
 
     void lock() {
 
-      boost::lock(locks_.get(), locks.get() + count_);
+      boost::lock(locks_.get(), locks_.get() + count_);
 
     }
 
@@ -94,10 +94,10 @@ public:
 
   count_type wait() {
 
-    all_futures_lock lock(future_);
+    all_futures_lock lock(futures_);
     for (;;) {
       for (count_type i = 0; i < futures_.size(); ++i) {
-        if (future_[i].future_->done_) {
+        if (futures_[i].future_->done_) {
           return futures_[i].index_;
         }
       }
@@ -108,8 +108,8 @@ public:
 
   // Destructor
   ~future_waiter() {
-    for (count_type i = 0; i < future_.size(); ++i) {
-      futures_[i].future_->unnotify_when_read(futures_[i].handle_);
+    for (count_type i = 0; i < futures_.size(); ++i) {
+      futures_[i].future_->unnotify_when_ready(futures_[i].handle_);
     }
   }
 };
