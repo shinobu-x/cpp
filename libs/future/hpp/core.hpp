@@ -63,6 +63,10 @@ private:
   relocker& operator=(relocker const&);
 };
 
+class base_future {
+public:
+};
+
 } // detail
 } // boost
 
