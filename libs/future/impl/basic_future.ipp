@@ -38,7 +38,6 @@ public:
   basic_future(BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT {
     future_ = BOOST_THREAD_RV(that).future_;
     BOOST_THREAD_RV(that).future_.reset();
-    return *this;
   }
 
   basic_future& operator=(
@@ -65,7 +64,7 @@ public:
   state get_state() const {
 
     if (!future_) {
-      return boost::future_uninitialized();
+      return boost::future_state::uninitialized;
     }
     return future_->get_state();
 
@@ -113,7 +112,7 @@ public:
       boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
       return future_->launch_policy(lock);
     } else {
-      return boost::launch(boost::laucnh::none);
+      return boost::launch(boost::launch::none);
     }
 
   }
@@ -143,7 +142,7 @@ public:
 
   }
 
-  boost::mutex& mutex() {
+  boost::mutex& get_mutex() {
 
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
@@ -193,15 +192,25 @@ public:
 #endif // BOOST_THREAD_USES_DATE
 
 #ifdef BOOST_THREAD_USES_CHRONO
-  template <typename Clock, typename Duration>
+  template <typename Rep, typename Period>
   boost::future_status wait_until(
-    const boost::chrono::time_point<Clock, Duration>& real_time) const {
+    const boost::chrono::duration<Rep, Period>& real_time) const {
+
+    return wait_until(boost::chrono::steady_clock::now() + real_time);
+
+  }
+
+  template <typename Clock, typename Duration>
+  boost::future_status wait_unitl(
+    const boost::chrono::time_point<Clock, Duration>& abs_time) const {
 
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->wait_until(abs_time);
+
   }
+#endif // BOOST_THREAD_USES_CHRONO
 };
 } // detail
 
