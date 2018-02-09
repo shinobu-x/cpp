@@ -4,114 +4,15 @@
 #ifndef BOOST_NO_EXCEPTIONS
 
 #include "../include/futures.hpp"
-#include "../include/core.hpp"
+#include "../hpp/core.hpp"
 #include "../hpp/shared_state_base.hpp"
 #include "../hpp/shared_state.hpp"
 #include "../hpp/future_async_shared_state_base.hpp"
 #include "../hpp/future_async_shared_state.hpp"
 #include "../hpp/future_deferred_shared_state.hpp"
+#include "../hpp/future_waiter.hpp"
 
 namespace boost {
-namespace detail {
-
-class future_waiter {
-public:
-  typedef std::vector<int>::size_type count_type;
-private:
-  struct registered_waiter {
-    boost::shared_ptr<boost::detail::shared_state_base> future_;
-    boost::detail::shared_state_base::notify_when_ready_handle handle_;
-    count_type index_;
-
-    registered_waiter(boost::shared_ptr<
-        boost::detail::shared_state_base> const& future,
-      boost::detail::shared_state_base::notify_when_ready_handle handle,
-      count_type index) :
-      future_(future), handle_(handle), index_(index) {}
-  }; // registered_waiter
-
-  struct all_futures_lock {
-#ifdef _MANAGED
-    typedef std::ptrdiff_t count_type_portable;
-#else
-    typedef count_type count_type_portable;
-#endif // _MANAGED
-    count_type_portable count_;
-    boost::scoped_array<boost::unique_lock<boost::mutex> > locks_;
-
-    all_futures_lock(std::vector<registered_waiter>& futures) :
-      count_(futures.size()),
-      locks_(new boost::unique_lock<boost::mutex>[count_]) {
-      for (count_type_portable i = 0; i < count_; ++i) {
-        locks_[i] = BOOST_THREAD_MAKE_RV_REF(
-          boost::unique_lock<boost::mutex>(futures[i].future_->mutex_));
-      }
-    }
-
-    void lock() {
-      boost::lock(locks_.get(), locks_.get() + count_);
-    }
-
-    void unlock() {
-      for (count_type_portable i = 0; i < count_; ++i) {
-        locks_[i].unlock();
-      }
-    }
-  }; // all_futures_lock
-
-  boost::condition_variable_any cv_;
-  std::vector<registered_waiter> futures_;
-  count_type future_count_;
-
-public:
-  future_waiter() : future_count_(0) {}
-
-  template <typename F>
-  void add(F& f) {
-    if (f.future_) {
-      registered_waiter waiter_(f.future_,
-        f.future_->notify_when_ready(cv_), future_count_);
-
-      try {
-        futures_.push_back(waiter_);
-      } catch (...) {
-        f.future_->unnotify_when_ready(waiter_.handle_);
-        throw;
-      }
-    }
-
-    ++future_count_;
-  }
-
-#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
-  template <typename F, typename... Fs>
-  void add(F& f, Fs& ...fs) {
-    add(f);
-    add(fs...);
-  }
-#endif
-
-  count_type wait() {
-    all_futures_lock lock(futures_);
-
-    for (;;) {
-      for (count_type i = 0; i < futures_.size(); ++i) {
-        if (futures_[i].future_->done_) {
-          return futures_[i].index_;
-        }
-      }
-
-      cv_.wait(lock);
-    }
-  }
-
-  ~future_waiter() {
-    for (count_type i = 0; i < futures_.size(); ++i) {
-      futures_[i].future_->unnotify_when_ready(futures_[i].handle_);
-    }
-  }
-}; // future_waiter
-} // detail
 
 template <typename R>
 class BOOST_THREAD_FUTURE;

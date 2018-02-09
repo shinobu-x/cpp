@@ -3,4 +3,4 @@
 
 #include "../impl/future_waiter.ipp"
 
-#endif
+#endif // FUTURE_WAITER_HPP
