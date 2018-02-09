@@ -73,11 +73,12 @@ typename boost::enable_if<
 #endif
 
 namespace detail {
-
+/*
 class base_future {
 public:  
 }; // base_future
-
+*/
+/*
 template <typename R>
 class basic_future : public base_future {
 protected:
@@ -239,11 +240,12 @@ boost::future_status wait_until(
 }
 #endif
 }; // basic_future
+*/
 } // detail
 
-BOOST_THREAD_DCL_MOVABLE_BEG(R)
-boost::detail::basic_future<R>
-BOOST_THREAD_DCL_MOVABLE_END
+// BOOST_THREAD_DCL_MOVABLE_BEG(R)
+// boost::detail::basic_future<R>
+// BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
 
