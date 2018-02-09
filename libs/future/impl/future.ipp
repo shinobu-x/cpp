@@ -14,21 +14,6 @@
 
 namespace boost {
 
-template <typename R>
-class BOOST_THREAD_FUTURE;
-template <typename R>
-class shared_future;
-template <typename R>
-class promise;
-template <typename R>
-class packaged_task;
-
-template <typename T>
-struct is_future_type<BOOST_THREAD_FUTURE<T> > : true_type {};
-
-template <typename T>
-struct is_future_type<shared_future<T> > : true_type {};
-
 #ifdef BOOST_NO_CXX11_VARIADIC_TEMPLATE
 template <typename F1, typename F2>
 typename boost::enable_if<
