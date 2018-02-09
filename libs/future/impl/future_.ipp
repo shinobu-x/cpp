@@ -1,5 +1,5 @@
-#ifndef FUTURE_IPP
-#define FUTURE_IPP
+#ifndef FUTURE_IPP_
+#define FUTURE_IPP_
 
 #ifndef BOOST_NO_EXCEPTIONS
 
@@ -4630,4 +4630,4 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
 } // boost
 #endif // BOOST_NO_EXCEPTIONS
 
-#endif // FUTURE_IPP
+#endif // FUTURE_IPP_
