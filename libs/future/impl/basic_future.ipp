@@ -12,6 +12,8 @@ public:
   typedef boost::shared_ptr<shared_state> future_ptr;
   typedef typename shared_state::move_dest_type move_dest_type;
   typedef boost::future_state::state state;
+  typedef boost::detail::shared_state_base shared_state_base;
+  typedef shared_state_base::notify_when_ready_handle notify_when_ready_handle;
 
   static future_ptr make_exceptional_future_ptr(
     boost::exceptional_ptr const& e) {
@@ -116,9 +118,97 @@ public:
 
   }
 
+  boost::exception_ptr get_exception_ptr() {
+
+    if (future_) {
+      return future_->get_exception_ptr();
+    } else {
+      return boost::exception_ptr();
+    }
+
+  }
+
+  bool valid() const {
+
+    return future_ && future_->valid();
+
+  }
+
+  void wait() const {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    future_->wait(false);
+
+  }
+
+  boost::mutex& mutex() {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return future_->mutex_;
+
+  }
+
+  notify_when_ready_handle notify_when_ready(
+    boost::condition_variable_any& cv) {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return future_->notify_when_ready(cv);
+
+  }
+
+  void unnotify_when_ready(
+    notify_when_ready_handle h) {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return future_->unnotify_when_ready(h);
 
 
+  }
+
+#ifdef BOOST_THREAD_USES_DATE
+  template <typename Duration>
+  bool timed_wait(
+    Duration const& real_time) const {
+
+    return timed_wait_until(boost::get_system_time() + real_time);
+  }
+
+  bool timed_wait_until(
+    boost::system_time const& abs_time) const {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return future_->timed_wait_until(abs_time);
+
+  }
+#endif // BOOST_THREAD_USES_DATE
+
+#ifdef BOOST_THREAD_USES_CHRONO
+  template <typename Clock, typename Duration>
+  boost::future_status wait_until(
+    const boost::chrono::time_point<Clock, Duration>& real_time) const {
+
+    if (!future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return future_->wait_until(abs_time);
+  }
+};
 } // detail
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+boost::detail::basic_future<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
 } // boost
 
 #endif // BASIC_FUTURE_IPP
