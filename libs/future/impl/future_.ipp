@@ -73,7 +73,7 @@ typename boost::enable_if<
   return waiter.wait();
 }
 #endif
-
+/*
 namespace detail {
 
 #if (!defined _MSC_VER || _MSC_VER >= 1400)
@@ -159,7 +159,7 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
   BOOST_THREAD_RV_REF(F) f);
 #endif
 } // detail
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 template <typename InputIter>
 typename boost::disable_if<
