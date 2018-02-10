@@ -141,6 +141,24 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  template <class>
+  friend class packaged_task;
+#else
+  friend class packaged_task<T>;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  friend class boost::detail::future_waiter;
+
+  template <typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+    boost::detail::make_future_async_shared_state(
+      BOOST_THREAD_FWD_REF(C) c);
+
+  template <typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+    boost::detail::make_future_deferred_shared_state(
+      BOOST_THREAD_FWD_REF(C) c);
+
+
 } // boost
 
 #endif // FUTURE_IPP
