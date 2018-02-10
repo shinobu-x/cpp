@@ -161,11 +161,11 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
   typedef typename base_type::move_dest_type move_dest_type;
 
   // Constructor
-  BOOST_THREAD_FUTURE(future_ptr future) : base_type(future() {}
+  BOOST_THREAD_FUTURE(future_ptr future) : base_type(future) {}
 
 public:
   BOOST_THREAD_MOVABLE_ONLY(BOOST_THREAD_FUTURE)
-  typedef boost::future_state::state state
+  typedef boost::future_state::state state;
   typedef T value_type;
 
   // Constructor
@@ -199,13 +199,13 @@ public:
       BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
     this->base_type::operator=(
       boost::move(
-        static_cast<base_type&>(BOOST_THREAD_RV(that))))
+        static_cast<base_type&>(BOOST_THREAD_RV(that))));
     return *this;
   }
 
   shared_future<T> share() {
 
-    return shared_future<T>(boost;:move(*this));
+    return shared_future<T>(boost::move(*this));
 
   }
 
@@ -333,6 +333,7 @@ public:
     BOOST_THREAD_FUTURE<T> >::type
       fallback_to(T2 const& v);
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+};
 
 BOOST_THREAD_DCL_MOVABLE_BEG(T)
 BOOST_THREAD_FUTURE<T>
