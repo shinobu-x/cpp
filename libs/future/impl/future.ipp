@@ -162,6 +162,142 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
 
   // Constructor
   BOOST_THREAD_FUTURE(future_ptr future) : base_type(future() {}
+
+public:
+  BOOST_THREAD_MOVABLE_ONLY(BOOST_THREAD_FUTURE)
+  typedef boost::future_state::state state
+  typedef T value_type;
+
+  // Constructor
+  BOOST_CONSTEXPR BOOST_THREAD_FUTURE() {}
+  BOOST_THREAD_FUTURE(boost::exceptional_ptr const& e) : base_type(e) {}
+
+  // Destructor
+  ~BOOST_THREAD_FUTURE() {}
+
+  // Copy constructor and assignment
+  BOOST_THREAD_FUTURE(
+    BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
+      base_type(
+        boost::move(
+          static_cast<base_type&>(BOOST_THREAD_RV(that))));
+
+#ifdef BOOST_PROVIDES_FUTURE_UNWRAP
+  inline explicit BOOST_THREAD_FUTURE(
+    BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
+#endif // BOOST_PROVIDES_FUTURE_UNWRAP
+
+  explicit BOOST_THREAD_FUTURE(
+    BOOST_THREAD_RV_REF(shared_future<T>) that) :
+      base_type(
+        boost::move(
+          static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
+
+  BOOST_THREAD_FUTURE& operator=(
+    BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
+    this->base_type::operator=(
+      boost::move(
+        static_cast<base_type&>(BOOST_THREAD_RV(that))))
+    return *this;
+  }
+
+  shared_future<T> share() {
+
+    return shared_future<T>(boost;:move(*this));
+
+  }
+
+  void set_async() {
+
+    this->future_->set_async();
+
+  }
+
+  void set_deferred() {
+
+    this->future_->set_deferred();
+
+  }
+
+  bool run_if_is_deferred() {
+
+    this->future_->run_if_is_deferred();
+
+  }
+
+  bool run_if_is_deferred_or_ready() {
+
+    this->future_->run_if_is_deferred_or_ready();
+
+  }
+
+  move_dest_type get() {
+
+    if (this->future_.get() == 0) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+    if (!this->future_->valid(lock)) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    this->future_->invalidate(lock);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    return this->future_->get(lock);
+  }
+
+  template <typename T2>
+  typename boost::disable_if<
+    boost::is_void<T2>,
+    move_dest_type>::type
+      get_or(BOOST_THREAD_RV_REF(T2) v) {
+
+    if (this->future_.get() == 0) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+    if (!this->future_->valid(lock)) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    this->future_->wait(lock, false);
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    this->future_->invalidate(lock);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    if (this->future_->has_value(lock)) {
+      return this->future_->get(lock);
+    } else {
+      return boost::move(v);
+    }
+  }
+
+  template <typename T2>
+  typename boost::disable_if<
+    boost::is_void<T2>,
+    move_dest_type>::type
+      get_or(T2 const& v) {
+
+    if (this->future_.get() == 0) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
+    if (!this->future_->valid(lock)) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    this->future_->wait(lock, false);
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    this->future_->invalidate(lock);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET
+    if (this->future_->has_valid(lock)) {
+      return this->future_->get(lock);
+    } else {
+      return v;
+    }
+  }
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+
 } // boost
 
 #endif // FUTURE_IPP
