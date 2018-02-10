@@ -40,7 +40,7 @@ void doit() {
    */
 
   for (float v : y.to_vector()) {
-    std::cout << v << std::endl;
+    std::cout << v << '\n';
   }
 }
 
