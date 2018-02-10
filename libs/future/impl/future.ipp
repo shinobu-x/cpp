@@ -63,24 +63,24 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
       BOOST_THREAD_FWD_REF(C) c);
 
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
-  template <typename R, typename C, typename E>
+  template <typename R, typename C, typename Ex>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_future_executor_shared_state(
-      E& e,
+      Ex& ex,
       BOOST_THREAD_FWD_REF(C) c);
 
-  template <typename E, typename F, typename R, typename C>
+  template <typename Ex, typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_future_executor_continuation_shared_state(
-      E& e,
+      Ex& e,
       boost::unique_lock<boost::mutex>& lock,
       F f,
       BOOST_THREAD_FWD_REF(C) c);
 
-  template <typename E, typename F, typename R, typename C>
+  template <typename Ex, typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_shared_future_executor_continuation_shared_state(
-      E& e,
+      Ex& e,
       boost::unique_lock<boost::mutex>& lock,
       F f,
       BOOST_THREAD_FWD_REF(C) c);
@@ -180,7 +180,7 @@ public:
     BOOST_THREAD_RV_REF(BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
       base_type(
         boost::move(
-          static_cast<base_type&>(BOOST_THREAD_RV(that))));
+          static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
 
 #ifdef BOOST_PROVIDES_FUTURE_UNWRAP
   inline explicit BOOST_THREAD_FUTURE(
