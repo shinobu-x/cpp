@@ -297,6 +297,46 @@ public:
   }
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      F(BOOST_THREAD_FUTURE)>::type>
+        then(BOOST_THREAD_FWD_REF(F) f);
+
+  template <typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      F(BOOST_THREAD_FUTURE)>::type>
+        then(
+          boost::launch policy,
+          BOOST_THREAD_FWD_REF(F) f);
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  template <typename Ex, typename F>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      F(BOOST_THREAD_FUTURE)>::type>
+        then(
+          Ex& ex,
+          BOOST_THREAD_FWD_REF(F) f);
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+  template <typename T2>
+  inline typename boost::disable_if<
+    boost::is_void<T2>,
+    BOOST_THREAD_FUTURE<T> >::type
+      fallback_to(BOOST_THREAD_RV_REF(T2) v);
+
+  template <typename T2>
+  inline typename boost::disable_if<
+    boost::is_void<T2>,
+    BOOST_THREAD_FUTURE<T> >::type
+      fallback_to(T2 const& v);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+BOOST_THREAD_FUTURE<T>
+BOOST_THREAD_DCL_MOVABLE_END
 
 } // boost
 
