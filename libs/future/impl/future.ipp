@@ -158,7 +158,10 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
     boost::detail::make_future_deferred_shared_state(
       BOOST_THREAD_FWD_REF(C) c);
 
+  typedef typename base_type::move_dest_type move_dest_type;
 
+  // Constructor
+  BOOST_THREAD_FUTURE(future_ptr future) : base_type(future() {}
 } // boost
 
 #endif // FUTURE_IPP
