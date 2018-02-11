@@ -437,14 +437,14 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
   inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all();
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
-  template <typename T, typename... Ts>
+  template <typename F, typename... Fs>
   friend BOOST_THREAD_FUTURE<
     boost::csbl::tuple<
-      typename boost::decay<T>::type,
-      typename boost::decay<Ts>::type...> >
+      typename boost::decay<F>::type,
+      typename boost::decay<Fs>::type...> >
         when_all(
-          BOOST_THREAD_FWD_REF(T) F,
-          BOOST_THREAD_FWD_REF(Ts) ...fs);
+          BOOST_THREAD_FWD_REF(F) f,
+          BOOST_THREAD_FWD_REF(Fs) ...fs);
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 
   template <typename InputIter>
@@ -456,16 +456,84 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
           when_any(InputIter begin, InputIter end);
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
-  template <typename T, typename Ts...>
+  template <typename F, typename Fs...>
   friend BOOST_THREAD_FUTURE<
     boost::csbl::tuple<
       typename boost::decay<T>::type,
       typename boost::decay<Ts>::type...> >
         when_any(
-          BOOST_THREAD_FWD_REF(T) f,
-          BOOST_THREAD_FWD_REF(Ts) ...fs);
+          BOOST_THREAD_FWD_REF(F) f,
+          BOOST_THREAD_FWD_REF(Fs) ...fs);
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  template <class>
+  friend class packaged_task;
+#else
+  friend calss packaged_task<T>;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  friend class boost::detail::future_waiter;
+
+  template <typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_future_async_shared_state(
+    BOOST_THREAD_FWD_REF(C) c);
+
+  template <typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
+  boost::detail::make_future_deferred_shared_state(
+    BOOST_THREAD_FWD_REF(C) c);
+
+  typedef typename base_type::move_dest_type move_dest_type;
+
+  // Constructor
+  BOOST_THREAD_FUTURE(future_ptr future) : base_type(future) {}
+
+public:
+  BOOST_THREAD_MOVABLE_ONLY(BOOST_THREAD_FUTURE);
+  typedef boost::future_state::state state;
+  typedef T value_type;
+
+  // Constructor
+  BOOST_CONSTEXPR BOOST_THREAD_FUTURE() {}
+  BOOST_THREAD_FUTURE(boost::exception_ptr const& e) : base_type(e) {}
+
+  // Destructor
+  ~BOOST_THREAD_FUTURE() {}
+
+  // Copy constructor and assignement
+  BOOST_THREAD_FUTURE(
+    BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT :
+        base_type(boost::move(
+          static_cast<base_type&>(BOOST_THREAD_RV(that))));
+
+  BOOST_THREAD_FUTURE& operator=(
+    BOOST_THREAD_RV_REF(
+      BOOST_THREAD_FUTURE) that) BOOST_NO_EXCEPT {
+
+    this->base_type::operator=(
+      boost::move(
+        static_cast<base_type&>(BOOST_THREAD_FUTURE(that))));
+    return *this;
+
+  }
+
+  shared_future<T> share() {
+
+    return shared_future<T>(boost::move(*this));
+
+  }
+
+  void swap(BOOST_THREAD_FUTURE& *that) {
+
+    static_cast<base_type*>(this)->swap(that);
+
+  }
+
+  void set_asyn
 
 } // boost
 
