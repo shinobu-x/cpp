@@ -47,15 +47,12 @@ struct relocker {
   }
 
   ~relocker() {
-
     if (!lock_.owns_lock()) {
       lock_.lock();
     }
-
   }
 
   void lock() {
-
     if (!lock_.owns_lock()) {
       lock_.lock();
     }
