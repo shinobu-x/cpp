@@ -47,7 +47,7 @@ class shared_future : public boost::detail::basic_future<T> {
   friend class packaged_task;
 #else
   friend class packaged_task<T>;
-#endif
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
   // Constructor
   shared_future(future_ptr future) : base_type(future) {}
@@ -93,7 +93,7 @@ public:
       boost::move(
         static_cast<base_type&>(
           BOOST_THREAD_RV(that))));
-    return *this
+    return *this;
   }
 
   shared_future& operator=(
@@ -140,6 +140,7 @@ public:
     } else {
       return boost::move(v);
     }
+  }
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
   template <typename C>
@@ -147,7 +148,7 @@ public:
     typename boost::result_of<
       C(shared_future)>::type>
     then(
-      BOOST_THREAD_FUTURE_FWD_REF(C) c) const;
+      BOOST_THREAD_FWD_REF(C) c) const;
 
   template <typename C>
   inline BOOST_THREAD_FUTURE<
@@ -155,7 +156,7 @@ public:
       C(shared_future)>::type>
     then(
       boost::launch policy,
-      BOOST_THREAD_FUTURE_FWD_REF(C) c) const;
+      BOOST_THREAD_FWD_REF(C) c) const;
 
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
   template <typename Ex, typename C>
@@ -165,6 +166,14 @@ public:
     then(
       Ex& ex,
       BOOST_THREAD_FWD_REF(C) c) const;
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+};
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+boost::shared_future<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
 } // boost
 
 #endif // SHARED_FUTURE_IPP
