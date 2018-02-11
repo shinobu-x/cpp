@@ -13,6 +13,7 @@
 #include "../hpp/future_waiter.hpp"
 #include "../hpp/basic_future.hpp"
 #include "../hpp/future.hpp"
+#include "../hpp/shared_future.hpp"
 
 namespace boost {
 
@@ -107,7 +108,7 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
   BOOST_THREAD_FWD_REF(Ts) ...futures);
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
-
+/*
 template <typename T>
 class shared_future : public boost::detail::basic_future<T> {
   typedef boost::detail::basic_future<T> base_type;
@@ -262,7 +263,7 @@ public:
 BOOST_THREAD_DCL_MOVABLE_BEG(T)
 boost::shared_future<T>
 BOOST_THREAD_DCL_MOVABLE_END
-
+*/
 template <typename R>
 class promise {
   typedef typename boost::detail::shared_state<R> shared_state;
