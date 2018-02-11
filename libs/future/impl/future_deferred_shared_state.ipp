@@ -19,7 +19,6 @@ struct future_deferred_shared_state :
 
   virtual void execute(
     boost::unique_lock<boost::mutex>& lock) {
-
     try {
       F f(boost::move(f_));
       boost::detail::relocker relock(lock);
@@ -30,7 +29,6 @@ struct future_deferred_shared_state :
       this->mark_exceptional_finish_internal(
         boost::current_exception(), lock);
     }
-
   }
 };
 
@@ -48,14 +46,12 @@ struct future_deferred_shared_state<S&, F> :
 
   virtual void execute(
     boost::unique_lock<boost::mutex>& lock) {
-
     try {
       this->mark_finished_with_result_internal(f_(), lock);
     } catch (...) {
       this->mark_exceptional_finish_internal(
         boost::current_exception(), lock);
     }
-
   }
 };
 
@@ -73,14 +69,12 @@ struct future_deferred_shared_state<void, F> :
 
   virtual void execute(
     boost::unique_lock<boost::mutex>& lock) {
-
     try {
       this->mark_finished_with_result_internal(f_(), lock);
     } catch (...) {
       this->mark_exceptional_finish_internal(
         boost::current_exception(), lock);
     }
-
   }
 };
 
