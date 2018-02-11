@@ -53,141 +53,109 @@ public:
 
   state get_state(
     boost::unique_lock<boost::mutex>& lock) const {
-
     if (!future_) {
       return boost::future_uninitialized();
     }
     return future_->get_state(lock);
-
   }
 
   state get_state() const {
-
     if (!future_) {
       return boost::future_state::uninitialized;
     }
     return future_->get_state();
-
   }
 
   bool is_ready(
     boost::unique_lock<boost::mutex>& lock) const {
-
     return get_state(lock) == boost::future_state::ready;
-
   }
 
   bool is_ready() const {
-
     return get_state() == boost::future_state::ready;
-
   }
 
   bool has_exception() const {
-
     return future_ && future_->has_exception();
-
   }
 
   bool has_value() const {
-
     return future_ && future_->has_value();
-
   }
 
   boost::launch launch_policy(
     boost::unique_lock<boost::mutex>& lock) const {
-
     if (future_) {
       return future_->launch_policy(lock);
     } else {
       return boost::launch(boost::launch::none);
     }
-
   }
 
   boost::launch launch_policy() const {
-
     if (future_) {
       boost::unique_lock<boost::mutex> lock(this->future_->mutex_);
       return future_->launch_policy(lock);
     } else {
       return boost::launch(boost::launch::none);
     }
-
   }
 
   boost::exception_ptr get_exception_ptr() {
-
     if (future_) {
       return future_->get_exception_ptr();
     } else {
       return boost::exception_ptr();
     }
-
   }
 
   bool valid() const {
-
     return future_ && future_->valid();
-
   }
 
   void wait() const {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     future_->wait(false);
-
   }
 
   boost::mutex& get_mutex() {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->mutex_;
-
   }
 
   notify_when_ready_handle notify_when_ready(
     boost::condition_variable_any& cv) {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->notify_when_ready(cv);
-
   }
 
   void unnotify_when_ready(
     notify_when_ready_handle h) {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->unnotify_when_ready(h);
-
-
   }
 
 #ifdef BOOST_THREAD_USES_DATE
   template <typename Duration>
   bool timed_wait(
     Duration const& real_time) const {
-
     return timed_wait_until(boost::get_system_time() + real_time);
   }
 
   bool timed_wait_until(
     boost::system_time const& abs_time) const {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->timed_wait_until(abs_time);
-
   }
 #endif // BOOST_THREAD_USES_DATE
 
@@ -195,20 +163,16 @@ public:
   template <typename Rep, typename Period>
   boost::future_status wait_until(
     const boost::chrono::duration<Rep, Period>& real_time) const {
-
     return wait_until(boost::chrono::steady_clock::now() + real_time);
-
   }
 
   template <typename Clock, typename Duration>
   boost::future_status wait_unitl(
     const boost::chrono::time_point<Clock, Duration>& abs_time) const {
-
     if (!future_) {
       boost::throw_exception(boost::future_uninitialized());
     }
     return future_->wait_until(abs_time);
-
   }
 #endif // BOOST_THREAD_USES_CHRONO
 };
