@@ -105,7 +105,66 @@ public:
     return *this;
   }
 
+  void swap(shared_future& that) BOOST_NOEXCEPT {
+    static_cast<base_type*>(that)->swap(that);
+  }
 
+  bool run_if_is_deferred() {
+    return this->future_->run_if_is_deferred();
+  }
+
+  bool run_if_is_deferred_or_ready() {
+    return this->future_->run_if_is_deferred_or_ready();
+  }
+
+  typedef typename boost::detail::shared_state<T> shared_state_type;
+
+  typename shared_state_type::shared_future_get_result_type get() const {
+    if (!this->future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    return this->future_->get_result_type();
+  }
+
+  template <typename T2>
+  typename boost::disable_if<
+    boost::is_void<T2>,
+    typename shared_state_type::shared_future_get_result_type>::type get_or(
+      BOOST_THREAD_RV_REF(T2) v) const {
+    if (!this->future_) {
+      boost::throw_exception(boost::future_uninitialized());
+    }
+    this->future_->wait();
+    if (this->future_->has_value()) {
+      return this->future_->get_result_type();
+    } else {
+      return boost::move(v);
+    }
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+  template <typename C>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      C(shared_future)>::type>
+    then(
+      BOOST_THREAD_FUTURE_FWD_REF(C) c) const;
+
+  template <typename C>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      C(shared_future)>::type>
+    then(
+      boost::launch policy,
+      BOOST_THREAD_FUTURE_FWD_REF(C) c) const;
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+  template <typename Ex, typename C>
+  inline BOOST_THREAD_FUTURE<
+    typename boost::result_of<
+      C(shared_future)>::type>
+    then(
+      Ex& ex,
+      BOOST_THREAD_FWD_REF(C) c) const;
 } // boost
 
 #endif // SHARED_FUTURE_IPP
