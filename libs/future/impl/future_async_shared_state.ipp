@@ -28,13 +28,11 @@ struct future_async_shared_state :
   static void run(
     boost::shared_ptr<future_async_shared_state> that,
     BOOST_THREAD_FWD_REF(F) f) {
-
     try {
       that->mark_finished_with_result(f());
     } catch (...) {
       that->mark_exceptional_finish();
     }
-
   }
 };
 
@@ -61,7 +59,6 @@ struct future_async_shared_state<void, F> :
   static void run(
     boost::shared_ptr<future_async_shared_state> that,
     BOOST_THREAD_FWD_REF(F) f) {
-
     try {
       f();
       that->mark_finished_with_result();
@@ -69,7 +66,6 @@ struct future_async_shared_state<void, F> :
       that->mark_exceptional_finish();
     }
   }
-
 };
 
 template <typename S, typename F>
@@ -95,13 +91,11 @@ struct future_async_shared_state<S&, F> :
   static void run(
     boost::shared_ptr<future_async_shared_state> that,
     BOOST_THREAD_FWD_REF(F) f) {
-
     try {
       that->mark_finished_with_result(f());
     } catch (...) {
       that->mark_exceptional_finish();
     }
-
   }
 };
 
