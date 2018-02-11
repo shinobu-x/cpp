@@ -45,17 +45,13 @@ private:
     }
 
     void lock() {
-
       boost::lock(locks_.get(), locks_.get() + count_);
-
     }
 
     void unlock() {
-
       for (count_type_portable i = 0; i < count_; ++i) {
         locks_[i].unlock();
       }
-
     }
   };
 
@@ -73,7 +69,6 @@ public:
     if (f.future_) {
       registered_waiter waiter_(
         f.future_, f.future_->notify_when_ready(cv_), future_count_);
-
       try {
         futures_.push_back(waiter_);
       } catch (...) {
@@ -81,7 +76,6 @@ public:
       }
     }
     ++future_count_;
-
   }
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
@@ -93,7 +87,6 @@ public:
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 
   count_type wait() {
-
     all_futures_lock lock(futures_);
     for (;;) {
       for (count_type i = 0; i < futures_.size(); ++i) {
@@ -103,7 +96,6 @@ public:
       }
       cv_.wait(lock);
     }
-
   }
 
   // Destructor
