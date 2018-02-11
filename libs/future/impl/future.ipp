@@ -413,7 +413,59 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
       BOOST_THREAD_FWD_REF(C) c);
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
-    
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+  template <typename F, typename R>
+  friend struct boost::detail::future_unwrap_shared_state;
+
+  template <typename F, typename R>
+  friend BOOST_THREAD_FUTURE<R>
+    boost::detail::make_future_unwrap_shared_state(
+      boost::unique_lock<boost;:lock>& lock,
+      BOOST_THREAD_RV_REF(F) f);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
+  template <typename InputIter>
+  friend typename boost::disable_if<
+    boost::is_future_type<InputIter>,
+    BOOST_THREAD_FUTURE<
+      boost::csbl::vector<
+        typename InputIter::value_type> > >::type
+          when_all(InputIter begin, InputIter end);
+
+  inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all();
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename T, typename... Ts>
+  friend BOOST_THREAD_FUTURE<
+    boost::csbl::tuple<
+      typename boost::decay<T>::type,
+      typename boost::decay<Ts>::type...> >
+        when_all(
+          BOOST_THREAD_FWD_REF(T) F,
+          BOOST_THREAD_FWD_REF(Ts) ...fs);
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+
+  template <typename InputIter>
+  friend typename boost::disable_if<
+    boost::is_future_type<InputIter>,
+    BOOST_THREAD_FUTURE<
+      boost::csbl::vector<
+        typename InputIter::value_type> > >::type
+          when_any(InputIter begin, InputIter end);
+
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+  template <typename T, typename Ts...>
+  friend BOOST_THREAD_FUTURE<
+    boost::csbl::tuple<
+      typename boost::decay<T>::type,
+      typename boost::decay<Ts>::type...> >
+        when_any(
+          BOOST_THREAD_FWD_REF(T) f,
+          BOOST_THREAD_FWD_REF(Ts) ...fs);
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
+#endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 
 } // boost
 
