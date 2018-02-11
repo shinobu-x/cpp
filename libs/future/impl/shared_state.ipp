@@ -89,16 +89,13 @@ struct shared_state : boost::detail::shared_state_base {
     result_.reset(new T(boost::forward<As>(as)...));
 #endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this-mark_finished_internal(lock);
-
   }
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 
   void mark_finished_with_result(
     source_reference_type result) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     this->mark_finished_with_result_internal(result, lock);
-
   }
 
   void mark_finished_with_result(
@@ -115,43 +112,32 @@ struct shared_state : boost::detail::shared_state_base {
 
   storage_type& get_storage(
     boost::unique_lock<boost::mutex>& lock) {
-
     wait_internal(lock);
     return result_;
-
   }
 
   virtual move_dest_type get(
     boost::unique_lock<boost::mutex>& lock) {
-
     return boost::move(*get_storage(lock));
-
   }
 
   move_dest_type get() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     return this->get(lock);
-
   }
 
   virtual shared_future_get_result_type get_result_type(
     boost::unique_lock<boost::mutex> lock) {
-
     return *get_storage(lock);
-
   }
 
   shared_future_get_result_type get_result_type() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     return get_result_type(lock);
-
   }
 
   void set_value_at_thread_exit(
     source_reference_type result) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (this->has_value(lock)) {
       boost::throw_exception(boost::promise_already_satisfied());
@@ -162,14 +148,11 @@ struct shared_state : boost::detail::shared_state_base {
     result_.reset(new T(result));
 #endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
-
     boost::detail::make_ready_at_thread_exit(shared_from_this());
-
   }
 
   void set_value_at_thread_exit(
     rvalue_source_type result) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (this->has_value()) {
       boost::throw_exception(boost::promise_already_satisfied());
@@ -183,7 +166,6 @@ struct shared_state : boost::detail::shared_state_base {
        // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
-
   }
 
 private:
@@ -227,34 +209,26 @@ struct shared_state<T&> : boost::detail::shared_state_base {
 
   virtual T& get(
     boost::unique_lock<boost::mutex>& lock) {
-
     return *result_;
   }
 
   T& get() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     return get(lock);
-
   }
 
   virtual T& get_result_type(
     boost::unique_lock<boost::mutex>& lock) {
-
     wait_internal(lock);
     return *result_;
-
   }
 
   T* get_result_type() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     return get_result_type(lock);
-
   }
 
   void set_value_at_thread_exit(T& result) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (this->has_value(lock)) {
       boost::throw_exception(boost::promise_already_satisfied());
@@ -262,7 +236,6 @@ struct shared_state<T&> : boost::detail::shared_state_base {
     result_ = result;
     this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
-
   }
 
 private:
@@ -285,55 +258,41 @@ struct shared_state<void> : boost::detail::shared_state_base {
 
   void mark_finished_with_result_internal(
     boost::unique_lock<boost::mutex>& lock) {
-
     mark_finished_internal(lock);
-
   }
 
   void mark_finished_with_result() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     mark_finished_with_result_internal(lock);
-
   }
 
   virtual void get(
     boost::unique_lock<boost::mutex>& lock) {
-
     this->wait_internal(lock);
-
   }
 
   void get() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     this->get(lock);
-
   }
 
   virtual void get_result_type(
     boost::unique_lock<boost::mutex>& lock) {
-
     this->wait_internal(lock);
-
   }
 
   void get_result_type() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     this->get_result_type(lock);
-
   }
 
   void set_value_at_thread_exit() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (this->has_value(lock)) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
     this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
-
   }
 
 private:
