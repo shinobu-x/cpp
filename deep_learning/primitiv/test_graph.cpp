@@ -178,6 +178,29 @@ void doit() {
       std::cout << e.what() << '\n';
     }
   }
+  {
+    primitiv::devices::Naive dev1;
+    primitiv::Device::set_default(dev1);
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+    assert(0u == g.num_operators());
+
+    {
+      primitiv::functions::input<primitiv::Node>({}, {1});
+      primitiv::functions::input<primitiv::Node>({}, {1});
+      assert(2u == g.num_operators());
+    }
+
+    g.clear();
+    assert(0u == g.num_operators());
+
+    {
+      primitiv::functions::input<primitiv::Node>({}, {1});
+      primitiv::functions::input<primitiv::Node>({}, {1});
+      primitiv::functions::input<primitiv::Node>({}, {1});
+      assert(3u == g.num_operators());
+    }
+  }
 }
 
 auto main() -> decltype(0) {
