@@ -14,6 +14,7 @@
 #include "../hpp/basic_future.hpp"
 #include "../hpp/future.hpp"
 #include "../hpp/shared_future.hpp"
+#include "../hpp/promise.hpp"
 
 namespace boost {
 
@@ -108,7 +109,7 @@ BOOST_THREAD_FUTURE<boost::csbl::tuple<
   BOOST_THREAD_FWD_REF(Ts) ...futures);
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
-
+/*
 template <typename R>
 class promise {
   typedef typename boost::detail::shared_state<R> shared_state;
@@ -351,7 +352,7 @@ public:
   }
 
 }; // promise
-
+*/
 template <typename R>
 class promise<R&> {
   typedef typename boost::detail::shared_state<R&> shared_state;
