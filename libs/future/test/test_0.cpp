@@ -22,6 +22,12 @@ void set_thread(boost::promise<T>* p) {
   p->set_value(1);
 }
 
+template <typename T>
+T f1() {
+  std::cout << boost::this_thread::get_id() << '\n';
+  return 0;
+}
+
 void doit() {
   {
     boost::detail::shared_state_base base_type;
@@ -126,6 +132,15 @@ void doit() {
     boost::promise<void> p;
     auto f(p.get_future());
     auto f1 = f.then(callback());
+  }
+  {
+    boost::packaged_task<int()> t(f1<int>);
+    boost::future<int> f = t.get_future();
+    boost::thread th(std::move(t));
+    th.detach();
+    try {
+      f.get();
+    } catch (...) {}
   }
 }
 
