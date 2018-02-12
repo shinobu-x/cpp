@@ -225,9 +225,44 @@ public:
     lazy_init();
     future_->set_wait_callback(c, this);
   }
-
 };
 
+template <typename R>
+class promise<R&> {
+  typedef typename boost::detail::shared_state<R&> shared_state;
+  typedef boost::shared_ptr<shared_state> future_ptr;
+
+  future_ptr future_;
+  bool future_obtained_;
+
+#ifdef BOOST_THREAD_PROVIDES_PROMISE_LAZY
+  void lazy_init() {
+    if (!boost::atomic_load(&future_)) {
+      future_ptr blank;
+      boost::atomic_compare_exchange(
+        &future_, &blank, future_ptr(new shared_state));
+    }
+  }
+#endif // BOOST_THREAD_PROVIDES_PROMISE_LAZY
+
+public:
+  BOOST_THREAD_MOVABLE_ONLY(promise)
+
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+  template <typename Allocator>
+  promise(boost::allocator_arg_t, Allocator alloc) {
+    typedef typename Allocator::template rebind<shared_state>::other Alloc;
+    typedef boost::thread_detail::allocator_destructor<Alloc> Dtor;
+
+    Alloc alloc_(alloc);
+    future_ = future_ptr(
+      new(alloc_.allocator(1)) shared_state(), Dtor(alloc_, 1));
+    future_obtained_ = false;
+  }
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLCATORS
+
+
+};
 } // boost
 
 #endif // PROMISE_IPP
