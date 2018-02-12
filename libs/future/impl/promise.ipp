@@ -346,6 +346,24 @@ public:
     }
     future_->set_value_at_thread_exit(v);
   }
+
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
+    if (future_->get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_exception_at_thread_exit(e);
+  }
+
+  template <typename E>
+  void set_exception_at_thread_exit(E e) {
+    set_exception_at_thread_exit(boost::copy_exception(e));
+  }
+
+  template <typename C>
+  void set_wait_callback(C c) {
+    lazy_init();
+    future_->set_wait_callback(c, this);
+  }
 };
 } // boost
 
