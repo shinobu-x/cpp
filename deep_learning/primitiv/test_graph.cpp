@@ -144,8 +144,18 @@ void doit() {
     assert(data1.size() == g.forward(node1).to_vector().size());
     assert(data1.size() == node1.to_vector().size());
     assert(data2.size() == g.forward(node2).to_vector().size());
+    assert(data2.size() == node2.to_vector().size());
+    assert(data3.size() == g.forward(node3).to_vector().size());
+    assert(data3.size() == node3.to_vector().size());
+
     for (int i = 0; i < data1.size(); ++i) {
       assert(data1[i] == g.forward(node1).to_vector()[i]);
+    }
+    for (int i = 0; i < data2.size(); ++i) {
+      assert(data2[i] == g.forward(node2).to_vector()[i]);
+    }
+    for (int i = 0; i < data3.size(); ++i) {
+      assert(data3[i] == g.forward(node3).to_vector()[i]);
     }
   }
 }
