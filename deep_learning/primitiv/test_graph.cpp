@@ -6,6 +6,7 @@
 #include <primitiv/naive_device.h>
 #include <primitiv/operator_impl.h>
 #include <primitiv/parameter.h>
+#include <test_utils.h>
 
 #include <cassert>
 #include <iostream>
@@ -113,6 +114,7 @@ void doit() {
   }
   {
     primitiv::devices::Naive dev1;
+    primitiv::Device::set_default(dev1);
     primitiv::devices::Naive dev2;
     primitiv::Graph g;
     primitiv::Graph::set_default(g);
@@ -131,6 +133,15 @@ void doit() {
     const node_type node3 = primitiv::functions::copy(node1, dev2) + node2;
 
     assert(primitiv::Shape({2, 2}, 3) == node3.shape());
+    assert(&dev1 == &node1.device());
+    assert(&dev2 == &node2.device());
+    assert(&dev2 == &node3.device());
+    try {
+      g.forward(node3);
+    } catch (...) {
+      std::cout << __LINE__ << '\n';
+    }
+    assert(test_utils::vector_match(data1, g.forward(node1).to_vector()));
   }
 }
 
