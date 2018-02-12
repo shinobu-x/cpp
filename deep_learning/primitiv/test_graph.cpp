@@ -96,6 +96,41 @@ void doit() {
 
     primitiv::Node node1 = primitiv::functions::zeros<primitiv::Node>({2, 2});
     assert(node1.valid());
+    const std::uint32_t fid = node1.operator_id();
+    const std::uint32_t vid = node1.value_id();
+
+    primitiv::Node node2 = std::move(node1);
+    assert(!node1.valid());
+    assert(node2.valid());
+    assert(fid == node2.operator_id());
+    assert(vid == node2.value_id());
+
+    primitiv::Node node3(std::move(node2));
+    assert(!node2.valid());
+    assert(node3.valid());
+    assert(fid == node3.operator_id());
+    assert(vid == node3.value_id());
+  }
+  {
+    primitiv::devices::Naive dev1;
+    primitiv::devices::Naive dev2;
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+    typedef typename std::vector<float> value_type;
+    typedef primitiv::Node node_type;
+
+    value_type data1 {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4};
+    value_type data2 {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2};
+    value_type data3 {1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6};
+    value_type grad(12, 1);
+
+    const node_type node1 = primitiv::functions::input<node_type>(
+      primitiv::Shape({2, 2}, 3), data1);
+    const node_type node2 = primitiv::functions::input<node_type>(
+      primitiv::Shape({2, 2}, 3), data2, dev2);
+    const node_type node3 = primitiv::functions::copy(node1, dev2) + node2;
+
+    assert(primitiv::Shape({2, 2}, 3) == node3.shape());
   }
 }
 
