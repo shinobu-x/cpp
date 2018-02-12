@@ -158,6 +158,26 @@ void doit() {
       assert(data3[i] == g.forward(node3).to_vector()[i]);
     }
   }
+  {
+    primitiv::devices::Naive dev1;
+    primitiv::Device::set_default(dev1);
+    primitiv::devices::Naive dev2;
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+
+    const std::vector<float> dummy(12);
+    const primitiv::Node node1 = primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2, 2}, 3), dummy);
+    const primitiv::Node node2 = primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2, 2}, 3), dummy, dev2);
+    const primitiv::Node node3 = node1 + node2;
+
+    try {
+      g.forward(node3);
+    } catch (std::exception& e) {
+      std::cout << e.what() << '\n';
+    }
+  }
 }
 
 auto main() -> decltype(0) {
