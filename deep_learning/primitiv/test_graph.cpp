@@ -6,7 +6,6 @@
 #include <primitiv/naive_device.h>
 #include <primitiv/operator_impl.h>
 #include <primitiv/parameter.h>
-#include <test_utils.h>
 
 #include <cassert>
 #include <iostream>
@@ -141,7 +140,13 @@ void doit() {
     } catch (...) {
       std::cout << __LINE__ << '\n';
     }
-    assert(test_utils::vector_match(data1, g.forward(node1).to_vector()));
+
+    assert(data1.size() == g.forward(node1).to_vector().size());
+    assert(data1.size() == node1.to_vector().size());
+    assert(data2.size() == g.forward(node2).to_vector().size());
+    for (int i = 0; i < data1.size(); ++i) {
+      assert(data1[i] == g.forward(node1).to_vector()[i]);
+    }
   }
 }
 
