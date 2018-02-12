@@ -353,6 +353,7 @@ public:
 
 }; // promise
 */
+/*
 template <typename R>
 class promise<R&> {
   typedef typename boost::detail::shared_state<R&> shared_state;
@@ -498,7 +499,7 @@ public:
   }
 
 }; // promise
-
+*/
 template <>
 class promise<void> {
   typedef typename boost::detail::shared_state<void> shared_state;
