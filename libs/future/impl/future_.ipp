@@ -1362,7 +1362,7 @@ packaged_task(boost::allocator_arg_t, Allocator alloc, const F& f) {
 
 packaged_task(BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT :
   future_obtained_(BOOST_THREAD_RV(that).future_obtained_) {
-  task_->swap(BOOST_THREAD_RV(that).task_);
+  task_.swap(BOOST_THREAD_RV(that).task_);
   BOOST_THREAD_RV(that).future_obtained_ = false;
 }
 
