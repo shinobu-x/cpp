@@ -491,8 +491,18 @@ public:
     }
     future_->set_exception_at_thread_exit(e);
   }
-  }    
 
+  template <typename E>
+  void set_exception_at_thread_exit(E e) {
+    set_exception_at_thread_exit(e);
+  }
+
+  template <typename C>
+  void set_wait_callback(C c) {
+    lazy_init();
+    future_->set_wait_callback(c, this);
+  }
+};
 } // boost
 
 #endif // PROMISE_IPP
