@@ -151,4 +151,23 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
 } // detail
 } // boost
 
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+namespace boost {
+namespace container {
+
+template <typename R, typename Allocator>
+struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+
+} // container
+} // boost
+#ifndef BOOST_NO_CXX11_ALLOCATOR
+namespace std {
+
+template <typename R, typename Allocator>
+struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+
+} // std
+#endif // BOOST_NO_CXX11_ALLOCATOR
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
 #endif // CORE_HPP
