@@ -119,6 +119,8 @@ boost::promise<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
+
+/*
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename R>
 struct task_base_shared_state;
@@ -204,6 +206,7 @@ boost::detail::shared_state<R> {
     }
   }
 }; // task_base_shared_state
+*/
 
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename F, typename R>
