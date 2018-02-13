@@ -15,6 +15,7 @@
 #include "../hpp/future.hpp"
 #include "../hpp/shared_future.hpp"
 #include "../hpp/promise.hpp"
+#include "../hpp/task_base_shared_state.hpp"
 
 namespace boost {
 
