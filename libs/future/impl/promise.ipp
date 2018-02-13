@@ -408,6 +408,91 @@ public:
 #endif // BOOST_THREAD_PROVIDES_PROMISE_LAZY
     future_obtained_(false) {}
 
+  ~promise() {
+    if (future_) {
+      boost::unique_lock<boost::mutex> lock(future_->mutex_);
+      if (!future_->done_ && !future_->is_constructed_) {
+        future_->mark_exceptional_finish_internal(
+          boost::copy_exception(boost::broken_promise()), lock);
+      }
+    }
+  }
+
+  promise(
+    BOOST_THREAD_RV_REF(promise) that) BOOST_NOEXCEPT :
+      future_(BOOST_THREAD_RV(that).future_),
+      future_obtained_(BOOST_THREAD_RV(that).future_obtained_) {
+    BOOST_THREAD_RV(that).future_.reset();
+    BOOST_THREAD_RV(that).future_obtained_ = false;
+  }
+
+  promise& operator=(
+    BOOST_THREAD_RV_REF(promise) that) BOOST_NOEXCEPT {
+    future_ = BOOST_THREAD_RV(that).future_;
+    future_obtained_ = BOOST_THREAD_RV(that).future_obtained_;
+    BOOST_THREAD_RV(that).future_.reset();
+    BOOST_THREAD_RV(that).future_obtained_ = false;
+    return *this;
+  }
+
+  void swap(promise& that) {
+    future_.swap(that.future_);
+    std::swap(future_obtained_, that.future_obtained_);
+  }
+
+  BOOST_THREAD_FUTURE<void> get_future() {
+    lazy_init();
+
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    if (future_obtained_) {
+      boost::throw_exception(boost::future_already_retrieved());
+    }
+
+    return BOOST_THREAD_FUTURE<void>(future_);
+  }
+
+  void set_value() {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    future_->mark_finished_with_result_internal(lock);
+  }
+
+  void set_exception(boost::exception_ptr e) {
+    lazy_init();
+
+    boost::unique_lock<boost::mutex> lock(future_->mutex_);
+    if (future_->done_) {
+      boost::throw_exception(boost::promise_already_satisfied());
+    }
+    future_->mark_exceptional_finish_internal(e, lock);
+  }
+
+  template <typename E>
+  void set_exception(E e) {
+    set_exception(boost::copy_exception(e));
+  }
+
+  void set_value_at_thread_exit() {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_value_at_thread_exit();
+  }
+
+  void set_exception_at_thread_exit(boost::exception_ptr e) {
+    if (future_.get() == 0) {
+      boost::throw_exception(boost::promise_moved());
+    }
+    future_->set_exception_at_thread_exit(e);
+  }
+  }    
+
 } // boost
 
 #endif // PROMISE_IPP
