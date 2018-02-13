@@ -500,6 +500,7 @@ public:
 
 }; // promise
 */
+/*
 template <>
 class promise<void> {
   typedef typename boost::detail::shared_state<void> shared_state;
@@ -637,9 +638,10 @@ public:
     lazy_init();
     future_->set_wait_callback(c, this);
   }
-}; // promise
+}; // promise */
 } // boost
 
+/*
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
 namespace boost {
 namespace container {
@@ -654,6 +656,7 @@ namespace std {
 } // std
 #endif // BOOST_NO_CXX11_ALLOCATOR
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+*/
 
 namespace boost {
 
