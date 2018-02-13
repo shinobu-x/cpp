@@ -254,10 +254,10 @@ void doit() {
       {1, 1, 1, 1},
       {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2},
       {2, 3, 4, 5, 2, 3, 4, 5, 2, 3, 4, 5},
-      {1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
-      {2, 3, 4, 5, 0, 0, 0, 0, 2, 3, 4, 5},
-      {3, 4, 5, 6, 1, 1, 1, 1, 3, 4, 5, 6},
-      {7, 11, 2, 2, 3, 3},
+      {1, 1, 1, 1, 0, 0, 0, 0, -1, -1, -1, -1},
+      {2, 3, 4, 5, 0, 0, 0, 0, -2, -3, -4, -5},
+      {3, 4, 5, 6, 1, 1, 1, 1, -1, -2, -3, -4},
+      {7, 11, 2, 2, -3, -7},
       {18, 4, -10},
       {12},
     };
@@ -265,6 +265,13 @@ void doit() {
     for (int i = 0; i < nodes.size(); ++i) {
       const primitiv::Tensor& v = g.forward(nodes[i]);
       assert(v.valid());
+    }
+    for (int i = 0; i < nodes.size(); ++i) {
+      const primitiv::Tensor& v = g.forward(nodes[i]);
+      for (int j = 0; j < expected_values[i].size(); ++j) {
+        assert(expected_values[i][j] == v.to_vector()[j]);
+        assert(expected_values[i][j] == nodes[i].to_vector()[j]);
+      }
     }
   }
 }
