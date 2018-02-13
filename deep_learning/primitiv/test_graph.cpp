@@ -201,6 +201,72 @@ void doit() {
       assert(3u == g.num_operators());
     }
   }
+  {
+    primitiv::devices::Naive dev;
+    primitiv::Device::set_default(dev);
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+
+    const std::vector<float> data1 {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4};
+    const std::vector<float> data2 {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2};
+    std::vector<primitiv::Node> nodes;
+
+    nodes.emplace_back(primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2, 2}, 3), data1));
+    nodes.emplace_back(primitiv::functions::ones<primitiv::Node>({2, 2}));
+    nodes.emplace_back(primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2, 2}, 3), data2));
+    nodes.emplace_back(nodes[0] + nodes[1]);
+    nodes.emplace_back(nodes[1] - nodes[2]);
+    nodes.emplace_back(nodes[3] * nodes[4]);
+    nodes.emplace_back(nodes[5] + 1);
+    nodes.emplace_back(primitiv::functions::sum(nodes[6], 0));
+    nodes.emplace_back(primitiv::functions::sum(nodes[7], 1));
+    nodes.emplace_back(primitiv::functions::batch::sum(nodes[8]));
+
+    assert(10u == nodes.size());
+    assert(10u == g.num_operators());
+
+    std::cout << g.dump("dot");
+
+    const std::vector<primitiv::Shape> expected_shapes {
+      primitiv::Shape({2, 2}, 3),
+      {2, 2},
+      primitiv::Shape({2, 2}, 3),
+      primitiv::Shape({2, 2}, 3),
+      primitiv::Shape({2, 2}, 3),
+      primitiv::Shape({2, 2}, 3),
+      primitiv::Shape({2, 2}, 3),
+      primitiv::Shape({1, 2}, 3),
+      primitiv::Shape({}, 3),
+      {},
+    };
+
+    for (int i = 0; i < nodes.size(); ++i) {
+      assert(expected_shapes[i] == nodes[i].shape());
+      assert(&dev == &nodes[i].device());
+    }
+
+    g.forward(nodes.back());
+
+    const std::vector<std::vector<float> > expected_values {
+      {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4},
+      {1, 1, 1, 1},
+      {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2},
+      {2, 3, 4, 5, 2, 3, 4, 5, 2, 3, 4, 5},
+      {1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
+      {2, 3, 4, 5, 0, 0, 0, 0, 2, 3, 4, 5},
+      {3, 4, 5, 6, 1, 1, 1, 1, 3, 4, 5, 6},
+      {7, 11, 2, 2, 3, 3},
+      {18, 4, -10},
+      {12},
+    };
+
+    for (int i = 0; i < nodes.size(); ++i) {
+      const primitiv::Tensor& v = g.forward(nodes[i]);
+      assert(v.valid());
+    }
+  }
 }
 
 auto main() -> decltype(0) {
