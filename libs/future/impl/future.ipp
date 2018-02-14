@@ -461,7 +461,7 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
   template <class>
   friend class packaged_task;
 #else
-  friend calss packaged_task<T>;
+  friend class packaged_task<T>;
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
   friend class boost::detail::future_waiter;
