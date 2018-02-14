@@ -315,13 +315,13 @@ void doit() {
     std::cout << g.dump("dot");
     g.forward(nodes.back());
 
-    const float h1 = .76159416;
-    const float h2 = .99505475;
-    const float h3 = -.23346060;
+    const float h1 =   .76159416;
+    const float h2 =   .99505475;
+    const float h3 =  -.23346060;
     const float h4 = -1.5231883;
-    const float h5 = .76653940;
-    const float h6 = -.52318831;
-    const float h7 = .47681169;
+    const float h5 =   .76653940;
+    const float h6 =  -.52318831;
+    const float h7 =   .47681169;
 
     const std::vector<std::vector<float> > expected_values {
       {1, 1, 1, -1, -1, 1, -1, -1},
@@ -352,6 +352,42 @@ void doit() {
         //assert(expected_values[i][j] == nodes[i].to_vector()[j]);
       }
     }
+  }
+
+  {
+    primitiv::devices::Naive dev;
+    primitiv::Device::set_default(dev);
+
+    primitiv::Parameter wix({2, 2}, {.3, .1, .5, .3});
+    primitiv::Parameter wfx({2, 2}, {.4, .1, .5, .8});
+    primitiv::Parameter wox({2, 2}, {.5, .9, .9, .7});
+    privitiv::Parameter wjx({2, 2}, {.2, .6, .9, .3});
+    primitiv::Parameter wih({2, 2}, {.2, .3, .3, .3});
+    primitiv::Parameter wfh({2, 2}, {.8, .4, .8, .3});
+    primitiv::Parameter woh({2, 2}, {.6, .2, .2, .7});
+    primitiv::Parameter wjh({2, 2}, {.6, .4, .9, .5});
+    primitiv::Parameter bi({2}, primitiv::initializers::Constant(0));
+    primitiv::Parameter bf({2}, primitiv::initializers::Constant(0));
+    primitiv::Parameter bo({2}, primitiv::initializers::Constant(0));
+    primitiv::Parameter bj({2}, primitiv::initializers::Constant(0));
+
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+
+    const primitiv::Node nx = primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2}, 2), {2, -2, 0.5, -0.5});
+    const primitiv::Node nh = primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2}, 2), {-1, 1, -0.5, 0.5});
+    const primitiv::Node nc = primitiv::functions::zeros<primitiv::Node>({2});
+    const primitiv::Node nwix = primitiv::functions::parameter<
+      primitiv::Node>(wix);
+    const primitiv::Node nwfx = primitiv::functions::parameter<
+      primitiv::Node>(wfx);
+    const primitiv::Node nwox = primitiv::functions::parameter<
+      primitiv::Node>(wox);
+    const primitiv::Node nwjx = primitiv::functions::parameter<
+      primitiv::Node>(wjx);
+
   }
 }
 
