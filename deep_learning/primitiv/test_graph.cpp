@@ -374,11 +374,12 @@ void doit() {
     primitiv::Graph g;
     primitiv::Graph::set_default(g);
 
-    const primitiv::Node nx = primitiv::functions::input<primitiv::Node>(
+    const primitiv::Node x = primitiv::functions::input<primitiv::Node>(
       primitiv::Shape({2}, 2), {2, -2, 0.5, -0.5});
-    const primitiv::Node nh = primitiv::functions::input<primitiv::Node>(
+    const primitiv::Node h = primitiv::functions::input<primitiv::Node>(
       primitiv::Shape({2}, 2), {-1, 1, -0.5, 0.5});
-    const primitiv::Node nc = primitiv::functions::zeros<primitiv::Node>({2});
+    const primitiv::Node c = primitiv::functions::zeros<primitiv::Node>({2});
+
     const primitiv::Node nwix = primitiv::functions::parameter<
       primitiv::Node>(wix);
     const primitiv::Node nwfx = primitiv::functions::parameter<
@@ -387,7 +388,52 @@ void doit() {
       primitiv::Node>(wox);
     const primitiv::Node nwjx = primitiv::functions::parameter<
       primitiv::Node>(wjx);
+    const primitiv::Node nwih = primitiv::functions::parameter<
+      primitiv::Node>(wih);
+    const primitiv::Node nwfh = primitiv::functions::parameter<
+      primitiv::Node>(wfh);
+    const primitiv::Node nwoh = primitiv::functions::parameter<
+      primitiv::Node>(woh);
+    const primitiv::Node nwjh = primitiv::functions::parameter<
+      primitiv::Node>(wjh);
 
+    const primitiv::Node nbi = primitiv::functions::parameter<
+      primitiv::Node>(bi);
+    const primitiv::Node nbf = primitiv::functions::parameter<
+      primitiv::Node>(bf);
+    const primitiv::Node nbo = primitiv::functions::parameter<
+      primitiv::Node>(bo);
+    const primitiv::Node nbj = primitiv::functions::parameter<
+      primitiv::Node>(bj);
+
+    const primitiv::Node i = primitiv::sigmoid(
+      primitiv::matmul(nwix, x) + primitiv::matmul(nwih, h) + nbi);
+    const primitiv::Node f = primitiv::sigmoid(
+      primitiv::matmul(nwfx, x) + primitiv::matmul(nwfh, h) + nbf);
+    const primitiv::Node o = primitiv::sigmoid(
+      primitiv::matmul(nwox, x) + primitiv::matmul(nwoh, h) + nbo);
+    const primitiv::Node j = primitiv::tanh(
+      primitiv::matmul(nwjx, x) + primitiv::matmul(xwjh, h) + nbj);
+
+    const primitiv::Node cc = f * c + i * j;
+    const primitiv::Node hh = o * primitiv::tanh(cc);
+
+    const primitiv::Node t = primitiv::zeros<primitiv::Node>({2});
+    const primitiv::Node diff = hh - t;
+    const primitiv::Node loss = diff * diff;
+    const primitiv::Node sum_loss = primitiv::functions::batch::sum(
+      primitiv::functions::sum(loss, 0));
+
+    assert(45u == g.num_operators());
+
+    const primitiv::Tensor loss_tensor = g.forward(loss);
+    const primitiv::Tensor sum_loss_tensor = g.forward(sum_loss);
+
+    const std::vector<float> expected_losses {
+      5.7667205e-03, 2.8605087e-02, 1.4819370e-03, 3.0073307e-03 };
+
+    const float expected_sum_loss = std::accumulate(
+      std::begin(expected_losses), std::end(expected_losses), .0f);
   }
 }
 
