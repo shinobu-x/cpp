@@ -16,6 +16,7 @@
 #include "../hpp/shared_future.hpp"
 #include "../hpp/promise.hpp"
 #include "../hpp/task_base_shared_state.hpp"
+#include "../hpp/task_shared_state.hpp"
 
 namespace boost {
 
@@ -207,7 +208,7 @@ boost::detail::shared_state<R> {
   }
 }; // task_base_shared_state
 */
-
+/*
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename F, typename R>
 struct task_shared_state;
@@ -274,7 +275,7 @@ public:
     }
   }
 }; // task_shared_state
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename F, typename R, typename... Ts>
@@ -286,7 +287,7 @@ struct task_shared_state<F, R&()> :
   task_base_shared_state<R&>
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else
-template <typename T, typename R>
+template <typename F, typename R>
 struct task_shared_state<F, R&> :
   task_base_shared_state<R&>
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -906,7 +907,7 @@ void make_read_at_thread_exit(Ts... ts) {
 #else
 void operator()() {
   if (!task_) {
-    boost::trow_exception(boost::task_moved());
+    boost::throw_exception(boost::task_moved());
   }
 
   task_->run();
@@ -1079,7 +1080,7 @@ BOOST_THREAD_FUTURE<typename boost::result_of<
 template <typename F>
 BOOST_THREAD_FUTURE<
   typename boost::result_of<
-    typename boost::decay<F>::type()>::type
+    typename boost::decay<F>::type()>::type>
   async(
     boost::launch policy,
     BOOST_THREAD_FWD_REF(F) f) {
@@ -1097,13 +1098,13 @@ BOOST_THREAD_FUTURE<
     packaged_task_type task_type(boost::forward<F>(f));
     BOOST_THREAD_FUTURE<R> r = task_type.get_future();
     r.set_async();
-    boost::thread(boost::move(task_type)).detach;
+    boost::thread(boost::move(task_type)).detach();
     return boost::move(r);
   } else if (boost::underlying_cast<int>(policy) &&
              int(boost::launch::deferred)) {
-    std::terminal();
+    std::terminate();
   } else {
-    std::terminal();
+    std::terminate();
   }
 }
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
