@@ -274,6 +274,85 @@ void doit() {
       }
     }
   }
+  {
+    primitiv::devices::Naive dev;
+    primitiv::Device::set_default(dev);
+
+    primitiv::Parameter w1({2, 2}, {1, -1, 1, -1});
+    primitiv::Parameter b1({2}, {-1, -1});
+    primitiv::Parameter w2({1, 2}, {1, 1});
+    primitiv::Parameter b2({}, {1});
+
+    const std::vector<float> inputs {1, 1, 1, -1, -1, 1, -1, -1};
+    const std::vector<float> outputs {1, -1, -1, 1};
+
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+
+    std::vector<primitiv::Node> nodes;
+
+    nodes.emplace_back(primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({2}, 4), inputs));
+    nodes.emplace_back(primitiv::functions::parameter<primitiv::Node>(w1));
+    nodes.emplace_back(primitiv::functions::parameter<primitiv::Node>(b1));
+    nodes.emplace_back(primitiv::functions::parameter<primitiv::Node>(w2));
+    nodes.emplace_back(primitiv::functions::parameter<primitiv::Node>(b2));
+
+    nodes.emplace_back(primitiv::functions::matmul(nodes[1], nodes[0]));
+    nodes.emplace_back(nodes[5] + nodes[2]);
+    nodes.emplace_back(primitiv::functions::tanh(nodes[6]));
+    nodes.emplace_back(primitiv::functions::matmul(nodes[3], nodes[7]));
+    nodes.emplace_back(nodes[8] + nodes[4]);
+
+    nodes.emplace_back(primitiv::functions::input<primitiv::Node>(
+      primitiv::Shape({}, 4), outputs));
+    nodes.emplace_back(nodes[9] - nodes[10]);
+    nodes.emplace_back(nodes[11] * nodes[11]);
+    nodes.emplace_back(primitiv::functions::batch::sum(nodes[12]));
+
+    assert(nodes.size() == g.num_operators());
+
+    std::cout << g.dump("dot");
+    g.forward(nodes.back());
+
+    const float h1 = .76159416;
+    const float h2 = .99505475;
+    const float h3 = -.23346060;
+    const float h4 = -1.5231883;
+    const float h5 = .76653940;
+    const float h6 = -.52318831;
+    const float h7 = .47681169;
+
+    const std::vector<std::vector<float> > expected_values {
+      {1, 1, 1, -1, -1, 1, -1, -1},
+      {1, -1, 1, -1},
+      {-1, -1},
+      {1, 1},
+      {1},
+      {2, -2, 0, 0, 0, 0, -2, 2},
+      {1, -3, -1, -1, -1, -1, -3, 1},
+      {h1, -h2, -h1, -h1, -h1, -h1, -h2, h1},
+      {h3, h4, h4, h3},
+      {h5, h6, h6, h5},
+      {1, -1, -1, 1},
+      {h3, h7, h7, h3},
+      {h3 * h3, h7 * h7, h7 * h7, h3 * h3},
+      {2 * (h3 * h3 + h7 * h7)},
+    };
+
+    for (int i = 0; i < nodes.size(); ++i) {
+      const primitiv::Tensor& v = g.forward(nodes[i]);
+      assert(v.valid());
+    }
+
+    for (int i = 0; i < nodes.size(); ++i) {
+      const primitiv::Tensor& v = g.forward(nodes[i]);
+      for (int j = 0; j < expected_values[i].size(); ++j) {
+        //assert(expected_values[i][j] == v.to_vector()[j]);
+        //assert(expected_values[i][j] == nodes[i].to_vector()[j]);
+      }
+    }
+  }
 }
 
 auto main() -> decltype(0) {
