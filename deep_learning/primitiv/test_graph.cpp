@@ -489,6 +489,66 @@ void doit() {
   PRINT(loss);
 #undef PRINT
   }
+  {
+    primitiv::devices::Naive dev;
+    primitiv::Device::set_default(dev);
+
+    primitiv::Parameter wx(
+      {8, 2},
+      {.3, .1, .4, .1, .5, .9, .2, .6,
+       .5, .3, .5, .8, .9, .7, .9, .3});
+    primitiv::Parameter wh(
+      {8, 2},
+      {.2, .3, .8, .4, .6, .2, .6, .4,
+       .3, .3, .8, .3, .2, .7, .9, .5});
+    primitiv::Parameter b({8}, primitiv::initializers::Constant(0));
+
+    primitiv::Graph g;
+    primitiv::Graph::set_default(g);
+
+    const primitiv::Node n_x =
+      primitiv::functions::input<primitiv::Node>(
+        primitiv::Shape({2}, 2), {2, -2, 0.5, -0.5});
+    const primitiv::Node n_h =
+      primitiv::functions::input<primitiv::Node>(
+        primitiv::Shape({2}, 2), {-1, 1, -0.5, 0.5});
+    const primitiv::Node n_c =
+      primitiv::functions::zeros<primitiv::Node>({2});
+    const primitiv::Node n_wx =
+      primitiv::functions::parameter<primitiv::Node>(wx);
+    const primitiv::Node n_wh =
+      primitiv::functions::parameter<primitiv::Node>(wh);
+    const primitiv::Node n_b =
+      primitiv::functions::parameter<primitiv::Node>(b);
+
+    const primitiv::Node u =
+      primitiv::functions::matmul(n_wx, n_x) +
+      primitiv::functions::matmul(n_wh, n_h) +
+      n_b;
+    const primitiv::Node i =
+      primitiv::functions::sigmoid(
+        primitiv::functions::slice(u, 0, 0, 2));
+    const primitiv::Node f =
+      primitiv::functions::sigmoid(
+        primitiv::functions::slice(u, 0, 2, 4));
+    const primitiv::Node o =
+      primitiv::functions::sigmoid(
+        primitiv::functions::slice(u, 0, 4, 6));
+    const primitiv::Node j =
+      primitiv::functions::tanh(
+        primitiv::functions::slice(u, 0, 6, 8));
+    const primitiv::Node cc = f * n_c + i * j;
+    const primitiv::Node hh = o * primitiv::functions::tanh(cc);
+
+    const primitiv::Node t = primitiv::functions::zeros<primitiv::Node>({2});
+    const primitiv::Node diff = hh - t;
+    const primitiv::Node loss = diff * diff;
+    const primitiv::Node sum_loss =
+      primitiv::functions::batch::sum(
+        primitiv::functions::sum(loss, 0));
+
+    
+  }
 }
 
 auto main() -> decltype(0) {
