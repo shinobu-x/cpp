@@ -120,7 +120,7 @@ boost::promise<T>
 BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
-
+/*
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename F, typename... Ts>
@@ -183,7 +183,7 @@ public:
     }
   }
 }; // task_shared_state
-
+*/
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK)
 #if defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
 template <typename... Ts>
