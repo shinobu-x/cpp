@@ -184,6 +184,7 @@ public:
   }
 }; // task_shared_state
 */
+/*
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK)
 #if defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
 template <typename... Ts>
@@ -252,6 +253,7 @@ public:
     }
   } // do_run
 };
+*/
 } // detail
 
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
