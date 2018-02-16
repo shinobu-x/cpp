@@ -325,6 +325,75 @@ public:
   }
 };
 
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK)
+#if defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+template <typename... As>
+struct task_shared_state<void(*)(As...), void(As...)> :
+  task_base_shared_state<void(As...)> {
+#else
+template <>
+struct task_shared_state<void(*)(), void()> :
+  task_base_shared_state<void()> {
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+template <>
+struct task_shared_state<void(*)(), void> :
+  task_base_shared_state<void> {
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+private:
+  task_shared_state(task_shared_state&);
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  typedef void (*CallableType)(As...);
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+      // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef void (*CallableType)();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+public:
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return f_;
+  }
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_apply(BOOST_THREAD_RV_REF(As) ...as) {
+    try {
+      f_(boost::move(as)...);
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+      // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+    try {
+      f_();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+      this->set_value_at_thread_exit();
+    } catch (...) {
+      this->set_exception_at_thread_exit();
+    }
+  } // do_apply
+
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+    defined(BOOsT_THREAD_PROVIDES_VARIADIC_THREAD)
+  void do_run(BOOST_THREAD_RV_REF(As) ...as) {
+    try {
+      f_(boost::move(as)...);
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+      // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  void do_run() {
+    try {
+      f_();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOsT_THREAD_PROVIDES_VARIADIC_THREAD
+      this->mark_finished_with_result();
+    } catch (...) {
+      this->mark_exceptional_finish();
+    }
+  } // do_run
+};
+
 } // detail
 } // boost
  
