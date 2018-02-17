@@ -18,6 +18,7 @@
 #include "../hpp/task_base_shared_state.hpp"
 #include "../hpp/task_shared_state.hpp"
 #include "../hpp/packaged_task.hpp"
+#include "../hpp/async.hpp"
 
 namespace boost {
 
@@ -158,7 +159,7 @@ BOOST_THREAD_FUTURE<R>
   return  BOOST_THREAD_FUTURE<R>(h);
 }
 } // detail
-
+/*
 #ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R, typename... Ts>
@@ -285,7 +286,7 @@ BOOST_THREAD_FUTURE<
   }
 }
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 namespace detail {
 
