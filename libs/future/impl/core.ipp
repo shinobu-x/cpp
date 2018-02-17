@@ -155,16 +155,26 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
 namespace boost {
 namespace container {
 
+// boost::promise
 template <typename R, typename Allocator>
 struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+
+// boost::packaged_task
+template <typename R, typename Allocator>
+struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
 
 } // container
 } // boost
 #ifndef BOOST_NO_CXX11_ALLOCATOR
 namespace std {
 
+// boost::promise
 template <typename R, typename Allocator>
 struct uses_allocator<boost::promise<R>, Allocator> : true_type {};
+
+// boost::packaged_task
+template <typename R, typename Allocator>
+struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
 
 } // std
 #endif // BOOST_NO_CXX11_ALLOCATOR
