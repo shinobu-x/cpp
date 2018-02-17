@@ -3,22 +3,22 @@
 
 #ifndef BOOST_NO_EXCEPTIONS
 
-#include "../include/futures.hpp"
-#include "../hpp/core.hpp"
-#include "../hpp/shared_state_base.hpp"
-#include "../hpp/shared_state.hpp"
-#include "../hpp/future_async_shared_state_base.hpp"
-#include "../hpp/future_async_shared_state.hpp"
-#include "../hpp/future_deferred_shared_state.hpp"
-#include "../hpp/future_waiter.hpp"
-#include "../hpp/basic_future.hpp"
-#include "../hpp/future.hpp"
-#include "../hpp/shared_future.hpp"
-#include "../hpp/promise.hpp"
-#include "../hpp/task_base_shared_state.hpp"
-#include "../hpp/task_shared_state.hpp"
-#include "../hpp/packaged_task.hpp"
-#include "../hpp/async.hpp"
+#include <include/futures.hpp>
+#include <hpp/core.hpp>
+#include <hpp/shared_state_base.hpp>
+#include <hpp/shared_state.hpp>
+#include <hpp/future_async_shared_state_base.hpp>
+#include <hpp/future_async_shared_state.hpp>
+#include <hpp/future_deferred_shared_state.hpp>
+#include <hpp/future_waiter.hpp>
+#include <hpp/basic_future.hpp>
+#include <hpp/future.hpp>
+#include <hpp/shared_future.hpp>
+#include <hpp/promise.hpp>
+#include <hpp/task_base_shared_state.hpp>
+#include <hpp/task_shared_state.hpp>
+#include <hpp/packaged_task.hpp>
+#include <hpp/async.hpp>
 
 namespace boost {
 
