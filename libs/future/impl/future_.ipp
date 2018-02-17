@@ -17,6 +17,7 @@
 #include "../hpp/promise.hpp"
 #include "../hpp/task_base_shared_state.hpp"
 #include "../hpp/task_shared_state.hpp"
+#include "../hpp/packaged_task.hpp"
 
 namespace boost {
 
@@ -255,7 +256,7 @@ public:
 };
 */
 } // detail
-
+/*
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R, typename... Ts>
@@ -389,7 +390,7 @@ explicit packaged_task(BOOST_THREAD_RV_REF(F) f) {
   future_obtained_ = false;
 }
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORSS
 #ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUTURE_PTR
 template <typename Allocator>
