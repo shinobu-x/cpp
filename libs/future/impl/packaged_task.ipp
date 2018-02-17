@@ -377,6 +377,11 @@ void set_wait_callback(F f) {
   task_->set_wait_callback(f, this);
 }
 };
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+boost::packaged_task<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
 } //boost
 
 #endif // PACKAGED_TASK_IPP
