@@ -276,14 +276,14 @@ packaged_task(
 packaged_task(
   BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT :
   future_obtained_(BOOST_THREAD_RV(that).future_obtained_) {
-  task_.swap(BOOT_THREAD_RV(that).task_);
+  task_.swap(BOOST_THREAD_RV(that).task_);
   BOOST_THREAD_RV(that).future_obtained_ = false;
 }
 
 packaged_task& operator=(
   BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT {
 #ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
-  packaged_task tmp(boost::move(that));
+  packaged_task temp(boost::move(that));
 #else // BOOST_NO_CXX11_RVALUE_REFERENCES
   packaged_task temp(
     static_cast<BOOST_THREAD_RV_REVF(packaged_task)>(that));
@@ -294,11 +294,11 @@ packaged_task& operator=(
 }
 
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
-void set_executor(executor_ptr_typ ex) {
+void set_executor(executor_ptr_type ex) {
   if (!valid()) {
     boost::throw_exception(boost::task_moved());
   }
-  boost::lock_guard<boost::mutex> lock(lock_->mutex_);
+  boost::lock_guard<boost::mutex> lock(task_->mutex_);
   task_->set_executor_policy(ex, lock);
 }
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
@@ -334,13 +334,13 @@ BOOST_THREAD_FUTURE<R> get_future() {
   }
 }
 
-#ifdef defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&              \
-       defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
 void operator()(As ...as) {
   if (!task_) {
     boost::throw_exception(boost::task_moved());
   }
-  task_->run(boost::move(ts)...);
+  task_->run(boost::move(as)...);
 }
 
 void make_ready_at_thread_exit(As ...as) {
