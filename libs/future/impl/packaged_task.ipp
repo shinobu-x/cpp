@@ -162,6 +162,110 @@ explicit packaged_task(
 }
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
 
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATOR
+#ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+template <typename Allocator>
+packaged_task(
+  boost::allocator_tag_t,
+  Allocator alloc,
+  R(*f)()) {
+  typedef R(*FR)();
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    FR,
+    R(As...)> task_shared_state_type;
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    FR,
+    R()> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+  typedef boost::detail::task_shared_state<
+    FR,
+    R> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  typedef typename Allocator::template rebind<
+    task_shared_state_type>::other Alloc;
+  typedef boost::thread_detail::allocator_destructor<Alloc> Dtor;
+
+  Alloc alloc_(alloc);
+  task_ = task_ptr(
+    new(alloc_.allocate(1)) task_shared_state_type(f),
+    Dtor(alloc_, 1));
+  future_obtained_ = false;
+
+#endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+template <typename F, typename Allocator>
+packaged_task(
+  boost::allocator_tag_t,
+  Allocator alloc,
+  BOOST_THREAD_FWD_REF(F) f) {
+  typedef typename boost::decay<F>::type FR;
+
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    FR,
+    R(As...)> task_shared_state_type;
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    FR,
+    R()> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  typedef boost::detail::task_shared_state<
+    FR,
+    R> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  typedef typename Allocator::template rebind<
+    task_shared_state_type>::other Alloc;
+  typedef boost::thread_detail::allocator_destructor<Alloc> Dtor;
+
+  Alloc alloc_(alloc);
+  task_ = task_ptr(
+    new(alloc_.allocate(1)) task_shared_state_type(
+      boost::forward<F>(f)),
+      Dtor(alloc_, 1));
+  future_obtained_ = false;
+}
+#else // BOOST_NO_CXX11_RVALUE_REFERENCES
+template <typename F, typename Allocator>
+packaged_task(
+  boost::allocator_tag_t,
+  const F& f) {
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    F,
+    R(As...)> task_shared_state_type;
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    F,
+    R()> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  typedef boost::detail::task_shared_state<
+    F,
+    R> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  typedef typename Allocator::template rebind<
+    task_shared_state_type>::other Alloc;
+  typedef boost::thread_detail::allocator_destructor<Alloc> Dtor;
+
+  Alloc alloc_(alloc);
+  task_ = task_ptr(
+    new(alloc_.allocate(1)) task_shared_state_type(
+      boost::move(f)),
+    Dtor(alloc_, 1));
+  future_obtained_ = false;
+}
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+#endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
 };
 } //boost
 
