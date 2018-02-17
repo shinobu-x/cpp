@@ -503,6 +503,11 @@ public:
     future_->set_wait_callback(c, this);
   }
 };
+
+BOOST_THREAD_DCL_MOVABLE_BEG(T)
+boost::promise<T>
+BOOST_THREAD_DCL_MOVABLE_END
+
 } // boost
 
 #endif // PROMISE_IPP
