@@ -134,13 +134,13 @@ void doit() {
     auto f1 = f.then(callback());
   }
   {
-//    boost::packaged_task<int()> t(f1<int>);
-//    boost::future<int> f = t.get_future();
-//    boost::thread th(std::move(t));
-//    th.detach();
-//    try {
-//      f.get();
-//    } catch (...) {}
+    boost::packaged_task<int()> t(f1<int>);
+    boost::future<int> f = t.get_future();
+    boost::thread th(std::move(t));
+    th.detach();
+    try {
+      f.get();
+    } catch (...) {}
   }
 }
 
