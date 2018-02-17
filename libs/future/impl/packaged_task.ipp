@@ -334,6 +334,48 @@ BOOST_THREAD_FUTURE<R> get_future() {
   }
 }
 
+#ifdef defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&              \
+       defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+void operator()(As ...as) {
+  if (!task_) {
+    boost::throw_exception(boost::task_moved());
+  }
+  task_->run(boost::move(ts)...);
+}
+
+void make_ready_at_thread_exit(As ...as) {
+  if (!task_) {
+    boost::throw_exception(boost::task_moved());
+  }
+  if (task_->has_value()) {
+    boost::throw_exception(boost::promise_already_satisfied());
+  }
+  task_->apply(boost::move(as)...);
+}
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+      // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+void operator()() {
+  if (!task_) {
+    boost::throw_exception(boost::task_moved());
+  }
+  task_->run();
+}
+
+void make_ready_at_thread_exit() {
+  if (!task_) {
+    boost::throw_exception(boost::task_moved());
+  }
+  if (task_->has_value()) {
+    boost::throw_exception(boost::promise_already_satisfied());
+  }
+  task_->apply();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+
+template <typename F>
+void set_wait_callback(F f) {
+  task_->set_wait_callback(f, this);
+}
 };
 } //boost
 
