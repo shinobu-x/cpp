@@ -89,18 +89,21 @@ BOOST_THREAD_FUTURE<
             boost::forward<F>(f)),
           boost::thread_detail::decay_copy(
             boost::forward<As>(as))...)));
-  } else if (boost::underlying_cast<int>(policy) &&
+  }  else if (boost::underlying_cast<int>(policy) &&
              int(boost::launch::deferred)) {
     return BOOST_THREAD_MAKE_RV_REF(
       boost::detail::make_future_deferred_shared_state<result_type>(
-        boost::thread_detail::decay_copy(
-          boost::forward<F>(f)),
-        boost::thread_detail::decay_copy(
-          boost::forward<As>(as)));
+        callback_type(
+          boost::thread_detail::decay_copy(
+            boost::forward<F>(f)),
+          boost::thread_detail::decay_copy(
+            boost::forward<As>(as))...)));
   } else {
     std::terminate();
   }
+
 }
+
 #else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename F>
 BOOST_THREAD_FUTURE<
@@ -110,6 +113,29 @@ BOOST_THREAD_FUTURE<
   BOOST_THREAD_FWD_REF(F) f) {
   typedef typename boost::result_of<
     typename boost::decay<F>::type()>::type task_type;
-#ifdef BOOST
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  typedef boost::packaged_task<task_type()> packaged_task_type;
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  typedef boost::packaged_task<task_type> packaged_task_type;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  if (boost::underlying_cast<int>(policy) &&
+      int(boost::launch::async)) {
+    packaged_task_type task(
+      boost::forward<F>(f));
+    BOOST_THREAD_FUTURE<R> r = task.get_future();
+    r.set_async();
+    boost::thread(boost::move(task)).detach();
+    return boost::move(r);
+  } else if (boost::underlying_cast<int>(policy) &&
+             int(boost::launch::deferred)) {
+    std::terminate();
+  } else {
+    std::terminate();
+  }
+}
+
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+
 } // boost
 #endif // ASYNC_IPP
