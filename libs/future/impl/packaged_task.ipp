@@ -7,10 +7,10 @@ namespace boost {
 
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
-template <typename R, typename... Ts>
-class packaged_task<R(Ts...)> {
+template <typename R, typename... As>
+class packaged_task<R(As...)> {
   typedef boost::shared_ptr<
-    boost::detail::task_base_shared_state<R(Ts...)> > task_ptr;
+    boost::detail::task_base_shared_state<R(As...)> > task_ptr;
 #else
 template <typename R>
 class packaged_task<R()> {
@@ -41,7 +41,8 @@ explicit packaged_task(
   BOOST_THREAD_FWD_REF(As)... as) {
   typedef R(*FR)(BOOST_THREAD_FWD_REF(As)...);
   typedef boost::detail::task_shared_state<
-    FR, R(As...)> task_shared_state_type;
+    FR,
+    R(As...)> task_shared_state_type;
 
   task_ = task_ptr(
     new task_shared_state_type(f, boost::move(as)...));
@@ -50,9 +51,25 @@ explicit packaged_task(
 #else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 explicit packaged_task(R(*f)()) {
   typedef R(*FR)();
-  typedef boost::detail::task_shared_state<FR, R()> task_shared_state_type;
-  task_ = task_ptr(new task_shared_state_type(f));
+  typedef boost::detail::task_shared_state<
+    FR,
+    R()> task_shared_state_type;
+
+  task_ = task_ptr(
+    new task_shared_state_type(f));
   future_obtained_ = false;
+}
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+#else
+explicit packaged_task(R(*f)() {
+  typedef R(*FR)();
+  typedef boost::detail::task_shared_state<
+    FR,
+    R> task_shared_state_type;
+
+  task_ = task_ptr(
+    new task_shared_state_type(f));
+  future_obtain_ = false;
 }
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #endif // BOOST_THREAD_PROVIDES_REFERENCES_DONT_MATCH_FUNCTION_PTR
@@ -121,8 +138,29 @@ explicit packaged_task(
 
 template <typename F>
 explicit packaged_task(
-  BOOST_THREAD_RV_REF(F) F) {
-#ifdef 
+  BOOST_THREAD_RV_REF(F) f) {
+#ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    F,
+    R(As...)> task_shared_state_type;
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef boost::detail::task_shared_state<
+    F,
+    R()> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_VAIRADIC_THREAD
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+  typedef boost::detail::task_shared_state<
+    F,
+    R> task_shared_state_type;
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+
+  task_ = task_ptr(
+    new task_shared_state_type(
+      boost::move(f)));
+  future_obtained_ = false;
+}
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
 
 };
 } //boost
