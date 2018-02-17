@@ -266,6 +266,74 @@ packaged_task(
 }
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
+~packaged_task() {
+  if (task_) {
+    task_->owner_destroyed();
+  }
+}
+
+packaged_task(
+  BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT :
+  future_obtained_(BOOST_THREAD_RV(that).future_obtained_) {
+  task_.swap(BOOT_THREAD_RV(that).task_);
+  BOOST_THREAD_RV(that).future_obtained_ = false;
+}
+
+packaged_task& operator=(
+  BOOST_THREAD_RV_REF(packaged_task) that) BOOST_NOEXCEPT {
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+  packaged_task tmp(boost::move(that));
+#else // BOOST_NO_CXX11_RVALUE_REFERENCES
+  packaged_task temp(
+    static_cast<BOOST_THREAD_RV_REVF(packaged_task)>(that));
+#endif // BOOST_NO_CXX11_RVALUE_REFERENCES
+  swap(temp);
+
+  return *this;
+}
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+void set_executor(executor_ptr_typ ex) {
+  if (!valid()) {
+    boost::throw_exception(boost::task_moved());
+  }
+  boost::lock_guard<boost::mutex> lock(lock_->mutex_);
+  task_->set_executor_policy(ex, lock);
+}
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+void reset() {
+  if (!valid()) {
+    boost::throw_exception(
+      boost::future_error(
+        boost::system::make_error_code(
+          boost::future_errc::no_state)));
+  }
+  task_->reset();
+  future_obtained_ = false;
+}
+
+void swap(packaged_task that) BOOST_NOEXCEPT {
+  task_.swap(that.task_);
+  std::swap(future_obtained_, that.future_obtained_);
+}
+
+bool valid() const BOOST_NOEXCEPT {
+  return task_.get() != 0;
+}
+
+BOOST_THREAD_FUTURE<R> get_future() {
+  if (!task_) {
+    boost::throw_exception(boost::task_moved());
+  } else if (!future_obtained_) {
+    future_obtained_ = true;
+    return BOOST_THREAD_FUTURE<R>(task_);
+  } else {
+    boost::throw_exception(boost::future_already_retrieved());
+  }
+}
+
 };
 } //boost
 
