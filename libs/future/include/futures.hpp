@@ -17,7 +17,7 @@
 
 #define BOOST_THREAD_FUTURE future
 
-#include "../hpp/future_.hpp"
+#include <hpp/future_.hpp>
 
 #include <boost/thread/detail/config.hpp>
 #include <boost/thread/condition_variable.hpp>
