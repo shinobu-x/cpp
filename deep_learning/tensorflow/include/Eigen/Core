@@ -1,0 +1,6 @@
+#ifndef CORE_
+#define CORE_
+
+#include "Eigen/Core"
+
+#endif
