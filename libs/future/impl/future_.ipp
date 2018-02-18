@@ -19,6 +19,7 @@
 #include <hpp/task_shared_state.hpp>
 #include <hpp/packaged_task.hpp>
 #include <hpp/async.hpp>
+#include "../hpp/shared_state_nullary_task.hpp"
 
 namespace boost {
 
@@ -288,9 +289,10 @@ BOOST_THREAD_FUTURE<
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 */
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
-namespace detail {
+//namespace detail {
 
 /* shared_state_nullary_task */
+/*
 template <typename R, typename F>
 struct shared_state_nullary_task {
   typedef boost::shared_ptr<boost::detail::shared_state_base> storage_type;
@@ -404,10 +406,10 @@ struct shared_state_nullary_task<void, F> {
   }
 };
 } // detail
-
-BOOST_THREAD_DCL_MOVABLE_BEG2(R, F)
-boost::detail::shared_state_nullary_task<R, F>
-BOOST_THREAD_DCL_MOVABLE_END
+*/
+//BOOST_THREAD_DCL_MOVABLE_BEG2(R, F)
+//boost::detail::shared_state_nullary_task<R, F>
+//BOOST_THREAD_DCL_MOVABLE_END
 
 namespace detail {
 
