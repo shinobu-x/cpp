@@ -137,13 +137,13 @@ BOOST_THREAD_FUTURE<
 
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 
-#if defined(BOOST_THREAD_PROVIDES_EXECUTORS
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 #if defined(BOOST_THREAD_PROVIDES_INVOKE) &&                                  \
-    !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATE) &&                             \
-    !defined(BOOST_NO_CXX11_HDR_TUPLE)
-#if defined(BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR)
+   !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATE) &&                              \
+   !defined(BOOST_NO_CXX11_HDR_TUPLE)
+#ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
 template <typename Ex, typename R, typename... As>
-BOOST_THREAD_FUTURE<rR> async(
+BOOST_THREAD_FUTURE<R> async(
   Ex& ex,
   R(*f)(BOOST_THREAD_FWD_REF(As)...),
   BOOST_THREAD_FWD_REF(As) ...as) {
@@ -161,6 +161,68 @@ BOOST_THREAD_FUTURE<rR> async(
           boost::forward<F>(f)),
         boost::thread_detail::decay_copy(
           boost::forward<As>(as))...
+    )));
+}
+#endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+template <typename Ex, typename F, typename... As>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    typename boost::decay<F>::type(
+      typename boost::decay<As>::type...)>::type>
+  async(
+    Ex& ex,
+    BOOST_THREAD_FWD_REF(F) f,
+    BOOST_THREAD_FWD_REF(As) ...as) {
+  typedef boost::detail::invoker<
+    typename boost::decay<F>::type,
+    typename boost::decay<As>::type...> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(
+      ex,
+      callback_type(
+        boost::thread_detail::decay_copy(
+          boost::forward<F>(f)),
+        boost::thread_detail::decay_copy(
+          boost::forward<As>(as))...
+    )));
+}
+#else // BOOST_THREAD_PROVIDES_INVOKE
+      // BOOST_NO_CXX11_VARIADIC_TEMPLATE
+      // BOOST_NO_CXX11_HDR_TUPLE
+#ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+template <typename Ex, typename R>
+BOOST_THREAD_FUTURE<R> async(
+  Ex& ex,
+  R(*f)()) {
+  typedef R(*F)();
+  typedef boost::detail::invoker<F> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(
+      ex,
+      callback_type(f)));
+}
+
+template <typename Ex, typename R, typename A>
+BOOST_THREAD_FUTURE<R> async(
+  Ex& ex,
+  R(*f)(BOOST_THREAD_FWD_REF(A)),
+  BOOST_THREAD_FWD_REF(A) a) {
+  typedef R(*F)(BOOST_THREAD_FWD_REF(A));
+  typedef boost::detail::invoker<
+    F,
+    typename boost::decay<A>::type> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(
+      ex,
+      callback_type(
+        f,
+        boost::thread_detail::decay_copy(boost::forward<A>(a));
     )));
 }
 #endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
