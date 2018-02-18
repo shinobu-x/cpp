@@ -148,6 +148,7 @@ inline BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
   boost::unique_lock<boost::mutex>& lock,
   BOOST_THREAD_RV_REF(F) f);
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+
 } // detail
 } // boost
 
@@ -179,5 +180,52 @@ struct uses_allocator<boost::packaged_task<R>, Allocator> : true_type {};
 } // std
 #endif // BOOST_NO_CXX11_ALLOCATOR
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS
+
+namespace boost {
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+namespace detail {
+
+template <typename T>
+struct shared_state;
+
+template <typename R, typename F>
+struct shared_state_nullary_task;
+
+template <typename R>
+struct future_executor_shared_state :
+  boost::detail::shared_state<R> {
+  typedef boost::detail::shared_state<R> base_type;
+
+  future_executor_shared_state() {}
+  ~future_executor_shared_state() {}
+
+  template <typename F, typename Ex>
+  void init(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+    typedef typename boost::decay<F>::type callback_type;
+    this->set_executor_policy(
+      boost::executor_ptr_type(
+        new executor_ref<Ex>(ex)));
+
+    boost::detail::shared_state_nullary_task<R, callback_type> t(
+      this->shared_from_this(), boost::forward<F>(f));
+
+    ex.submit(boost::move(t));
+  }
+};
+
+template <typename R, typename F, typename Ex>
+BOOST_THREAD_FUTURE<R>  make_future_executor_shared_state(
+  Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
+  boost::shared_ptr<boost::detail::future_executor_shared_state<R> > h(
+    new boost::detail::future_executor_shared_state<R>());
+  h->init(ex, boost::forward<F>(f));
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
+
+} // detail
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+} // boost
 
 #endif // CORE_HPP
