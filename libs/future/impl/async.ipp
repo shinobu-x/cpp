@@ -330,6 +330,25 @@ BOOST_THREAD_FUTURE<
     typename boost::decay<F>::type(
       typename boost::decay<Ts>::type...)>::type> async(
   BOOST_THREAD_FWD_REF(F) f,
-  BOOST_THREAD_FWD_REF(
+  BOOST_THREAD_FWD_REF(As) ...as) {
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::async(
+      boost::launch(
+        boost::launch::any),
+    boost::forward<F>(f),
+    boost::forward<As>(as)...));
+}
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename F>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<F()>::tye> async(
+  BOOST_THREAD_FWD_REF(F) f) {
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::async(
+      boost::launch(
+        boost::launch::any),
+    boost::forward<F>(f)));
+}
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 } // boost
 #endif // ASYNC_IPP
