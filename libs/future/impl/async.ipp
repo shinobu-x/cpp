@@ -328,7 +328,7 @@ template <typename F, typename... As>
 BOOST_THREAD_FUTURE<
   typename boost::result_of<
     typename boost::decay<F>::type(
-      typename boost::decay<Ts>::type...)>::type> async(
+      typename boost::decay<As>::type...)>::type> async(
   BOOST_THREAD_FWD_REF(F) f,
   BOOST_THREAD_FWD_REF(As) ...as) {
   return BOOST_THREAD_MAKE_RV_REF(
