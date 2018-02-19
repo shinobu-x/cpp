@@ -267,6 +267,36 @@ BOOST_THREAD_FUTURE<
           boost::forward<A1>(a1)))));
 }
 
+template <typename Ex, typename F, typename T1, typename T2>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    typename boost::decay<F>::type(
+      typename boost::decay<T1>::type,
+      typename boost::decay<T2>::type)>::type> async(
+  Ex& ex,
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(A1) a1,
+  BOOST_THREAD_FWD_REF(A2) a2) {
+  typedef boost::detail::invoker<
+    typename boost::decay<F>::type,
+    typename boost::decay<A1>::type,
+    typename boost::decay<A2>::type> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(
+      ex,
+      boost::thread_detail::decay_copy(
+        boost::forward<F>(f)),
+      boost::thread_detail::decay_copy(
+        boost::forward<A1>(a1)),
+      boost::thread_detail::decay_copy(
+        boost::forward<A2>(a2))));
+}
+#endif // BOOST_THREAD_PROVIDES_INVOKE
+       // BOOST_NO_CXX11_VARIADIC_TEMPLATE
+       // BOOST_NO_CXX11_HDR_TUPLE
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 
 } // boost
 #endif // ASYNC_IPP
