@@ -226,5 +226,47 @@ BOOST_THREAD_FUTURE<R> async(
     )));
 }
 #endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+template <typename Ex, typename F>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    typename boost::decay<F>::type()>::type async(
+  Ex& ex,
+  BOOST_THREAD_FWD_REF(F) f) {
+  typedef boost::detail::invoker<
+    typename boost::decay<F>::type> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state<result_type>(
+      ex,
+      callback_type(
+        boost::thread_detail::decay_copy(
+          boost::forward<F>(f)))));
+}
+
+template <typename Ex, typename F, typename A1>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    typename boost::decay<F>::type(
+      typename boost::decay<A1>::type)>::type async(
+  Ex& ex,
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(A1) a1) {
+  typedef boost::detail::invoker<
+    typename boost::decay<F>::type,
+    typename boost::decay<A1>::type> callback_type;
+  typedef typename callback_type::result_type result_type;
+
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::detail::make_future_executor_shared_state(
+      ex,
+      callback_type(
+        boost::thread_detail::decay_copy(
+          boost::forward<F>(f)),
+        boost::thread_detail::decay_copy(
+          boost::forward<A1>(a1)))));
+}
+
+
 } // boost
 #endif // ASYNC_IPP
