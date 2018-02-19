@@ -224,6 +224,34 @@ BOOST_THREAD_FUTURE<R>  make_future_executor_shared_state(
   return BOOST_THREAD_FUTURE<R>(h);
 }
 
+template <typename T>
+struct deduced_type_impl {
+  typedef T type;
+};
+
+template <typename T>
+struct deduced_type_impl<boost::reference_wrapper<T> const> {
+  typedef T& type;
+};
+
+template <typename T>
+struct deduced_type_impl<boost::reference_wrapper<T> > {
+  typedef T& type;
+};
+
+#if __cplusplus > 201103L
+template <typename T>
+struct deduced_type_impl<std::reference_wrapper<T> > {
+  typedef T& type;
+};
+#endif
+
+template <typename T>
+struct deduced_type {
+  typedef typename boost::detail::deduced_type_impl<
+    typename boost::decay<T>::type>::type type;
+};
+
 } // detail
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
 } // boost
