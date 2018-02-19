@@ -298,5 +298,38 @@ BOOST_THREAD_FUTURE<
        // BOOST_NO_CXX11_HDR_TUPLE
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
 
+#ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename R, typename... As>
+BOOST_THREAD_FUTURE<R> async(
+  R(*f)(BOOST_THREAD_FWD_REF(As)...),
+  BOOST_THREAD_FWD_REF(As) ...as) {
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::async(
+      boost::launch(
+        boost::launch::any),
+    f,
+    boost::forward<As>(as)...));
+}
+#else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename R>
+BOOST_THREAD_FUTURE<R> async(R(*f)()) {
+  return BOOST_THREAD_MAKE_RV_REF(
+    boost::sync(
+      boost::launch(
+        boost::launch::any),
+    f));
+}
+#endif // BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
+#endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+
+#ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+template <typename F, typename... As>
+BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    typename boost::decay<F>::type(
+      typename boost::decay<Ts>::type...)>::type> async(
+  BOOST_THREAD_FWD_REF(F) f,
+  BOOST_THREAD_FWD_REF(
 } // boost
 #endif // ASYNC_IPP
