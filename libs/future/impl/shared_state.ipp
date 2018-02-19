@@ -157,8 +157,8 @@ struct shared_state : boost::detail::shared_state_base {
     if (this->has_value()) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-#if !defined(BOOST_NO_CXX11_RVALUE_REFERENCES) &&                             \
-    defined(BOOST_THREAD_FUTURE_USES_OPTIONAL)
+#if defined(BOOST_THREAD_FUTURE_USES_OPTIONAL) &&                            \
+   !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
     result_ = boost::move(result);
 #else
     result_.reset(new (static_cast<rvalue_source_type>(result)));
