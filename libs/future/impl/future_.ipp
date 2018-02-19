@@ -19,7 +19,8 @@
 #include <hpp/task_shared_state.hpp>
 #include <hpp/packaged_task.hpp>
 #include <hpp/async.hpp>
-#include "../hpp/shared_state_nullary_task.hpp"
+#include <hpp/shared_state_nullary_task.hpp>
+#include <hpp/async.hpp>
 
 namespace boost {
 
@@ -143,11 +144,10 @@ BOOST_THREAD_FUTURE<R>
   return  BOOST_THREAD_FUTURE<R>(h);
 }
 } // detail
-#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
-
+// #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+/*
 namespace detail {
 
-/* future_executor_shared_state */
 template <typename R>
 struct future_executor_shared_state :
   boost::detail::shared_state<R> {
@@ -172,7 +172,6 @@ struct future_executor_shared_state :
   ~future_executor_shared_state() {}
 };
 
-/* make_future_executor_shared_state */
 template <typename R, typename F, typename Ex>
 BOOST_THREAD_FUTURE<R>
   make_future_executor_shared_state(Ex& ex, BOOST_THREAD_FWD_REF(F) f) {
@@ -185,7 +184,8 @@ BOOST_THREAD_FUTURE<R>
   return BOOST_THREAD_FUTURE<R>(h);
 };
 } // detail
-
+*/
+/*
 #if defined(BOOST_THREAD_PROVIDES_INVOKE) &&                                  \
     !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATE) &&                             \
     !defined(BOOST_NO_CXX11_HDR_TUPLE)
@@ -345,7 +345,8 @@ BOOST_THREAD_FUTURE<
        // BOOST_NO_CXX11_VARIADIC_TEMPLATE
        // BOOST_NO_CXX11_HDR_TUPLE
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
-
+*/
+/*
 #ifdef BOOST_THREAD_RVALUE_REFERENCES_DONT_MATCH_FUNCTION_PTR
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R, typename... Ts>
@@ -405,7 +406,7 @@ BOOST_THREAD_FUTURE<
       boost::forward<F>(f)));
 }
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
-
+*/
 /* make_future */
 template <typename T>
 BOOST_THREAD_FUTURE<typename boost::decay<T>::type>
@@ -428,9 +429,9 @@ inline BOOST_THREAD_FUTURE<void> make_future() {
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 #endif // BOOST_THREAD_USES_MOVE
-
+/*
 namespace detail {
-/* make_ready_future */
+
 template <typename T>
 struct deduced_type_impl {
   typedef T type;
@@ -457,7 +458,7 @@ struct deduced_type {
     typename boost::decay<T>::type>::type type;
 };
 } // detail
-
+*/
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 template <int = 0, int..., typename T>
 #else
