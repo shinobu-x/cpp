@@ -219,7 +219,7 @@ struct shared_future_async_continuation_shared_state :
     R,
     C,
     boost::detail::future_async_shared_state_base<R> > {
-  typedef boost::detail::future_async_shared_state_base<R> > base_type;
+  typedef boost::detail::future_async_shared_state_base<R> base_type;
 
   shared_future_async_continuation_shared_state(
     F f,
@@ -383,7 +383,7 @@ BOOST_THREAD_FUTURE<R> make_future_deferred_continuation_shared_state(
           F,
           R,
           callback_type>(boost::move(f), boost::forward<C>(c)));
-  h->init();
+  h->init(lock);
 
   return BOOST_THREAD_FUTURE<R>(h);
 }
@@ -404,8 +404,8 @@ BOOST_THREAD_FUTURE<R> make_future_executor_continuation_shared_state(
         new boost::detail::future_executor_continuation_shared_state<
           F,
           R,
-          callback_type>(f, boost::forward<C>(c)));
-    h->(lock, ex);
+          callback_type>(boost::move(f), boost::forward<C>(c)));
+    h->init(lock, ex);
 
   return BOOST_THREAD_FUTURE<R>(h);
 }
@@ -420,7 +420,7 @@ BOOST_THREAD_FUTURE<R> make_shared_future_async_continuation_shared_state(
   boost::shared_ptr<
     boost::detail::shared_future_async_continuation_shared_state<
       F,
-      R
+      R,
       callback_type> > h(
         new boost::detail::shared_future_async_continuation_shared_state<
           F,
@@ -433,7 +433,7 @@ BOOST_THREAD_FUTURE<R> make_shared_future_async_continuation_shared_state(
 
 template <typename F, typename R, typename C>
 BOOST_THREAD_FUTURE<R> make_shared_future_sync_continuation_shared_state(
-  boost::unique_ptr<boost::mutex>& lock,
+  boost::shared_ptr<boost::mutex>& lock,
   F f,
   BOOST_THREAD_FWD_REF(C) c) {
   typedef typename boost::decay<C>::type callback_type;
