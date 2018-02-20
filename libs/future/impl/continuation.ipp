@@ -185,8 +185,34 @@ BOOST_THREAD_DCL_MOVABLE_BEG(F)
 boost::detail::run_it<F>
 BOOST_THREAD_DCL_MOVABLE_END
 
+namespace detail {
+
+template <typename F, typename R, typename C>
+struct future_executor_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, R, C> {
+  typedef boost::detail::continuation_shared_state<F, R, C> base_type;
+
+  future_executor_continuation_shared_state(
+    BOOST_THREAD_RV_REF(F) f,
+    BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+  ~future_executor_continuation_shared_state() {}
+
+  template <typename Ex>
+  void init(boost::unique_lock<boost::mutex>& lock, Ex ex) {
+    this->set_executor_policy(boost::executor_ptr_type(
+      new executor_ref<Ex>(ex)), lock);
+    this->base_type::init(lock);
+  }
+
+  void launch_continuation() {
+    boost::detail::run_it<base_type> f(static_shared_from_this(this));
+    this->get_executor()->submit(boost::move(f));
+  }
+};
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+} // detail
 } // boost
 
-#endif // BOOST_THREAD_PROVIDES_EXECUTORS
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 #endif // CONTINUATION_IPP
