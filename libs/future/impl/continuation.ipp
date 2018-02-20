@@ -463,7 +463,7 @@ inline BOOST_THREAD_FUTURE<
     F(BOOST_THREAD_FUTURE<R>)>::type future_type;
 
   BOOST_THREAD_ASSERT_PRECONDITION(
-    this->future_.get() != 0,
+    this->future_.get() != nullptr,
     boost::future_initialized());
 
   boost::shared_ptr<
@@ -577,7 +577,22 @@ inline BOOST_THREAD_FUTURE<
     )));
   }
 }
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+template <typename R>
+template <typename Ex, typename F>
+inline BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<R>)>::type> BOOST_THREAD_FUTURE<R>::then(
+  Ex& ex,
+  BOOST_THREAD_FWD_REF(F) f) {
+  typedef typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<R>)>::type future_type;
 
+  BOOST_THREAD_ASSERT_PRECONDITION(
+    this->future_.get() != nullptr,
+    boost::future_uninitialized());
+
+  boost::
 } // boost
 
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
