@@ -276,6 +276,7 @@ inline shared_future<void> make_shared_future() {
 }
 
 #if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+/*
 template <typename R>
 template <typename F>
 inline BOOST_THREAD_FUTURE<
@@ -376,7 +377,7 @@ inline BOOST_THREAD_FUTURE<
           lock, boost::move(*this), boost::forward<F>(f))));
   }
 }
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R>
 template <typename Ex, typename F>
