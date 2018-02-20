@@ -450,12 +450,13 @@ BOOST_THREAD_FUTURE<R> make_shared_future_sync_continuation_shared_state(
 
   return BOOST_THREAD_FUTURE<R>(h);
 }
+} // detail
 
 template <typename R>
 template <typename F>
 inline BOOST_THREAD_FUTURE<
   typename boost::result_of<
-    F(BOOST_THREAD_FUTURE<R>)>::type BOOST_THREAD_FUTURE<R>::then(
+    F(BOOST_THREAD_FUTURE<R>)>::type> BOOST_THREAD_FUTURE<R>::then(
       boost::launch policy,
       BOOST_THREAD_FWD_REF(F) f) {
   typedef typename boost::result_of<
@@ -577,7 +578,6 @@ inline BOOST_THREAD_FUTURE<
   }
 }
 
-} // detail
 } // boost
 
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
