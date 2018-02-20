@@ -211,6 +211,85 @@ struct future_executor_continuation_shared_state :
   }
 };
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+template <typename F, typename R, typename C>
+struct shared_future_async_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F,
+    R,
+    C,
+    boost::detail::future_async_shared_state_base<R> > {
+  typedef boost::detail::future_async_shared_state_base<R> > base_type;
+
+  shared_future_async_continuation_shared_state(
+    F f,
+    BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    boost::lock_guard<boost::mutex> lock(this->mutex_);
+    this->thr_ =
+      boost::thread(
+        &base_type::run,
+        static_shared_from_this(this));
+#else
+    boost::thread(
+      &base_type::run,
+      static_shared_from_this(this)).detach();
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+  }
+};
+
+template <typename F, typename R, typename C>
+struct shared_future_sync_continuation_shared_state :
+  boost::detail::continuation_shared_state<
+    F,
+    R,
+    C,
+    boost::detail::shared_state<R> > {
+  typedef boost::detail::continuation_shared_state<
+    F,
+    R,
+    C,
+    boost::detail::shared_state<R> > base_type;
+
+  shared_future_sync_continuation_shared_state(
+    F f,
+   BOOST_THREAD_FWD_REF(C) c) :
+   base_type(boost::move(f), boost::forward<C>(c)) {}
+
+  void launch_continuation() {
+    this->call();
+  }
+};
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+template <typename F, typename R, typename C>
+struct shared_future_executor_continuation_shared_state :
+  boost::detail::continuation_shared_state<F, R, C> {
+  typedef boost::detail::continuation_shared_state<F, R, C> base_type;
+
+  shared_future_executor_continuation_shared_state(
+    F f,
+    BOOST_THREAD_FWD_REF(C) c) :
+    base_type(boost::move(f), boost::forward<C>(c)) {}
+  ~shared_future_executor_continuation_shared_state() {}
+
+  template <typename Ex>
+  void init(boost::unique_lock<boost::mutex>& lock, Ex& ex) {
+    this->set_executor_policy(
+      boost::executor_ptr_type(
+        new executor_ref<Ex>(ex)), lock);
+  }
+
+  void launch_continuation() {
+    boost::detail::run_it<base_type> f(static_shared_from_this(this));
+    this->get_executor()->submit(boost::move(f));
+  }
+};
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
 } // detail
 } // boost
 
