@@ -387,6 +387,69 @@ BOOST_THREAD_FUTURE<R> make_future_deferred_continuation_shared_state(
 
   return BOOST_THREAD_FUTURE<R>(h);
 }
+
+#ifdef BOOST_THREAD_PROVIDES_EXECUTORS
+template <typename Ex, typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R> make_future_executor_continuation_shared_state(
+  Ex& ex,
+  boost::unique_lock<boost::mutex>& lock,
+  BOOST_THREAD_RV_REF(F) f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::future_executor_continuation_shared_state<
+      F,
+      R,
+      callback_type> > h(
+        new boost::detail::future_executor_continuation_shared_state<
+          F,
+          R,
+          callback_type>(f, boost::forward<C>(c)));
+    h->(lock, ex);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
+#endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
+template <typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R> make_shared_future_async_continuation_shared_state(
+  boost::unique_lock<boost::mutex>& lock,
+  F f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::shared_future_async_continuation_shared_state<
+      F,
+      R
+      callback_type> > h(
+        new boost::detail::shared_future_async_continuation_shared_state<
+          F,
+          R,
+          callback_type>(f, boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
+
+template <typename F, typename R, typename C>
+BOOST_THREAD_FUTURE<R> make_shared_future_sync_continuation_shared_state(
+  boost::unique_ptr<boost::mutex>& lock,
+  F f,
+  BOOST_THREAD_FWD_REF(C) c) {
+  typedef typename boost::decay<C>::type callback_type;
+  boost::shared_ptr<
+    boost::detail::shared_future_sync_continuation_shared_state<
+      F,
+      R,
+      callback_type> > h(
+        new boost::detail::shared_future_sync_continuation_shared_state<
+          F,
+          R,
+          callback_type>>(f, boost::forward<C>(c)));
+  h->init(lock);
+
+  return BOOST_THREAD_FUTURE<R>(h);
+}
 } // detail
 } // boost
 
