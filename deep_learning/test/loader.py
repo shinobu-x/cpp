@@ -1,19 +1,30 @@
+import os
 import cPickle
 import gzip
 import numpy as np
+from urllib import urlretrieve
+from urlparse import urljoin
+
+def download():
+    base_url = 'http://deeplearning.net/data/mnist/'
+    base_dir = '/tmp'
+    fname = 'mnist.pkl.gz'
+    target_fname = os.path.join(base_dir, fname)
+    url = urljoin(base_url, fname)
+    urlretrieve(url, target_fname)
 
 def load():
     path = '/tmp/mnist.pkl.gz'
     f = gzip.open(path, 'rb')
     training, validation, testing = cPickle.load(f)
     f.close()
-    return (training, validatation, testing)
+    return (training, validation, testing)
 
 def loader():
     training, validation, testing = load()
     training_inputs = [np.reshape(x, (784, 1))
         for x in training[0]]
-    training_results = [vectorized_result(y)
+    training_results = [vectorization(y)
         for y in training[1]]
     training_data = zip(training_inputs, training_results)
     validation_inputs = [np.reshape(x, (784, 1))
