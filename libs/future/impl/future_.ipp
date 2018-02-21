@@ -378,6 +378,7 @@ inline BOOST_THREAD_FUTURE<
   }
 }
 */
+/*
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R>
 template <typename Ex, typename F>
@@ -561,7 +562,7 @@ inline BOOST_THREAD_FUTURE<
 
   }
 }
-
+*/
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R>
 template <typename Ex, typename F>
