@@ -27,7 +27,7 @@ class Network(object):
               self.update_mini_batch(mini_batch, eta)
           if test:
               print "Epoch {0}: {1} / {2}".format(
-                  j, self.evaluate(test), n)
+                  j, self.evaluation(test), n)
           else:
               print "Epoch {0} complete".format(j)
 
