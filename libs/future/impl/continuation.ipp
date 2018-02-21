@@ -577,6 +577,7 @@ inline BOOST_THREAD_FUTURE<
     )));
   }
 }
+
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R>
 template <typename Ex, typename F>
@@ -600,14 +601,16 @@ inline BOOST_THREAD_FUTURE<
     (
       boost::detail::make_future_executor_continuation_shared_state<
         Ex,
-        BOOST_THRREAD_FUTURE<R>,
+        BOOST_THREAD_FUTURE<R>,
         future_type>(
           ex,
           lock,
           boost::move(*this),
           boost::forward<F>(f)
   )));
+}
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
+
 template <typename R>
 template <typename F>
 inline BOOST_THREAD_FUTURE<
@@ -667,7 +670,7 @@ inline BOOST_THREAD_FUTURE<
     F(BOOST_THREAD_FUTURE<R2>)>::type future_type;
 
   BOOST_THREAD_ASSERT_PRECONDITION(
-    this->future_.get() != 0,
+    this->future_.get() != nullptr,
     boost::future_uninitialized());
 
   boost::shared_ptr<
@@ -716,7 +719,7 @@ inline BOOST_THREAD_FUTURE<
 
     return BOOST_THREAD_MAKE_RV_REF(
       (
-        boost::detaill::make_future_executor_continuation_shared_state<
+        boost::detail::make_future_executor_continuation_shared_state<
           Ex,
           BOOST_THREAD_FUTURE<R2>,
           future_type>(
