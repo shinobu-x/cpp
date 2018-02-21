@@ -654,6 +654,16 @@ inline BOOST_THREAD_FUTURE<
 #endif // BOOST_THREAD_CONTINUATION_SYNC
 }
 
+template <typename R>
+template <typename F>
+inline BOOST_THREAD_FUTURE<
+  typename boost::result_of<
+    F(BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >)>::type>
+  BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >::then(
+  boost::launch policy,
+  BOOST_THREAD_FWD_REF(F) f) {
+  typedef BOOST_THREAD_FUTURE<R> R
+
 } // boost
 
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
