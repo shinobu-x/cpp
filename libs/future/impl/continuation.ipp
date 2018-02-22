@@ -1107,6 +1107,51 @@ inline BOOST_THREAD_FUTURE<
   }
 #endif // BOOST_THREAD_CONTINUATION_SYNC
 }
+
+namespace detail {
+
+template <typename T>
+struct mfallback_to {
+  T v_;
+  typedef T result_type;
+  mfallback_to(BOOST_THREAD_RV_REF(T) v) : v_(boost::move(v)) {}
+
+  T operator()(BOOST_THREAD_FUTURE<T> f) {
+    return f.get_or(boost::move(v_));
+  }
+};
+
+template <typename T>
+struct cfallback_to {
+  T v_;
+  typedef T result_type;
+  cfallback_to(T const& v) : v_(v) {}
+
+  T operator()(BOOST_THREAD_FUTURE<T> f) const {
+    return f.get_or(v_);
+  }
+};
+
+} // detail
+
+template <typename R1>
+template <typename R2>
+inline typename boost::disable_if<
+  boost::is_void<R2>,
+  BOOST_THREAD_FUTURE<R1> >::type
+  BOOST_THREAD_FUTURE<R1>::fallback_to(BOOST_THREAD_RV_REF(R2) v) {
+  return then(boost::detail::mfallback_to<R1>(boost::move(v)));
+}
+
+template <typename R1>
+template <typename R2>
+inline typename boost::disable_if<
+  boost::is_void<R2>,
+  BOOST_THREAD_FUTURE<R1> >::type
+  BOOST_THREAD_FUTURE<R1>::fallback_to(R2 const& v) {
+  return then(boost::detail::cfallback_to<R1>(v));
+}
+
 } // boost
 
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
