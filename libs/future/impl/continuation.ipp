@@ -70,10 +70,14 @@ struct continuation_shared_state<F, void, C, S> : S {
     c_(boost::move(c)) {}
   ~continuation_shared_state() {}
 
+  void init(boost::unique_lock<boost::mutex>& lock) {
+    f_.future_->set_continuation_ptr(this->shared_from_this(), lock);
+  }
+
   void call() {
     try {
       this->c_(boost::move(this->f_));
-      this->mark_finish_with_result();
+      this->mark_finished_with_result();
     } catch (...) {
       this->mark_exceptional_finish();
     }
