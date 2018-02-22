@@ -1,5 +1,5 @@
 #include <primitiv/primitiv.h>
-#include "test_utils.hpp"
+#include "../utils/utils.hpp"
 
 #include <cassert>
 #include <iostream>
