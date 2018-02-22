@@ -142,6 +142,15 @@ void doit() {
       f.get();
     } catch (...) {}
   }
+  {
+    boost::future<int> f1 =
+      boost::async([]() { return 1; });
+    boost::future<int> f2 =
+      f1.
+      then([](boost::future<int> f) { return f.get(); }).
+      then([](boost::future<int> f) { return f.get(); }).
+      then([](boost::future<int> f) { return f.get(); });
+  }
 }
 
 auto main() -> decltype(0) {
