@@ -646,6 +646,7 @@ inline BOOST_THREAD_FUTURE<
 #endif // BOOST_THREAD_CONTINUATION_SYNC
 }
 */
+/*
 template <typename R>
 template <typename F>
 inline BOOST_THREAD_FUTURE<
@@ -757,7 +758,8 @@ inline BOOST_THREAD_FUTURE<
           lock, *this, boost::forward<F>(f))));
   }
 }
-
+*/
+/*
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
 template <typename R>
 template <typename Ex, typename F>
@@ -780,7 +782,7 @@ inline BOOST_THREAD_FUTURE<
         ex, lock, *this, boost::forward<F>(f))));
 }
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
-
+*/
 template <typename R>
 template <typename F>
 inline BOOST_THREAD_FUTURE<
