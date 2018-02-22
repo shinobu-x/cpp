@@ -7,6 +7,30 @@ import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
+"""
+#1 Convolutional Layer1: Applies 32 5x5 filters (extracting 5x5-pixel subegions
+), with ReLU activation function
+#2 Pooling Layer1: Performs max pooling with a 2x2 filter and stride of 2 (whi-
+ch specifies that pooled regions do not overlap)
+#3 Convolutional Layer2: Applies 64 5x5 filters, with ReLU activation function
+#4 Pooling Layer2: Performs max pooling with a 2x2 filter and stride of 2
+#5 Dense Layer1: 1024 neurons, with dropout regularization rate of 0.4 (probab-
+ility of 0.4 that any given element will be dropped during training)
+#6 Dense Layer2 (Logits Layer): 10 neurons, one for each digit target class (0-
+9)
+"""
+"""
+Methods in the tf.layers module:
+#1 conv2d():
+ Conctructs a two-dimensional convolutional layer, take number of filters, fil-
+ ter kernel size, padding, and activation function as arguments
+#2 max_pooling2d():
+ Constructs a two-dimensional pooling layer using the max-pooling algorithm, t-
+ ake pooling filter size and stride as arguments
+#3 dense():
+ Constructs a dense layer, take number of neurons and activation function as a-
+ rguments
+"""
 def cnn_model_fn(features, labels, mode):
     # Reshapes x to 4D tensor
     input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
