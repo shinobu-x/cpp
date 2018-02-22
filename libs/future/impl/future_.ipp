@@ -275,55 +275,6 @@ inline shared_future<void> make_shared_future() {
   return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
 }
 
-#if defined BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
-
-namespace detail {
-
-/* move */
-template <typename T>
-struct mfallbacker_to {
-  T value_;
-  typedef T result_type;
-  mfallbacker_to(BOOST_THREAD_RV_REF(T) value) : value_(boost::move(value)) {}
-
-  T operator()(BOOST_THREAD_FUTURE<T> f) {
-    return f.get_or(boost::move(value_));
-  }
-};
-
-/* const */
-template <typename T>
-struct cfallbacker_to {
-  T value_;
-  typedef T result_type;
-  cfallbacker_to(T const& value) : value_(value) {}
-
-  T operator()(BOOST_THREAD_FUTURE<T> f) const {
-    return f.get_or(value_);
-  }
-};
-} // detail
-
-template <typename R>
-template <typename R2>
-inline typename boost::disable_if<
-  boost::is_void<R2>,
-  BOOST_THREAD_FUTURE<R> >::type
-    BOOST_THREAD_FUTURE<R>::fallback_to(BOOST_THREAD_RV_REF(R2) v) {
-  return then(boost::detail::mfallbacker_to<R>(boost::move(v)));
-}
-
-template <typename R>
-template <typename R2>
-inline typename boost::disable_if<
-  boost::is_void<R2>,
-  BOOST_THREAD_FUTURE<R> >::type
-    BOOST_THREAD_FUTURE<R>::fallback_to(R2 const& v) {
-  return then(boost::detail::cfallbacker_to<R>(v));    
-}
-
-#endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
-
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 namespace detail {
 
