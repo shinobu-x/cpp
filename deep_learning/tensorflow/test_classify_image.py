@@ -42,16 +42,21 @@ class NodeLookup(object):
         self,
         label_lookup_path,
         uid_lookup_path):
+        if not tf.gfile.Exists(uid_lookup_path):
+            tf.logging.fatal(
+                'File does not exist %',
+                uid_lookup_path)
+
         if not tf.gfile.Exists(label_lookup_path):
             tf.logging.fatal(
                 'File does not exist %s',
                 label_lookup_path)
-
+        """
         if not tf.gfile.Exists(uid_lookup_path):
             tf.logging.fatal(
                 'File does not exist %s',
                 uid_lookup_path)
-
+        """
         proto_as_ascii_lines = tf.gfile.GFile(uid_lookup_path).readlines()
         uid_to_human = {}
         p = re.compile(r'[n\d]*[ \S,]*')
@@ -70,9 +75,9 @@ class NodeLookup(object):
                 target_class = int(line.split(': ')[1])
             if line.startswith('  target_class_string:'):
                 target_class_string = line.split(': ')[1]
-                mode_id_to_uid[target_class] = target_class_string[1: -2]
+                node_id_to_uid[target_class] = target_class_string[1: -2]
 
-        node_id_to_name = []
+        node_id_to_name = {} 
 
         for key, val in node_id_to_uid.items():
             if val not in uid_to_human:
@@ -84,7 +89,7 @@ class NodeLookup(object):
         return node_id_to_name
 
     def id_to_string(self, node_id):
-        if node_id not in self.node_lookup
+        if node_id not in self.node_lookup:
             return ''
         return self.node_lookup[node_id]
 
@@ -98,7 +103,7 @@ def create_graph():
         graph_def.ParseFromString(f.read())
         _ = tf.import_graph_def(graph_def, name = '')
 
-def run_inference_no_image(image):
+def run_inference_on_image(image):
     if not tf.gfile.Exists(image):
         tf.logging.fatal(
             'File does not exist %s', image)
@@ -111,7 +116,7 @@ def run_inference_no_image(image):
         predictions = sess.run(
             softmax_tensor,
             {'DecodeJpeg/contents:0' : image_data})
-
+        predictions = np.squeeze(predictions)
         node_lookup = NodeLookup()
 
         top_k = predictions.argsort()[-FLAGS.num_top_predictions:][::-1]
@@ -121,7 +126,7 @@ def run_inference_no_image(image):
             print('%s (score = %.5f)' % (human_string, score))
 
 def maybe_download_and_extract():
-    dest_directory = FLAG.model_dir
+    dest_directory = FLAGS.model_dir
 
     if not os.path.exists(dest_directory):
         os.makedirs(dest_directory)
@@ -145,18 +150,23 @@ def maybe_download_and_extract():
 
 def main(_):
     maybe_download_and_extract()
+    """
     image = (
         FLAGS.image_file if FLAGS.image_file else os.path.join(FLAGS.model_dir,
         'cropped_panda.jpg'))
+    """
+    image = (
+        FLAGS.image_file if FLAGS.image_file else os.path.join(FLAGS.model_dir,
+        'test.jpg'))
     run_inference_on_image(image)
 
-if __name__ == '__main__'
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         '--model_dir',
         type = str,
-        default = '/tmp'
+        default = '/tmp',
         help = """\
         Path to classify_image_graph_def.pb,
         imagenet_synset_to_human_label_map.txt, and
@@ -172,10 +182,10 @@ if __name__ == '__main__'
     )
 
     parser.add_argument(
-        '--num_top_prediction',
+        '--num_top_predictions',
         type = int,
         default = 5,
         help = 'Display this many predictions.'
     )
     FLAGS, unparsed = parser.parse_known_args()
-    tf.app.run(main = main, arg = [sys.argv[0]] + unparsed)
+    tf.app.run(main = main, argv = [sys.argv[0]] + unparsed)
