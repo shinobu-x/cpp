@@ -24,6 +24,7 @@ NUM_LABELS = 10
 VALIDATION_SIZE = 5000
 # Set to None for random seed
 SEED = 66478
+BATCH_SIZE = 64
 NUM_EPOCHS = 10
 EVAL_BATCH_SIZE = 64
 # Number of steps between evaluation
@@ -68,7 +69,7 @@ def extract_data(filename, num_images):
         data = np.frombuffer(
             buf,
             dtype = np.uint8).astype(np.float32)
-        data = (data - (PIXEL_OPEN / 2.0)) / PIXEL_DEPTH
+        data = (data - (PIXEL_DEPTH / 2.0)) / PIXEL_DEPTH
         data = data.reshape(
             num_images,
             IMAGE_SIZE,
@@ -131,7 +132,7 @@ def main(_):
       test_labels = extract_labels(test_labels_filename, 10000)
 
       validation_data = train_data[:VALIDATION_SIZE, ...]
-      validation_lables = train_lables[:VALIDATION_SIZE]
+      validation_labels = train_labels[:VALIDATION_SIZE]
       train_data = train_data[VALIDATION_SIZE:, ...]
       train_labels = train_labels[VALIDATION_SIZE:]
       num_epochs = NUM_EPOCHS
@@ -156,11 +157,25 @@ def main(_):
             IMAGE_SIZE,
             NUM_CHANNELS))
 
-    conv1_weights = tv.Variable(
+    conv1_weights = tf.Variable(
         tf.truncated_normal(
             [5, 5, NUM_CHANNELS, 32],
             stddev = 0.1,
             seed = SEED,
+            dtype = data_type()))
+    conv1_biases = tf.Variable(
+        tf.zeros([32],
+        dtype = data_type()))
+    conv2_weights = tf.Variable(
+        tf.truncated_normal(
+            [5, 5, 32, 64],
+            stddev = 0.1,
+            seed = SEED,
+            dtype = data_type()))
+    conv2_biases = tf.Variable(
+        tf.constant(
+            0.1,
+            shape = [64],
             dtype = data_type()))
     fc1_weights = tf.Variable(
         tf.truncated_normal(
@@ -183,14 +198,14 @@ def main(_):
         tf.constant(
             0.1,
             shape = [NUM_LABELS],
-            dtype = datatype()))
+            dtype = data_type()))
 
     def model(data, train = False):
         conv = tf.nn.conv2d(
             data,
             conv1_weights,
             strides = [1, 1, 1, 1],
-            padding = 'same')
+            padding = 'SAME')
 
         relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
 
@@ -198,7 +213,21 @@ def main(_):
             relu,
             ksize = [1, 2, 2, 1],
             strides = [1, 2, 2, 1],
-            padding = 'same')
+            padding = 'SAME')
+
+        conv = tf.nn.conv2d(
+            pool,
+            conv2_weights,
+            strides = [1, 1, 1, 1],
+            padding = 'SAME')
+
+        relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases))
+
+        pool = tf.nn.max_pool(
+            relu,
+            ksize = [1, 2, 2, 1],
+            strides = [1, 2, 2, 1],
+            padding = 'SAME')
 
         pool_shape = pool.get_shape().as_list()
         reshape = tf.reshape(
@@ -207,7 +236,7 @@ def main(_):
                 pool_shape[1] * pool_shape[2] * pool_shape[3]])
 
         hidden = tf.nn.relu(
-            tf.matmul(reshape, fc1_weights) * fc1_biases)
+            tf.matmul(reshape, fc1_weights) + fc1_biases)
 
         if train:
             hidden = tf.nn.dropout(hidden, 0.5, seed = SEED)
@@ -264,12 +293,12 @@ def main(_):
                     eval_prediction,
                     feed_dict = {
                         eval_data: data[begin:end, ...]})
-            else
+            else:
                 batch_predictions = sess.run(
                     eval_prediction,
                     feed_dict = {
                         eval_data: data[-EVAL_BATCH_SIZE:, ...]})
-                predictions[begin:, :] = batchpredictions[begin - size:, :]
+                predictions[begin:, :] = batch_predictions[begin - size:, :]
 
         return predictions
 
@@ -277,24 +306,65 @@ def main(_):
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
+        print('Initialized:')
 
         for step in xrange(int(num_epochs * train_size) // BATCH_SIZE):
             offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
             batch_data = train_data[offset:(offset + BATCH_SIZE), ...]
             batch_labels = train_labels[offset:(offset + BATCH_SIZE)]
 
-        feed_dict = {
-            train_data_node: batch_data,
-            train_labels_node: batch_labels}
-        sess.run(optimizer, feed_dict = feed_dict)
+            feed_dict = {
+                train_data_node: batch_data,
+                train_labels_node: batch_labels}
+            sess.run(optimizer, feed_dict = feed_dict)
 
-        if step % EVAL_FREQUENCY == 0:
-          l, lr, predictions = sess.run(
-              [loss, learning_rate, train_prediction],
-              feed_dict = feed_dict)
-        elapsed_time = time.time() - start_time
-        start_time = time.time()
+            if step % EVAL_FREQUENCY == 0:
+              l, lr, predictions = sess.run(
+                  [loss, learning_rate, train_prediction],
+                  feed_dict = feed_dict)
+              elapsed_time = time.time() - start_time
+              start_time = time.time()
 
-        print('Step %d (epoch %.2f), %.1f ms' %
-            (step, float(step) * BATCH_SIZE / train_size,
-            1000 * elapsed_time / EVAL_FREQUENCY))
+              print('Step %d (epoch %.2f), %.1f ms' %
+                  (step, float(step) * BATCH_SIZE / train_size,
+                  1000 * elapsed_time / EVAL_FREQUENCY))
+              print('Minibatch Loss: %.3f, Learning Rate: %.6f' % (l, lr))
+              print('Minibatch Error: %.1f%%' % error_rate(
+                  predictions, batch_labels))
+              print('Validation Error: %.1f%%' % error_rate(
+                  eval_in_batches(
+                      validation_data,
+                          sess),
+                      validation_labels))
+              sys.stdout.flush()
+
+        test_error = error_rate(
+            eval_in_batches(
+                test_data,
+                sess),
+            test_labels)
+        print('Test Error: %.1f%%' % test_error)
+
+        if FLAGS.self_test:
+            print('test_error', test_error)
+            assert test_error == 0.0, 'Expected 0.0 test_error, got %.2f' % (
+                test_error,)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--use_fp16',
+        default = False,
+        help = 'Use half floats instead of full floats if True.',
+        action = 'store_true')
+
+    parser.add_argument(
+        '--self_test',
+        default = False,
+        action = 'store_true',
+        help = 'True if running a self test.')
+
+    FLAGS, unparsed = parser.parse_known_args()
+    tf.app.run(
+        main = main,
+        argv = [sys.argv[0]] + unparsed)
