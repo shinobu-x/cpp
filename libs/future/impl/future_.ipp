@@ -22,6 +22,7 @@
 #include <hpp/shared_state_nullary_task.hpp>
 #include <hpp/async.hpp>
 #include <hpp/continuation.hpp>
+#include <hpp/future_unwrap_shared_state.hpp>
 
 namespace boost {
 
@@ -274,7 +275,7 @@ inline shared_future<void> make_shared_future() {
   boost::promise<void> p;
   return BOOST_THREAD_MAKE_RV_REF(p.get_future().share());
 }
-
+/*
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 namespace detail {
 
@@ -384,6 +385,7 @@ BOOST_THREAD_FUTURE<R>
       R> >, R>(lock, boost::move(*this));
 }
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
+*/
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 namespace detail {
 
