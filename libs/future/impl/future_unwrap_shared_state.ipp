@@ -1,0 +1,6 @@
+#ifndef FUTURE_UNWRAP_SHARED_STATE_IPP
+#define FUTURE_UNWRAP_SHARED_STATE_IPP
+
+#include <include/futures.hpp>
+
+#endif // FUTURE_UNWRAP_SHARED_STATE_IPP
