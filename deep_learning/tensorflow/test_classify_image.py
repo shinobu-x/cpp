@@ -20,6 +20,7 @@ DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-
 # pylint: enable = line-too-long
 
 class NodeLookup(object):
+    # Converts integer node ID's to human readable labels
     def __init__(
         self,
         label_lookup_path = None,
@@ -38,25 +39,28 @@ class NodeLookup(object):
             label_lookup_path,
             uid_lookup_path)
 
+    # Loads a human readable English name for each softmax node
+    # Args:
+    # @label_lookup_path:
+    #  String UID to integer node ID
+    # @uid_lookup_path:
+    #  String UID to human readable string
+    # Return:
+    #  Dict from integer node ID to human readable string
     def load(
         self,
         label_lookup_path,
         uid_lookup_path):
-        if not tf.gfile.Exists(uid_lookup_path):
-            tf.logging.fatal(
-                'File does not exist %',
-                uid_lookup_path)
-
         if not tf.gfile.Exists(label_lookup_path):
             tf.logging.fatal(
                 'File does not exist %s',
                 label_lookup_path)
-        """
+
         if not tf.gfile.Exists(uid_lookup_path):
             tf.logging.fatal(
                 'File does not exist %s',
                 uid_lookup_path)
-        """
+
         proto_as_ascii_lines = tf.gfile.GFile(uid_lookup_path).readlines()
         uid_to_human = {}
         p = re.compile(r'[n\d]*[ \S,]*')
@@ -93,7 +97,9 @@ class NodeLookup(object):
             return ''
         return self.node_lookup[node_id]
 
+# Creates a graph from saved GraphDef file and returns a saver
 def create_graph():
+    # Creates graph from saved graph_def.pb
     with tf.gfile.FastGFile(
         os.path.join(
             FLAGS.model_dir,
@@ -103,23 +109,38 @@ def create_graph():
         graph_def.ParseFromString(f.read())
         _ = tf.import_graph_def(graph_def, name = '')
 
+# Runs inference on an image
+# Args:
+# @image
+#  Image file name
 def run_inference_on_image(image):
     if not tf.gfile.Exists(image):
         tf.logging.fatal(
             'File does not exist %s', image)
     image_data = tf.gfile.FastGFile(image, 'rb').read()
 
+    # Creates graph from saved GraphDef
     create_graph()
 
     with tf.Session() as sess:
+        # 'softmax:0':
+        #  A tensor containing the normalized prediction across 1000 labels
+        # 'pool_3:0':
+        #  A tensor containing the next-to-last layer containing 2048 float de-
+        #  scription of the image
+        # 'DecodeJpeg/contents:0':
+        #  A tensor containing a string providing JPEG encoding of the image
+        # Runs the softmax tensor by feeding the image_data as input to the gr-
+        # aph
         softmax_tensor = sess.graph.get_tensor_by_name('softmax:0')
         predictions = sess.run(
             softmax_tensor,
             {'DecodeJpeg/contents:0' : image_data})
         predictions = np.squeeze(predictions)
+        # Creates node ID -> English string lookups
         node_lookup = NodeLookup()
-
         top_k = predictions.argsort()[-FLAGS.num_top_predictions:][::-1]
+
         for node_id in top_k:
             human_string = node_lookup.id_to_string(node_id)
             score = predictions[node_id]
@@ -161,6 +182,12 @@ def main(_):
     run_inference_on_image(image)
 
 if __name__ == '__main__':
+    # classify_image_graph_def.pb:
+    #  Binary representation of the GraphDef protocol buffer
+    # imagenet_synset_to_human_label_map.txt:
+    #  Map from sysnet ID to a human readable string
+    # imagenet_2012_hallenge_label_map_proto.pbtxt:
+    #  Text representation of a protocol buffer mapping a label to sysnet ID
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
