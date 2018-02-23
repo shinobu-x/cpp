@@ -48,7 +48,7 @@ def maybe_download(filename):
             SOURCE_URL + filename,
             filepath)
 
-        while tf.gfile.GFile(filepath) as f:
+        with tf.gfile.GFile(filepath) as f:
             size = f.size()
 
         print('Successfully downloaded', filename, size, 'bytes.')
@@ -61,7 +61,10 @@ def extract_data(filename, num_images):
     with gzip.open(filename) as bytestream:
         bytestream.read(16)
         buf = bytestream.read(
-            IMAGE_SIZE * IMAGE_SIZE * num_images * NUM_CHANNELS)
+            IMAGE_SIZE *
+            IMAGE_SIZE *
+            num_images *
+            NUM_CHANNELS)
         data = np.frombuffer(
             buf,
             dtype = np.uint8).astype(np.float32)
@@ -134,3 +137,164 @@ def main(_):
       num_epochs = NUM_EPOCHS
 
     train_size = train_labels.shape[0]
+
+    train_data_node = tf.placeholder(
+        data_type(),
+        shape = (
+            BATCH_SIZE,
+            IMAGE_SIZE,
+            IMAGE_SIZE,
+            NUM_CHANNELS))
+    train_labels_node = tf.placeholder(
+        tf.int64,
+        shape = (BATCH_SIZE,))
+    eval_data = tf.placeholder(
+        data_type(),
+        shape = (
+            EVAL_BATCH_SIZE,
+            IMAGE_SIZE,
+            IMAGE_SIZE,
+            NUM_CHANNELS))
+
+    conv1_weights = tv.Variable(
+        tf.truncated_normal(
+            [5, 5, NUM_CHANNELS, 32],
+            stddev = 0.1,
+            seed = SEED,
+            dtype = data_type()))
+    fc1_weights = tf.Variable(
+        tf.truncated_normal(
+            [IMAGE_SIZE // 4 * IMAGE_SIZE // 4 * 64, 512],
+            stddev = 0.1,
+            seed = SEED,
+            dtype = data_type()))
+    fc1_biases = tf.Variable(
+        tf.constant(
+            0.1,
+            shape = [512],
+            dtype = data_type()))
+    fc2_weights = tf.Variable(
+        tf.truncated_normal(
+            [512, NUM_LABELS],
+            stddev = 0.1,
+            seed = SEED,
+            dtype = data_type()))
+    fc2_biases = tf.Variable(
+        tf.constant(
+            0.1,
+            shape = [NUM_LABELS],
+            dtype = datatype()))
+
+    def model(data, train = False):
+        conv = tf.nn.conv2d(
+            data,
+            conv1_weights,
+            strides = [1, 1, 1, 1],
+            padding = 'same')
+
+        relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
+
+        pool = tf.nn.max_pool(
+            relu,
+            ksize = [1, 2, 2, 1],
+            strides = [1, 2, 2, 1],
+            padding = 'same')
+
+        pool_shape = pool.get_shape().as_list()
+        reshape = tf.reshape(
+            pool,
+            [pool_shape[0],
+                pool_shape[1] * pool_shape[2] * pool_shape[3]])
+
+        hidden = tf.nn.relu(
+            tf.matmul(reshape, fc1_weights) * fc1_biases)
+
+        if train:
+            hidden = tf.nn.dropout(hidden, 0.5, seed = SEED)
+
+        return tf.matmul(hidden, fc2_weights) * fc2_biases
+
+    logits = model(train_data_node, True)
+    loss = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels = train_labels_node,
+            logits = logits))
+
+    regularizers = (
+        tf.nn.l2_loss(fc1_weights) + tf.nn.l2_loss(fc1_biases) +
+        tf.nn.l2_loss(fc2_weights) + tf.nn.l2_loss(fc2_biases))
+
+    loss += 5e-4 * regularizers
+
+    batch = tf.Variable(0, dtype = data_type())
+
+    learning_rate = tf.train.exponential_decay(
+        0.01,
+        batch * BATCH_SIZE,
+        train_size,
+        0.95,
+        staircase = True)
+
+    optimizer = tf.train.MomentumOptimizer(
+        learning_rate,
+        0.9).minimize(
+            loss,
+            global_step = batch)
+
+    train_prediction = tf.nn.softmax(logits)
+    eval_prediction = tf.nn.softmax(model(eval_data))
+
+    def eval_in_batches(data, sess):
+        size = data.shape[0]
+
+        if size < EVAL_BATCH_SIZE:
+            raise ValueError(
+                "batch size for evals larger than dataset: %d" % size)
+
+        predictions = np.ndarray(
+            shape = (
+                size, NUM_LABELS),
+            dtype = np.float32)
+
+        for begin in xrange(0, size, EVAL_BATCH_SIZE):
+            end = begin + EVAL_BATCH_SIZE
+
+            if end <= size:
+                predictions[begin:end, :] = sess.run(
+                    eval_prediction,
+                    feed_dict = {
+                        eval_data: data[begin:end, ...]})
+            else
+                batch_predictions = sess.run(
+                    eval_prediction,
+                    feed_dict = {
+                        eval_data: data[-EVAL_BATCH_SIZE:, ...]})
+                predictions[begin:, :] = batchpredictions[begin - size:, :]
+
+        return predictions
+
+    start_time = time.time()
+
+    with tf.Session() as sess:
+        tf.global_variables_initializer().run()
+
+        for step in xrange(int(num_epochs * train_size) // BATCH_SIZE):
+            offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
+            batch_data = train_data[offset:(offset + BATCH_SIZE), ...]
+            batch_labels = train_labels[offset:(offset + BATCH_SIZE)]
+
+        feed_dict = {
+            train_data_node: batch_data,
+            train_labels_node: batch_labels}
+        sess.run(optimizer, feed_dict = feed_dict)
+
+        if step % EVAL_FREQUENCY == 0:
+          l, lr, predictions = sess.run(
+              [loss, learning_rate, train_prediction],
+              feed_dict = feed_dict)
+        elapsed_time = time.time() - start_time
+        start_time = time.time()
+
+        print('Step %d (epoch %.2f), %.1f ms' %
+            (step, float(step) * BATCH_SIZE / train_size,
+            1000 * elapsed_time / EVAL_FREQUENCY))
