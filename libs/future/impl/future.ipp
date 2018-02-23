@@ -182,11 +182,11 @@ public:
         boost::move(
           static_cast<base_type&>(BOOST_THREAD_RV(that)))) {}
 
-#ifdef BOOST_PROVIDES_FUTURE_UNWRAP
+#ifdef BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
   inline explicit BOOST_THREAD_FUTURE(
     BOOST_THREAD_RV_REF(
-      BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that);
-#endif // BOOST_PROVIDES_FUTURE_UNWRAP
+      BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<T> >) that);
+#endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 
   explicit BOOST_THREAD_FUTURE(
     BOOST_THREAD_RV_REF(shared_future<T>) that) :
