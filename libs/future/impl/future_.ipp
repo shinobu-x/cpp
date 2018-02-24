@@ -23,7 +23,7 @@
 #include <hpp/async.hpp>
 #include <hpp/continuation.hpp>
 #include <hpp/future_unwrap_shared_state.hpp>
-
+#include <hpp/future_when_all_when_any.hpp>
 namespace boost {
 
 #ifdef BOOST_NO_CXX11_VARIADIC_TEMPLATE
@@ -388,7 +388,7 @@ BOOST_THREAD_FUTURE<R>
 */
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 namespace detail {
-
+/*
 struct input_iterator_tag {};
 struct vector_tag {};
 struct values_tag {};
@@ -547,7 +547,7 @@ struct future_when_any_vector_shared_state :
 
   ~future_when_any_vector_shared_state() {}
 };
-
+*/
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 struct wait_for_all_fctr {
   template <typename... T>
