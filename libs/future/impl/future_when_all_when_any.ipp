@@ -187,6 +187,36 @@ struct future_when_any_vector_shared_state :
   ~future_when_any_vector_shared_state() {}
 };
 
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
+struct wait_for_all_wrapper {
+  template <typename... T>
+  void operator()(T&& ...v) {
+    boost::wait_for_all(boost::forward<T>(v)...);
+  }
+};
+
+struct wait_for_all_wrapper {
+  template <typename... T>
+  void operator()(T&& ...v) {
+    boost::wait_for_any(boost::forward<T>(v)...);
+  }
+};
+
+template <typename T, std::size_t s = boost::csbl::tuple_size<T>::value>
+struct accumulate_run_if_is_deferred {
+  bool operator()(T& t) {
+    return (!boost::csbl::get<s - 1>(t).run_if_is_deferred()) ||
+      accumulate_run_if_is_deferred<T, s - 1>()(t);
+  }
+};
+
+template <typename T>
+struct accumulate_run_if_is_deferred<T, 0> {
+  bool operator()(T&) {
+    return false;
+  }
+};
+
 } // detail
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // boost
