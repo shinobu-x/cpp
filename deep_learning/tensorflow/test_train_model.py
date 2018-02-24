@@ -10,7 +10,7 @@ import tensorflow as tf
 
 def get_num_classes():
   classes = []
-  with tf.gfile.GFile(FLAGS.classes_file, "r") as f;
+  with tf.gfile.GFile(FLAGS.classes_file, "r") as f:
     classes = [x for x in f]
   num_classes = len(classes)
   return num_classes
@@ -64,7 +64,7 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
 
     dataset = dataset.prefetch(10000)
 
-    if mode = tf.estimator.ModeKeys.TRAIN:
+    if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(buffer_size = 10000000)
 
     dataset = dataset.padded_batch(
@@ -124,7 +124,8 @@ def model_fn(features, labels, mode, params):
   def _add_regular_run_layers(convolved, lengths):
     if params.cell_type == "lstm":
       cell = tf.nn.rnn_cell.BasicLSTMCell
-    else params.cell_type == "block_lstm":
+    else:
+      params.cell_type == "block_lstm"
       cell = tf.contrib.rnn.LSTMBlockCell
 
     cells_fw = [cell(params.num_nodes) for _ in range(params.num_layers)]
@@ -170,7 +171,7 @@ def model_fn(features, labels, mode, params):
         tf.sequence_mask(
           lengths,
           tf.shape(
-            outputs)([1]),
+            outputs)[1]),
         2),
       [1, 1, tf.shape(outputs)[2]])
 
@@ -217,7 +218,7 @@ def model_fn(features, labels, mode, params):
 
 def create_estimator_and_specs(run_config):
   model_params = tf.contrib.training.HParams(
-    num_layers = FLAGS.sum_layers,
+    num_layers = FLAGS.num_layers,
     num_nodes = FLAGS.num_nodes,
     batch_size = FLAGS.batch_size,
     num_conv = ast.literal_eval(FLAGS.num_conv),
@@ -226,7 +227,7 @@ def create_estimator_and_specs(run_config):
     learning_rate = FLAGS.learning_rate,
     gradient_clipping_norm = FLAGS.gradient_clipping_norm,
     cell_type = FLAGS.cell_type,
-    batch_norm = FLAGS.batch_norm,
+    batch_norm = False, # FLAGS.batch_norm,
     dropout = FLAGS.dropout)
 
   estimator = tf.estimator.Estimator(
@@ -298,6 +299,12 @@ if __name__ == "__main__":
     help = "Number of node per recurrent network layer.")
 
   parser.add_argument(
+    "--num_conv",
+    type = str,
+    default = "[48, 64, 96]",
+    help = "Number of conv layers along with number of filters per layer.")
+
+  parser.add_argument(
     "--conv_len",
     type = str,
     default = "[5, 5, 3]",
@@ -309,11 +316,11 @@ if __name__ == "__main__":
     default = "lstm",
     help = "Cell type used for rnn layers: cudnn_lstm, lstm or block_lstm.")
 
-  parser.add_argument(
-    "--batch_norm",
-    type = "bool",
-    default = "False",
-    help = "Whether to enable batch normalization or not.")
+#  parser.add_argument(
+#    "--batch_norm",
+#    type = "bool",
+#    default = "False",
+#    help = "Whether to enable batch normalization or not.")
 
   parser.add_argument(
     "--learning_rate",
@@ -348,14 +355,14 @@ if __name__ == "__main__":
   parser.add_argument(
     "--model_dir",
     type = str,
-    default = "",
+    default = "/tmp/quickdraw_model",
     help = "path to store the model checkpoints.")
 
-  parser.add_argument(
-    "--self_test",
-    type = "bool",
-    help = "Whther to enable batch normalization or not.")
+#  parser.add_argument(
+#    "--self_test",
+#    type = "bool",
+#    help = "Whther to enable batch normalization or not.")
 
-  FLAGS, unparsed = parser.parser_known_args()
+  FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main = main, argv = [sys.argv[0]] + unparsed)
 
