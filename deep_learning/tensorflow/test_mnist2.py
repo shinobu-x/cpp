@@ -141,15 +141,27 @@ def main(_):
         num_epochs = 1
     else:
       # Gets the data.
-      train_data_filename = maybe_download('train-images-idx3-ubyte.gz')
-      train_labels_filename = maybe_download('train-labels-idx1-ubyte.gz')
-      test_data_filename = maybe_download('t10k-images-idx3-ubyte.gz')
-      test_labels_filename = maybe_download('t10k-labels-idx1-ubyte.gz')
+      train_data_filename = maybe_download(
+          'train-images-idx3-ubyte.gz')
+      train_labels_filename = maybe_download(
+          'train-labels-idx1-ubyte.gz')
+      test_data_filename = maybe_download(
+          't10k-images-idx3-ubyte.gz')
+      test_labels_filename = maybe_download(
+          't10k-labels-idx1-ubyte.gz')
       # Extracts it into numpy arrays.
-      train_data = extract_data(train_data_filename, 60000)
-      train_labels = extract_labels(train_labels_filename, 60000)
-      test_data = extract_data(test_data_filename, 10000)
-      test_labels = extract_labels(test_labels_filename, 10000)
+      train_data = extract_data(
+          train_data_filename,
+          60000)
+      train_labels = extract_labels(
+          train_labels_filename,
+          60000)
+      test_data = extract_data(
+          test_data_filename,
+          10000)
+      test_labels = extract_labels(
+          test_labels_filename,
+          10000)
       # Generate a validatin set.
       validation_data = train_data[:VALIDATION_SIZE, ...]
       validation_labels = train_labels[:VALIDATION_SIZE]
