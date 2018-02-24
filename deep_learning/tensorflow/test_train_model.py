@@ -157,4 +157,108 @@ def model_fn(features, labels, mode, params):
 
     return outputs
 
-  def _add_rnn_layers(
+  def _add_rnn_layers(convolved, lengths):
+    if params.cell_type != "cudnn_lstm":
+      outputs = _add_regular_rnn_layers(
+        convolved,
+        lengths)
+    else:
+      outputs = _add_cudnn_rnn_layers(convolved)
+
+    mask = tf.tile(
+      tf.expand_dims(
+        tf.sequence_mask(
+          lengths,
+          tf.shape(
+            outputs)([1]),
+        2),
+      [1, 1, tf.shape(outputs)[2]])
+
+    zero_outside = tf.where(
+      mask,
+      outputs,
+      tf.zeros_like(outputs))
+
+    outputs = tf.reduce_sum(
+      zero_outside,
+      axis = 1)
+
+  def _add_fc_layers(final_state):
+    return tf.layers.dense(
+      final_state,
+      params.num_classes)
+
+  inks, lengths, labels = _get_input_tensors(features, labels)
+  convolved, lengths = _add_conv_layers(inks, lengths)
+  final_size = _add_rnn_layers(convolved, lengths)
+  logists = _add_fc_layers(final_state)
+
+  cross_entropy = tf.reduce_mean(
+    tf.nn.sparse_softmax_cross_entropy_with_logist(
+      labels = labels,
+      logists = logists))
+
+  train_op = tf.contrib.layers.optimize_loss(
+    loss = cross_entropy,
+    global_step = tf.train.get_global_step(),
+    learning_rate = params.training_rate,
+    optimizer = "Adam",
+    clip_gradients = params.gradient_clipping_norm,
+    summaries = ["learning_rate", "loss", "gradients", "gradient_norm"])
+
+  predictions = tf.argmax(logists, axis = 1)
+
+  return tf.estimator.EstimatorSpec(
+    mode = mode,
+    predictions = {"logists": logists, "predictions": predictions},
+    loss = cross_entropy,
+    train_op = train_op,
+    eval_metric_ops = {"accuracy": tf.matrics.accuracy(labels, predictions)})
+
+def create_estimator_and_specs(run_config):
+  model_params = tf.contrib.training.HParams(
+    num_layers = FLAGS.sum_layers,
+    num_nodes = FLAGS.num_nodes,
+    batch_size = FLAGS.batch_size,
+    num_conv = ast.literal_eval(FLAGS.num_conv),
+    conv_len = ast.literal_eval(FLAGS.conv_len),
+    num_classes = get_num_classes(),
+    learning_rate = FLAGS.learning_rate,
+    gradient_clipping_norm = FLAGS.gradient_clipping_norm,
+    cell_type = FLAGS.cell_type,
+    batch_norm = FLAGS.batch_norm,
+    dropout = FLAGS.dropout)
+
+  estimator = tf.estimator.Estimator(
+    model_fn = model_fn,
+    config = run_config,
+    params = model_params)
+
+  train_spec = tf.estimator.TrainSpec(
+    input_fn = get_input_fn(
+      mode = tf.estimator.ModeKeys.TRAIN,
+      tfrecord_pattern = FLAGS.training_data,
+      batch_size = FLAGS.batch_size),
+    max_steps = FLAGS.steps)
+
+  eval_spec = tf.estimator.EvalSpec(
+    input_fn = get_input_fn(
+      mode = tf.estimator.ModeKeys.EVAL,
+      tfrecord_pattern = FLAGS.eval_data,
+      batch_size = FLAGS.batch_size))
+
+  return estimator, train_spec, eval_spec
+
+def main(unused_args):
+  estimator, train_spec, eval_spec = create_estimator_and_specs(
+    run_config = tf.estimator.RunConfig(
+      model_dir = FLAGS.model_dir,
+      save_checkpoints_secs = 300,
+      save_summary_steps = 100))
+
+  tf.estimator.train_and_evaluate(
+    estimator,
+    train_spec,
+    eval_spec)
+
+if __name__ == "__main__":
