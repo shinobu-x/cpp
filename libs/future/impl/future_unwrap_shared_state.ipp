@@ -113,17 +113,25 @@ BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
 } // detail
 
 template <typename R>
+inline BOOST_THREAD_FUTURE<R>::BOOST_THREAD_FUTURE(
+  BOOST_THREAD_RV_REF(
+    BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >) that) :
+  base_type(that.unwrap()) {}
+
+template <typename R>
 BOOST_THREAD_FUTURE<R> BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >::unwrap() {
   BOOST_THREAD_PRECONDITION(
     this->future_.get() != 0,
     boost::future_uninitialized());
+
+  typedef BOOST_THREAD_FUTURE<R> R2;
 
   boost::shared_ptr<
     boost::detail::shared_state_base> shared_state(this->future_);
   boost::unique_lock<boost::mutex> lock(shared_state->mutex_);
 
   return boost::detail::make_future_unwrap_shared_state<
-    BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >, R>(
+    BOOST_THREAD_FUTURE<R2>, R>(
       lock,
       boost::move(*this));
 }
