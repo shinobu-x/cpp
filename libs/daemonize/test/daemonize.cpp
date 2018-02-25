@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <syslog.h>
-/*
+
 void daemonize() {
 
   if(getppid() == 1) {
@@ -61,10 +61,32 @@ std::cout << __LINE__ << '\n';
   signal(SIGHUP,SIG_IGN);
   signal(SIGTERM,SIG_IGN);
 }
-*/
-/*
+
+
 #define LOCK_FILE   "exampled.lock"
-void daemonize() {
+void daemonize(
+  const char* name,
+  const char* dir,
+  const char* in,
+  const char* out,
+  const char* err) {
+
+  if (!name) {
+    name = "exampled";
+  }
+  if (!dir) {
+    dir = "/tmp";
+  }
+  if (!in) {
+    in = "/dev/null";
+  }
+  if (!out) {
+    out = "/dev/null";
+  }
+  if (!err) {
+    err = "/dev/null";
+  }
+
   int fd,lock;
   char pid[10];
 
@@ -85,6 +107,10 @@ void daemonize() {
   for (fd = getdtablesize(); fd >= 0; --fd) {
     close(fd); // Closes all descriptors
   }
+
+  stdin = fopen(in, "r");
+  stdout = fopen(out, "w+");
+  stderr = fopen(err, "w+");
 
   // Handles standard I/O
   fd = open("/dev/null", O_RDWR);
@@ -112,7 +138,7 @@ void daemonize() {
   signal(SIGHUP, SIG_IGN); // catch hangup signal
   signal(SIGTERM, SIG_IGN); // catch kill signal
 }
-*/
+
 static int daemonize(const char* lockfile)
 {
   pid_t pid, sid, parent;
