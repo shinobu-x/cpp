@@ -50,93 +50,67 @@ struct shared_state_base :
   virtual ~shared_state_base() {}
 
   executor_ptr_type get_executor() {
-
     return ex_;
-
   }
 
   void set_executor_policy(executor_ptr_type ex) {
-
     set_executor();
     ex_ = ex;
-
   }
 
   void set_executor_policy(executor_ptr_type ex,
     boost::lock_guard<boost::mutex>&) {
-
     set_executor();
     ex_ = ex;
-
   }
 
   void set_executor_policy(executor_ptr_type ex,
     boost::unique_lock<boost::mutex>&) {
-
     set_executor();
     ex_ = ex;
-
   }
 
   bool valid(boost::unique_lock<boost::mutex>&) {
-
     return is_valid_;
-
   }
 
   bool valid() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     valid(lock);
-
   }
 
   void invalidate(boost::unique_lock<boost::mutex>&) {
-
     is_valid_ = false;
-
   }
 
   void invalidate() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     invalidate(lock);
-
   }
 
   void validate(boost::unique_lock<boost::mutex>&) {
-
     is_valid_ = true;
-
   }
 
   void validate() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     validate(lock);
-
   }
 
   void set_async() {
-
     is_deferred_ = false;
     policy_ = boost::launch::async;
-
   }
 
   void set_deferred() {
-
     is_deferred_ = true;
     policy_ = boost::launch::deferred;
-
   }
 
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
   void set_executor() {
-
     is_deferred_ = false;
     policy_ = boost::launch::executor;
-
   }
 #else
   void set_executor() {}
@@ -144,26 +118,21 @@ struct shared_state_base :
 
   notify_when_ready_handle notify_when_ready(
     boost::condition_variable_any& cv) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     do_callback(lock);
 
     return external_waiters_.insert(external_waiters_.end(), &cv);
-
   }
 
   void unnotify_when_ready(notify_when_ready_handle waiter) {
-
     boost::lock_guard<boost::mutex> lock(this->mutex_);
     external_waiters_.erase(waiter);
-
   }
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
   void do_continuation(boost::unique_lock<boost::mutex>& lock) {
 
     if (!continuations_.empty()) {
-
       continuations_type continuations = continuations_;
       continuations_.clear();
       relocker relock(lock);
@@ -173,7 +142,6 @@ struct shared_state_base :
         (*it)->launch_continuation();
       }
     }
-
   }
 #else
   void do_continuation(boost::unique_lock<boost::mutex>&) {}
@@ -182,12 +150,10 @@ struct shared_state_base :
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
   virtual void set_continuation_ptr(continuation_ptr_type continuation,
     boost::unique_lock<boost::mutex>& lock) {
-
     continuations_.push_back(continuation);
     if (done_) {
       do_continuation(lock);
     }
-
   }
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 
@@ -201,13 +167,10 @@ struct shared_state_base :
       (*it)->notify_all();
     }
     do_continuation(lock);
-
   }
 
   void notify_deferred() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
-
   }
 
   void do_callback(boost::unique_lock<boost::mutex>& lock) {
@@ -217,7 +180,6 @@ struct shared_state_base :
       relocker relock(lock);
       callback();
     }
-
   }
 
   virtual bool run_if_is_deferred() {
@@ -230,7 +192,6 @@ struct shared_state_base :
     } else {
       return false;
     }
-
   }
 
   virtual bool run_if_is_deferred_or_ready() {
@@ -243,7 +204,6 @@ struct shared_state_base :
     } else {
       return done_;
     }
-
   }
 
   void wait_internal(boost::unique_lock<boost::mutex>& lock,
@@ -262,21 +222,16 @@ struct shared_state_base :
     if (rethrow && exception_) {
       boost::rethrow_exception(exception_);
     }
-
   }
 
   virtual void wait(boost::unique_lock<boost::mutex>& lock,
     bool rethrow = true) {
-
     wait_internal(lock, rethrow);
-
   }
 
   void wait(bool rethrow = true) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     wait(lock, rethrow);
-
   }
 
 #ifdef BOOST_THREAD_USES_DATETIME
@@ -322,21 +277,16 @@ struct shared_state_base :
 
   void mark_exceptional_finish_internal(boost::exception_ptr const& e,
     boost::unique_lock<boost::mutex>& lock) {
-
     exception_ = e;
     mark_finished_internal(lock);
-
   }
 
   void mark_exceptional_finish() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     mark_exceptional_finish_internal(boost::current_exception(), lock);
-
   }
 
   void set_exception_at_thread_exit(boost::exception_ptr e) {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     if (has_value(lock)) {
       boost::throw_exception(boost::promise_already_satisfied());
@@ -345,59 +295,44 @@ struct shared_state_base :
 
     this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
-
   }
 
   bool has_value() const {
-
     boost::lock_guard<boost::mutex> lock(this->mutex_);
     return done_ && !exception_;
-
   }
 
   bool has_value(boost::unique_lock<boost::mutex>&) const {
-
     return done_ && !exception_;
-
   }
 
   bool has_exception() const {
-
     boost::lock_guard<boost::mutex> lock(this->mutex_);
     return done_ && exception_;
-
   }
 
   boost::launch launch_policy(boost::unique_lock<boost::mutex>&) const {
-
     return policy_;
-
   }
 
   boost::future_state::state get_state() const {
-
     boost::lock_guard<boost::mutex> lock(this->mutex_);
     if (!done_) {
       return boost::future_state::waiting;
     } else {
       return boost::future_state::ready;
     }
-
   }
 
   boost::exception_ptr get_exception_ptr() {
-
     boost::unique_lock<boost::mutex> lock(this->mutex_);
     wait_internal(lock, false);
-
   }
 
   template <typename F, typename U>
   void set_wait_callback(F f, U* u) {
-
     boost::lock_guard<boost::mutex> lock(this->mutex_);
     callback_ = boost::bind(f, boost::ref(*u));
-
   }
 
   virtual void execute(boost::unique_lock<boost::mutex>&) {}
