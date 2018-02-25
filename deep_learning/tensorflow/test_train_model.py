@@ -1,12 +1,42 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import argparse
 import ast
 import functools
+import os
 import sys
 
+from six.moves import urllib
+
 import tensorflow as tf
+
+SOURCE_URL = 'http://download.tensorflow.org/data/'
+FILE_NAME = 'quickdraw_tutorial_dataset_v1.tar.gz'
+WORK_DIRECTORY = '/tmp'
+
+def maybe_download():
+  if not tf.gfile.Exists(WORK_DIRECTORY):
+    tf.gfile.MakeDirs(WORK_DIRECTORY)
+
+  file_path = os.path.join(
+    WORK_DIRECTORY,
+    FILE_NAME)
+
+  if not tf.gfile.Exists(file_path):
+    file_path, _ = urllib.request.urlretrieve(
+      SOURCE_URL + FILE_NAME,
+      file_path)
+
+    with tf.gfile.GFile(file_path) as f:
+      size = f.size()
+
+    print(
+      "Successfully downloaded",
+      FILE_NAME,
+      size,
+      "bytes.")
 
 def get_num_classes():
   classes = []
