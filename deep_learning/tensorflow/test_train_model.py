@@ -14,6 +14,16 @@ from six.moves import urllib
 import tensorflow as tf
 
 # Recurrent Neural Networks for Drawing Classification
+#  A game where a player is challenged to draw a number of objects and see if a
+#  computer can recognize the drawing.
+#
+#  The recogintion in this is performed by a classifier that takes the user inp-
+#  ut, given as a sequence of strokes of points in x and y, and recognize the o-
+#  bject category that user tried to draw.
+#
+#  The model will use a combination of convolutional layers, LSTM layers, and a
+#  softmax output layer to classify the drawings.
+#
 # Download and exract the dataset
 #
 # Execution Example:
@@ -26,6 +36,7 @@ SOURCE_URL = 'http://download.tensorflow.org/data/'
 FILE_NAME = 'quickdraw_tutorial_dataset_v1.tar.gz'
 WORK_DIRECTORY = '/tmp'
 
+# Downloads the data
 def maybe_download():
   if not tf.gfile.Exists(WORK_DIRECTORY):
     tf.gfile.MakeDirs(WORK_DIRECTORY)
@@ -54,6 +65,7 @@ def maybe_download():
 
     extract()
 
+# Extracts the data
 def extract():
   print(
     "Extracting",
@@ -75,8 +87,16 @@ def get_num_classes():
   num_classes = len(classes)
   return num_classes
 
+# Creates an input_fn that stores all the data in memory
+#
+# @mode: One of tf.contrib.learn.ModeKeys: TRAIN, INFER, EVAL.
+# @tfrecord_pattern: Path to a TF record file created using create_dataset.py.
+# @batch_size: The batch size to output
+#
+# Returns: A valid input_fn for the model estimator
 def get_input_fn(mode, tfrecord_pattern, batch_size):
 
+  # Parse a single record which is expected to be a tensorflow.Example
   def _parse_tfexample_fn(example_proto, mode):
     feature_to_type = {
       "ink": tf.VarLenFeature(
@@ -86,6 +106,8 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
         dtype = tf.int64)
     }
 
+    # The labels will not be available at inference time, so do not add them to
+    # the list of feature_columns to be read.
     if mode != tf.estimator.ModeKeys.PREDICT:
       feature_to_type["class_index"] = tf.FixedLenFeature(
         [1],
@@ -104,6 +126,11 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
 
     return parsed_features, labels
 
+  # Estimator of input_fn
+  #
+  # Returns: A tuple of
+  #  1.Directory of string feature name to Tensor.
+  #  2.Tensor of target labels.
   def _input_fn():
     dataset = tf.data.TFRecordDataset.list_files(tfrecord_pattern)
 
@@ -111,6 +138,7 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
       dataset = dataset.shuffle(buffer_size = 10)
 
     dataset = dataset.repeat()
+    # Preprocesses 10 files concurrently and interleaves records from each file.
     dataset = dataset.interleave(
       tf.data.TFRecordDataset,
       cycle_length = 10,
@@ -127,6 +155,7 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(buffer_size = 10000000)
 
+    # Our inputs are variable length, so pad them
     dataset = dataset.padded_batch(
       batch_size,
       padded_shapes = dataset.output_shapes)
@@ -136,9 +165,32 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
 
   return _input_fn
 
+# Model function for RNN classifier
+#
+# This function sets up a neural network which applies convolutional layers(as
+# configured with params.num_conv and params.conv_len) to the input.
+#
+# The output of the convolutional layers is given to LSTM layers (as configured
+# with params.num_layers and params.num_nodes).
+#
+# The final state of the all LSTM layers are concatenated and fed to a fully co-
+# nnected layer to obtain the final classification scores.
+#
+# @features: Dictionary with keys: ink, lengths.
+# @labels: One host encoded classes.
+# @mode: One of tf.estimator.ModeKeys: TRAIN, INFER, EVAL.
+# @params: A parameter dictionary with the following keys:
+#  num_layers, num_nodes, batch_size, num_conv,
+#  conv_len, num_classes, learning_rate.
+#
+# Returns: ModelFnOps for Estimator API.
 def model_fn(features, labels, mode, params):
 
+  # Converts the input dict into inks, lengths, and labels tensors.
   def _get_input_tensors(features, labels):
+    # features[ink] is a sparse tensor that is [8, bach_maxlen, 3].
+    # inks will be a dense tensor of [8, maxlen, 3].
+    # shapes is [batchsize, 2].
     shapes = features["shape"]
     lengths = tf.squeeze(
       tf.slice(
@@ -155,6 +207,7 @@ def model_fn(features, labels, mode, params):
 
     return inks, lengths, labels
 
+  # Adds convolution layers.
   def _add_conv_layers(inks, lengths):
     convolved = inks
 
@@ -166,6 +219,7 @@ def model_fn(features, labels, mode, params):
           convolved_input,
           training = (mode == tf.estimator.ModeKeys.TRAIN))
 
+      # Add dropout layer if enabled and not first convolution layer.
       if i > 0 and params.dropout:
         convolved_input = tf.layers.dropout(
           convolved_input,
@@ -183,6 +237,7 @@ def model_fn(features, labels, mode, params):
 
     return convolved, lengths
 
+  # Adds RNN layers.
   def _add_regular_rnn_layers(convolved, lengths):
     if params.cell_type == "lstm":
       cell = tf.nn.rnn_cell.BasicLSTMCell
@@ -206,7 +261,9 @@ def model_fn(features, labels, mode, params):
 
     return outputs
 
+  # Adds CUDNN LSTM layers.
   def _add_cudnn_rnn_layers(convolved):
+    # Convolutions output [B, L, Ch], while CudnnLSTM is time-major.
     convolved = tf.transpose(convolved, [1, 0, 2])
     lstm = tf.contrib.cudnn_rnn.CudnnLSTM(
       num_layers = params.num_layers,
@@ -219,6 +276,7 @@ def model_fn(features, labels, mode, params):
 
     return outputs
 
+  # Adds recurrent neural network layers depending on the cell types.
   def _add_rnn_layers(convolved, lengths):
     if params.cell_type != "cudnn_lstm":
       outputs = _add_regular_rnn_layers(
@@ -241,35 +299,42 @@ def model_fn(features, labels, mode, params):
       outputs,
       tf.zeros_like(outputs))
 
+    # Convert back from time-major outputs to batch-major outputs.
     outputs = tf.reduce_sum(
       zero_outside,
       axis = 1)
 
     return outputs
 
+  # Adds a fully connected layer.
   def _add_fc_layers(final_state):
     return tf.layers.dense(
       final_state,
       params.num_classes)
 
+  # Builds the model.
   inks, lengths, labels = _get_input_tensors(features, labels)
   convolved, lengths = _add_conv_layers(inks, lengths)
   final_state = _add_rnn_layers(convolved, lengths)
   logits = _add_fc_layers(final_state)
 
+  # Adds the loss.
   cross_entropy = tf.reduce_mean(
     tf.nn.sparse_softmax_cross_entropy_with_logits(
       labels = labels,
       logits = logits))
 
+  # Add the optimizer.
   train_op = tf.contrib.layers.optimize_loss(
     loss = cross_entropy,
     global_step = tf.train.get_global_step(),
     learning_rate = params.learning_rate,
     optimizer = "Adam",
+    # Some gradient clipping stabilizes training in the beginning.
     clip_gradients = params.gradient_clipping_norm,
     summaries = ["learning_rate", "loss", "gradients", "gradient_norm"])
 
+  # Computes current predictions
   predictions = tf.argmax(logits, axis = 1)
 
   return tf.estimator.EstimatorSpec(
@@ -279,6 +344,7 @@ def model_fn(features, labels, mode, params):
     train_op = train_op,
     eval_metric_ops = {"accuracy": tf.metrics.accuracy(labels, predictions)})
 
+# Creates an experiment configuration based on the estimator and input fn.
 def create_estimator_and_specs(run_config):
   model_params = tf.contrib.training.HParams(
     num_layers = FLAGS.num_layers,
