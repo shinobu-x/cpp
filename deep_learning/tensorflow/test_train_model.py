@@ -7,10 +7,20 @@ import ast
 import functools
 import os
 import sys
+import tarfile
 
 from six.moves import urllib
 
 import tensorflow as tf
+
+# Recurrent Neural Networks for Drawing Classification
+# Download and exract the dataset
+#
+# Execution Example:
+#  python test_training_model.py \
+#  --training_data=/tmp/training.tfrecord-00000-of-00010 \
+#  --eval_data=/tmp/eval.tfrecord-00000-of-00010 \
+#  --classes_file=/tmp/training.tfrecord.classes
 
 SOURCE_URL = 'http://download.tensorflow.org/data/'
 FILE_NAME = 'quickdraw_tutorial_dataset_v1.tar.gz'
@@ -29,6 +39,10 @@ def maybe_download():
       SOURCE_URL + FILE_NAME,
       file_path)
 
+    print(
+      "Downloading",
+      FILE_NAME)
+
     with tf.gfile.GFile(file_path) as f:
       size = f.size()
 
@@ -37,6 +51,22 @@ def maybe_download():
       FILE_NAME,
       size,
       "bytes.")
+
+    extract()
+
+def extract():
+  print(
+    "Extracting",
+    FILE_NAME)
+
+  os.chdir(WORK_DIRECTORY)
+  tar_file = tarfile.open(FILE_NAME, "r:gz")
+  tar_file.extractall()
+  tar_file.close()
+
+  print(
+    "Successfully extracted",
+     FILE_NAME)
 
 def get_num_classes():
   classes = []
@@ -47,8 +77,8 @@ def get_num_classes():
 
 def get_input_fn(mode, tfrecord_pattern, batch_size):
 
-  def _parse_tfsample_fn(example_proto, mode):
-    future_to_type = {
+  def _parse_tfexample_fn(example_proto, mode):
+    feature_to_type = {
       "ink": tf.VarLenFeature(
         dtype = tf.float32),
       "shape": tf.FixedLenFeature(
@@ -61,21 +91,21 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
         [1],
         dtype = tf.int64)
 
-    parse_features = tf.parse_single_example(
+    parsed_features = tf.parse_single_example(
       example_proto,
       feature_to_type)
 
     labels = None
 
     if mode != tf.estimator.ModeKeys.PREDICT:
-      labels = parsed_feature["class_index"]
+      labels = parsed_features["class_index"]
     parsed_features["ink"] = tf.sparse_tensor_to_dense(
       parsed_features["ink"])
 
     return parsed_features, labels
 
   def _input_fn():
-    dataset = tf.data.TFRecordDataset.list_filters(tfrecord_pattern)
+    dataset = tf.data.TFRecordDataset.list_files(tfrecord_pattern)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(buffer_size = 10)
@@ -104,11 +134,13 @@ def get_input_fn(mode, tfrecord_pattern, batch_size):
 
     return features, labels
 
+  return _input_fn
+
 def model_fn(features, labels, mode, params):
 
   def _get_input_tensors(features, labels):
     shapes = features["shape"]
-    lenghts = tf.squeeze(
+    lengths = tf.squeeze(
       tf.slice(
         shapes,
         begin = [0, 0],
@@ -135,27 +167,26 @@ def model_fn(features, labels, mode, params):
           training = (mode == tf.estimator.ModeKeys.TRAIN))
 
       if i > 0 and params.dropout:
-        convolved_input = tf.layers.batch_normalization(
+        convolved_input = tf.layers.dropout(
           convolved_input,
           rate = params.dropout,
-          training = (mode == tf.estimator.ModeKeys.TRAIND))
+          training = (mode == tf.estimator.ModeKeys.TRAIN))
 
-      convolved = tf.layers.convid(
+      convolved = tf.layers.conv1d(
         convolved_input,
         filters = params.num_conv[i],
         kernel_size = params.conv_len[i],
         activation = None,
         strides = 1,
         padding = "same",
-        name = "convid_%d" % i)
+        name = "conv1d_%d" % i)
 
     return convolved, lengths
 
-  def _add_regular_run_layers(convolved, lengths):
+  def _add_regular_rnn_layers(convolved, lengths):
     if params.cell_type == "lstm":
       cell = tf.nn.rnn_cell.BasicLSTMCell
-    else:
-      params.cell_type == "block_lstm"
+    elif params.cell_type == "block_lstm":
       cell = tf.contrib.rnn.LSTMBlockCell
 
     cells_fw = [cell(params.num_nodes) for _ in range(params.num_layers)]
@@ -184,7 +215,7 @@ def model_fn(features, labels, mode, params):
       direction = "bidrectional")
 
     outputs, _ = lstm(convolved)
-    outputs = tf.transpose(outputs, [1, 0,2 ])
+    outputs = tf.transpose(outputs, [1, 0, 2])
 
     return outputs
 
@@ -214,6 +245,8 @@ def model_fn(features, labels, mode, params):
       zero_outside,
       axis = 1)
 
+    return outputs
+
   def _add_fc_layers(final_state):
     return tf.layers.dense(
       final_state,
@@ -221,30 +254,30 @@ def model_fn(features, labels, mode, params):
 
   inks, lengths, labels = _get_input_tensors(features, labels)
   convolved, lengths = _add_conv_layers(inks, lengths)
-  final_size = _add_rnn_layers(convolved, lengths)
-  logists = _add_fc_layers(final_state)
+  final_state = _add_rnn_layers(convolved, lengths)
+  logits = _add_fc_layers(final_state)
 
   cross_entropy = tf.reduce_mean(
-    tf.nn.sparse_softmax_cross_entropy_with_logist(
+    tf.nn.sparse_softmax_cross_entropy_with_logits(
       labels = labels,
-      logists = logists))
+      logits = logits))
 
   train_op = tf.contrib.layers.optimize_loss(
     loss = cross_entropy,
     global_step = tf.train.get_global_step(),
-    learning_rate = params.training_rate,
+    learning_rate = params.learning_rate,
     optimizer = "Adam",
     clip_gradients = params.gradient_clipping_norm,
     summaries = ["learning_rate", "loss", "gradients", "gradient_norm"])
 
-  predictions = tf.argmax(logists, axis = 1)
+  predictions = tf.argmax(logits, axis = 1)
 
   return tf.estimator.EstimatorSpec(
     mode = mode,
-    predictions = {"logists": logists, "predictions": predictions},
+    predictions = {"logits": logits, "predictions": predictions},
     loss = cross_entropy,
     train_op = train_op,
-    eval_metric_ops = {"accuracy": tf.matrics.accuracy(labels, predictions)})
+    eval_metric_ops = {"accuracy": tf.metrics.accuracy(labels, predictions)})
 
 def create_estimator_and_specs(run_config):
   model_params = tf.contrib.training.HParams(
@@ -293,7 +326,8 @@ def main(unused_args):
     eval_spec)
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(
+  parser = argparse.ArgumentParser()
+  parser.register(
     "type",
     "bool",
     lambda v: v.lower() == "true")
@@ -346,11 +380,11 @@ if __name__ == "__main__":
     default = "lstm",
     help = "Cell type used for rnn layers: cudnn_lstm, lstm or block_lstm.")
 
-#  parser.add_argument(
-#    "--batch_norm",
-#    type = "bool",
-#    default = "False",
-#    help = "Whether to enable batch normalization or not.")
+  parser.add_argument(
+    "--batch_norm",
+    type = "bool",
+    default = "False",
+    help = "Whether to enable batch normalization or not.")
 
   parser.add_argument(
     "--learning_rate",
@@ -388,10 +422,10 @@ if __name__ == "__main__":
     default = "/tmp/quickdraw_model",
     help = "path to store the model checkpoints.")
 
-#  parser.add_argument(
-#    "--self_test",
-#    type = "bool",
-#    help = "Whther to enable batch normalization or not.")
+  parser.add_argument(
+    "--self_test",
+    type = "bool",
+    help = "Whther to enable batch normalization or not.")
 
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main = main, argv = [sys.argv[0]] + unparsed)
