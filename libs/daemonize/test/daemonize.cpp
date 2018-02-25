@@ -9,6 +9,21 @@
 #include <sys/stat.h>
 #include <syslog.h>
 
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+void do_listen() {
+  int r = socket(AF_INET, SOCK_STREAM, 0);
+
+  struct sockaddr_in saddr;
+  saddr.sin_family = AF_INET;
+  saddr.sin_port = htons(12345);
+  saddr.sin_addr.s_addr = INADDR_ANY;
+  bind(r, (struct sockaddr*)&saddr, sizeof(saddr));
+  listen(r, 5);
+}
+
 void daemonize() {
 
   if(getppid() == 1) {
@@ -176,6 +191,8 @@ static int daemonize(const char* lockfile)
   ftruncate(lfp, 0);
   sprintf(buf, "%ld", (long)getpid());
   write(lfp, buf, strlen(buf)+1);
+
+  do_listen();
 
   // Trap signals that we expect to recieve
   signal(SIGCHLD, SIG_IGN);
