@@ -195,14 +195,16 @@ struct wait_for_all_wrapper {
   }
 };
 
-struct wait_for_all_wrapper {
+struct wait_for_any_wrapper {
   template <typename... T>
   void operator()(T&& ...v) {
     boost::wait_for_any(boost::forward<T>(v)...);
   }
 };
 
-template <typename Tuple, std::size_t s = boost::csbl::tuple_size<T>::value>
+template <
+  typename Tuple,
+  std::size_t s = boost::csbl::tuple_size<Tuple>::value>
 struct accumulate_run_if_is_deferred {
   bool operator()(Tuple& t) {
     return (!boost::csbl::get<s - 1>(t).run_if_is_deferred()) ||
@@ -221,7 +223,8 @@ template <typename Tuple, typename T, typename... Ts>
 struct future_when_all_tuple_shared_state :
   boost::detail::future_async_shared_state_base<Tuple> {
   Tuple t_;
-  typedef typename make_tuple_indices<1 + sizeof...(Ts)>::type index_type;
+  typedef typename boost::detail::make_tuple_indices<
+    1 + sizeof...(Ts)>::type index_type;
 
   static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
     future_when_all_tuple_shared_state* that_ =
@@ -229,9 +232,9 @@ struct future_when_all_tuple_shared_state :
 
     try {
       that_->wait_for_all(index_type());
-      that_->mark_finished_with_result(boost::move(that->t_));
+      that_->mark_finished_with_result(boost::move(that_->t_));
     } catch (...) {
-      that->mark_exceptional_finish():
+      that->mark_exceptional_finish();
     }
   }
 
@@ -277,6 +280,86 @@ struct future_when_all_tuple_shared_state :
   ~future_when_all_tuple_shared_state() {}
 };
 
+template <
+  typename Tuple,
+  std::size_t s = boost::csbl::tuple_size<Tuple>::value>
+struct apply_any_run_if_is_deferred_or_ready {
+  bool operator()(Tuple& t) {
+    if (boost::csbl::get<s - 1>(t).run_if_is_deferred_or_read()) {
+      return true;
+    }
+    return apply_any_run_if_is_deferred_or_ready<Tuple, s - 1>()(t);
+  }
+};
+
+template <typename Tuple>
+struct apply_any_run_if_is_deferred_or_ready<Tuple, 0> {
+ bool operator()(Tuple&) {
+   return false;
+ }
+};
+
+template <typename Tuple, typename T, typename... Ts>
+struct future_when_any_tuple_shared_state :
+  boost::detail::future_async_shared_state_base<Tuple> {
+  Tuple t_;
+  typedef typename boost::detail::make_tuple_indices<
+    1 + sizeof ...(Ts)>::type index_type;
+
+  static void run(boost::shared_ptr<boost::detail::shared_state_base> that) {
+    future_when_any_tuple_shared_state* that_ =
+      static_cast<future_when_any_tuple_shared_state*>(that.get());
+
+    try {
+      that_->wait_for_any(index_type());
+    } catch (...) {
+      that_->mark_exceptional_finish();
+    }
+  }
+
+  template <std::size_t... I>
+  void wait_for_any(boost::detail::tuple_indices<I...>) {
+#ifdef BOOST_THREAD_PROVIDES_INVOKE
+    return boost::detail::invoke<void>(
+      wait_for_any_wrapper(),
+      boost::csbl::get<I>(t_)...);
+#else // BOOST_THREAD_PROVIDES_INVOKE
+    return wait_for_any_wrapper()(boost::csbl::get<I>(t_)...);
+#endif // BOOST_THREAD_PROVIDES_INVOKE
+  }
+
+  bool run_deferred() {
+    return apply_any_run_if_is_deferred_or_ready<Tuple>()(t_);
+  }
+
+  void init() {
+    if (run_deferred()) {
+      future_when_any_tuple_shared_state::run(this->shared_from_this());
+      return;
+    }
+#ifdef BOOST_THREAD_FUTURE_BLOCKING
+    this->thr_ = boost::thread(
+      &future_when_any_tuple_shared_state::run,
+      this->shared_from_this());
+#else // BOOST_THREAD_FUTURE_BLOCKING
+    boost::thread(
+      &future_when_any_tuple_shared_state::run,
+      this->shared_from_this()).detach();
+  }
+
+  template <typename F, typename... Fs>
+  future_when_any_tuple_shared_state(
+    values_tag,
+    BOOST_THREAD_FWD_REF(F) f,
+    BOOST_THREAD_FWD_REF(Fs) ...fs) :
+    t_(boost::csbl::make_tuple(
+      boost::forward<F>(f),
+      boost::forward<Fs>(fs)...)) {}
+
+  ~future_when_any_tuple_shared_state() {}
+};
+#endif // BOOST_THREAD_FUTURE_BLOCKING
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 } // detail
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // boost
