@@ -387,7 +387,7 @@ BOOST_THREAD_FUTURE<R>
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 */
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
-namespace detail {
+//namespace detail {
 /*
 struct input_iterator_tag {};
 struct vector_tag {};
@@ -548,6 +548,7 @@ struct future_when_any_vector_shared_state :
   ~future_when_any_vector_shared_state() {}
 };
 */
+/*
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 struct wait_for_all_fctr {
   template <typename... T>
@@ -705,7 +706,7 @@ struct future_when_any_tuple_shared_state :
 };
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 } // detail
-
+*/
 template <typename InputIter>
 typename boost::disable_if<
   boost::is_future_type<InputIter>,
