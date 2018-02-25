@@ -23,7 +23,7 @@ def parse_line(ndjson_line):
 
   inkarray = sample["drawing"]
   stroke_lengths = [len(stroke[0]) for stroke in inkarray]
-  rotal_points = sum(stroke_lengths)
+  total_points = sum(stroke_lengths)
   np_ink = np.zeros(
     (total_points, 3),
     dtype = np.float32)
@@ -34,7 +34,7 @@ def parse_line(ndjson_line):
     return None, None
 
   for stroke in inkarray:
-    if (len(stroke[0]) != len(stroke[1]):
+    if len(stroke[0]) != len(stroke[1]):
       print("Inconsistent number of x and y coordinates.")
       return None, None
 
@@ -83,7 +83,7 @@ def convert_data(
   offset = 0):
 
   def _pick_output_shard():
-    return random.randint(0, output_shareds - 1)
+    return random.randint(0, output_shards - 1)
 
   file_handles = []
   # Opens all input files
@@ -112,7 +112,7 @@ def convert_data(
       tf.python_io.TFRecordWriter(
         "%s-%05i-of-%05i" % (output_file, i, output_shards)))
 
-  reading_order = range(len(file_handlers)) * observations_per_class
+  reading_order = range(len(file_handles)) * observations_per_class
   random.shuffle(reading_order)
 
   for c in reading_order:
@@ -143,7 +143,7 @@ def convert_data(
 
     f = tf.train.Features(feature = features)
     example = tf.train.Example(features = f)
-    writes[_pick_output_shared()].write(example.SerializeToString())
+    writers[_pick_output_shard()].write(example.SerializeToString())
 
   # Closes all files.
   for w in writers:
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
   parser.add_argument(
     "--output_path",
-    type = int,
+    type = str,
     default = "",
     help = "Directory where to store the output TFRecord files.")
 
