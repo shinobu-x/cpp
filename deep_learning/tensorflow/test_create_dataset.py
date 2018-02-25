@@ -12,6 +12,23 @@ import numpy as np
 
 import tensorflow as tf
 
+# Installs gsutil.
+# * Installation guide of gsutil:
+#    https://cloud.google.com/storage/docs/gsutil_install#install
+#
+# Checks if gsutil works or not
+# gsutil ls -r "gs://quickdraw_dataset/full/simplified/*"
+#
+# Creates folder to store datasets.
+# mkdir /tmp/rnn_tutorial_data
+# cd /tmp/rnn_tutorial_data
+# gsutil -m cp "gs://quickdraw_dataset/full/simplified/*" .
+#
+# Converts the data to TFRecord files
+# python test_create_dataset.py \
+# --ndjson_path rnn_tutorial_data \
+# --output_path rnn_tutorial_data
+
 # Parses an ndjson line and return ink (as np array) and class name.
 def parse_line(ndjson_line):
   sample = json.loads(ndjson_line)
