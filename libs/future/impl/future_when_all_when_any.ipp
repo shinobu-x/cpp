@@ -101,8 +101,6 @@ struct future_when_all_vector_shared_state :
     };
   }
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
-
-  ~future_when_all_vector_shared_state() {}
 };
 
 template <typename F>
@@ -183,8 +181,6 @@ struct future_when_any_vector_shared_state :
     };
   }
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
-
-  ~future_when_any_vector_shared_state() {}
 };
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATE
@@ -276,8 +272,6 @@ struct future_when_all_tuple_shared_state :
       t_(boost::csbl::make_tuple(
         boost::forward<F>(f),
         boost::forward<Fs>(fs)...)) {}
-
-  ~future_when_all_tuple_shared_state() {}
 };
 
 template <
@@ -345,6 +339,7 @@ struct future_when_any_tuple_shared_state :
     boost::thread(
       &future_when_any_tuple_shared_state::run,
       this->shared_from_this()).detach();
+#endif // BOOST_THREAD_FUTURE_BLOCKING
   }
 
   template <typename F, typename... Fs>
@@ -355,11 +350,8 @@ struct future_when_any_tuple_shared_state :
     t_(boost::csbl::make_tuple(
       boost::forward<F>(f),
       boost::forward<Fs>(fs)...)) {}
-
-  ~future_when_any_tuple_shared_state() {}
 };
-#endif // BOOST_THREAD_FUTURE_BLOCKING
-#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
+#endif // BOOST_NO_CXX11_VARIADIC_TEMPLATES
 } // detail
 #endif // BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY
 } // boost
