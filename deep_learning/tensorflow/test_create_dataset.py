@@ -99,3 +99,116 @@ def convert_data(
         os.path.join(training_data_dir, file_name), "r"))
     # Fast forwards all files to skip the offset.
     if offset:
+      count = 0
+
+      for _ in file_handles[-1]:
+       count += 1
+       if count == offset:
+         break
+
+  writers = []
+  for i in range(FLAGS.output_shards):
+    writers.append(
+      tf.python_io.TFRecordWriter(
+        "%s-%05i-of-%05i" % (output_file, i, output_shards)))
+
+  reading_order = range(len(file_handlers)) * observations_per_class
+  random.shuffle(reading_order)
+
+  for c in reading_order:
+    line = file_handles[c].readline()
+    ink = None
+
+    while ink is None:
+      ink, class_name = parse_line(line)
+
+      if ink is None:
+        print("Couldnt't parse ink from '" + line + "'.")
+
+    if class_name not in class_names:
+      class_names.append(class_name)
+
+    features = {}
+    features["class_index"] = tf.train.Feature(
+      int64_list = tf.train.Int64List(
+        value = [class_names.index(class_name)]))
+
+    features["ink"] = tf.train.Feature(
+      float_list = tf.train.FloatList(
+        value = ink.flatten()))
+
+    features["shape"] = tf.train.Feature(
+      int64_list = tf.train.Int64List(
+        value = ink.shape))
+
+    f = tf.train.Features(feature = features)
+    example = tf.train.Example(features = f)
+    writes[_pick_output_shared()].write(example.SerializeToString())
+
+  # Closes all files.
+  for w in writers:
+    w.close()
+  for f in file_handles:
+    f.close()
+
+  # Writes the class list.
+  with tf.gfile.GFile(output_file + ".classes", "w") as f:
+    for class_name in class_names:
+      f.write(class_name + "\n")
+
+  return class_names
+
+def main(_):
+  class_names = convert_data(
+    FLAGS.ndjson_path,
+    FLAGS.train_observations_per_class,
+    os.path.join(
+      FLAGS.output_path, "training.tfrecord"),
+    class_names = [],
+    output_shards = FLAGS.output_shards,
+    offset = 0)
+
+  convert_data(
+    FLAGS.ndjson_path,
+    FLAGS.eval_observations_per_class,
+    os.path.join(FLAGS.output_path, "eval.tfrecord"),
+    class_names = class_names,
+    output_shards = FLAGS.output_shards,
+    offset = FLAGS.train_observations_per_class)
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.register("type", "bool", lambda v: v.lower() == "true")
+
+  parser.add_argument(
+    "--ndjson_path",
+    type = str,
+    default = "",
+    help = "Directory where the ndjson files are stored.")
+
+  parser.add_argument(
+    "--output_path",
+    type = int,
+    default = "",
+    help = "Directory where to store the output TFRecord files.")
+
+  parser.add_argument(
+    "--train_observations_per_class",
+    type = int,
+    default = 10000,
+    help = "How many items per class to load for training.")
+
+  parser.add_argument(
+    "--eval_observations_per_class",
+    type = int,
+    default = 1000,
+    help = "How many times per class to load for evaluation.")
+
+  parser.add_argument(
+    "--output_shards",
+    type = int,
+    default = 10,
+    help = "Number of shards for the output.")
+
+  FLAGS, unparsed = parser.parse_known_args()
+  tf.app.run(main = main, argv = [sys.argv[0]] + unparsed)
