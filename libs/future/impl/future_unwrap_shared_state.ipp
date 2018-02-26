@@ -106,7 +106,7 @@ BOOST_THREAD_FUTURE<R> make_future_unwrap_shared_state(
       new boost::detail::future_unwrap_shared_state<F, R>(
         boost::move(f)));
 
-  h->wrapped_.future_->get_continuation_ptr(h, lock);
+  h->wrapped_.future_->set_continuation_ptr(h, lock);
 
   return BOOST_THREAD_FUTURE<R>(h);
 }
@@ -120,7 +120,7 @@ inline BOOST_THREAD_FUTURE<R>::BOOST_THREAD_FUTURE(
 
 template <typename R>
 BOOST_THREAD_FUTURE<R> BOOST_THREAD_FUTURE<BOOST_THREAD_FUTURE<R> >::unwrap() {
-  BOOST_THREAD_PRECONDITION(
+  BOOST_THREAD_PROVIDES_CONDITION(
     this->future_.get() != 0,
     boost::future_uninitialized());
 
