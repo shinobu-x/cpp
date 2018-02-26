@@ -32,21 +32,41 @@ struct Callback {
 void doit() {
   {
     auto f = boost::make_ready_future().then(Callback());
-    static_assert(std::is_same<
-      decltype(f),
-      boost::future<boost::future<void> > >::value);
+    static_assert(
+      std::is_same<
+        decltype(f),
+        boost::future<boost::future<void> > >::value
+    );
     f.wait();
   }
   {
     auto f1 = boost::make_ready_future().then(Callback());
-    static_assert(std::is_same<
-      decltype(f1),
-      boost::future<boost::future<void> > >::value);
+    static_assert(
+      std::is_same<
+        decltype(f1),
+        boost::future<boost::future<void> > >::value
+    );
     auto f2 = f1.unwrap();
-    static_assert(std::is_same<
-      decltype(f2),
-      boost::future<void> >::value);
+    static_assert(
+      std::is_same<
+        decltype(f2),
+        boost::future<void> >::value
+    );
     f2.wait();
+  }
+  {
+    auto f1 = boost::make_ready_future().then(Callback());
+    static_assert(
+      std::is_same<
+        decltype(f1),
+        boost::future<boost::future<void> > >::value
+    );
+    auto f2 = f1.get();
+    static_assert(
+      std::is_same<
+        decltype(f2),
+        boost::future<void> >::value
+    );
   }
 }
 
