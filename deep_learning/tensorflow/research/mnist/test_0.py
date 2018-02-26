@@ -211,3 +211,39 @@ def main(unused_argv):
       {'image': image,
     })
   mnist_classifier.export_savedmodel(FLAGS.export_dir, input_fn)
+
+class MNISTArgParser(argparse.ArgumentParser):
+  def __init__(self):
+    super(MNISTArgParser, self).__init__()
+  self.add_argument(
+    '--multi-gpu', action = 'store_true',
+    help = 'Run accross all available GPUs.')
+  self.add_argument(
+    '--batch_size', type = int, default = 100,
+    help = 'Number of images to process in a batch.')
+  self.add_argument(
+    '--data_dir', type = str, default = '/tmp/mnist_data',
+    help = 'Path to directory containing the MNIST dataset')
+  self.add_argument(
+    '--model_dir', type = str, default = '/tmp/mnist_model',
+    help = 'Path to directory storing the model')
+  self.add_argument(
+    '--train_epochs', type = int, default = 40,
+    help = 'Number of epochs to train')
+  self.add_argument(
+    '--data_format', type = str, default = None,
+    choices = ['channels_first', 'channels_last'],
+    help = 'A flag to override the data format used in the models. '
+      'channels_first provides a performance boost on GPU but is not always '
+      'compatible with CPU. If left unspecified, the data format will be '
+      'chosen automatically based on whether tensorflow was build for CPU or '
+      'GPU.')
+  self.add_argument(
+    '--expor_dir', type = str,
+    help = 'Path to directory storing the exported saved model')
+
+if __name__ == '__main__':
+  parser = MNISTArgParser()
+  tf.logging.set_verbosity(tf.logging.INFO)
+  FLAGS, unparsed = parser.parse_known_args()
+  tf.app.run(main = main, argv = [sys.argv[0]] + unparsed)
