@@ -6,7 +6,6 @@ namespace detail {
 
 template <typename R>
 class basic_future : public base_future {
-protected:
 public:
   typedef typename boost::detail::shared_state<R> shared_state;
   typedef boost::shared_ptr<shared_state> future_ptr;
@@ -17,10 +16,8 @@ public:
 
   static future_ptr make_exceptional_future_ptr(
     boost::exceptional_ptr const& e) {
-
     return future_ptr(
       new boost::detail::shared_state<R>(e));
-
   }
 
   future_ptr future_;
@@ -30,9 +27,6 @@ public:
   basic_future(boost::exceptional_ptr const& e) :
     future_(make_exceptional_future_ptr(e)) {}
   BOOST_THREAD_MOVABLE_ONLY(basic_future) basic_future() : future_() {}
-
-  // Destructor
-  ~basic_future() {}
 
   // Copy constructor and assignment
   basic_future(BOOST_THREAD_RV_REF(basic_future) that) BOOST_NOEXCEPT {
