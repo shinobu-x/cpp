@@ -119,7 +119,8 @@ void doit() {
   }
   {
     boost::promise<int> p;
-    boost::future<int> f = p.get_future(); 
+    boost::future<int> f = p.get_future();
+    f2(f.then(callback()));
     boost::thread(set_thread<int>, &p);
     auto v = f.get();
     assert(v == 1);
