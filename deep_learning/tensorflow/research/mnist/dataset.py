@@ -18,7 +18,7 @@ def read(byte_stream):
   dt = np.dtype(np.uint32).newbyteorder('>')
   return np.frombuffer(byte_stream.read(4), dtype = dt)[0]
 
-def check_image_file_header(file_name):
+def check_images_file_header(file_name):
   # Validates that file name corresponds to images for the MNIST dataset.
   with tf.gfile.Open(file_name, 'rb') as f:
     magic = read(f)
@@ -48,16 +48,16 @@ def check_labels_file_header(file_name):
 
 def maybe_download(directory, file_name):
   # Downloads (and unzip) a file from the MNIST dataset if not already there
-  file_path = os.path.join(directory, filename)
+  file_path = os.path.join(directory, file_name)
   if tf.gfile.Exists(file_path):
     return file_path
   if not tf.gfile.Exists(directory):
     tf.gfile.MakeDirs(directory)
 
   # Mirror of http://yann.lecun.com/exdb/mnist/
-  url = BASE_URL + filename + '.gz'
+  url = BASE_URL + file_name + '.gz'
 
-  zipped_file_path = filepath + '.gz'
+  zipped_file_path = file_path + '.gz'
   print(
     'Downloading %s to %s' %
     (url, zipped_file_path))
@@ -69,12 +69,12 @@ def maybe_download(directory, file_name):
   os.remove(zipped_file_path)
   return file_path
 
-def dataset(direcotry, image_files, label_files):
+def dataset(directory, image_files, label_files):
   image_files = maybe_download(directory, image_files)
   label_files = maybe_download(directory, label_files)
 
-  check_image_file_header(image_files)
-  check_label_file_header(label_files)
+  check_images_file_header(image_files)
+  check_labels_file_header(label_files)
 
   def decode_image(image):
     # Normalizes from [0, 255] to [0.0, 1.0]
