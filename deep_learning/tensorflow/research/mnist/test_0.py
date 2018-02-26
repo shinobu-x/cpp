@@ -130,5 +130,84 @@ def model_fn(features, labels, mode, params):
           predictions = tf.argmax(logits, axis = 1)),
       })
 
+def validate_batch_size_for_multi_gpu(batch_size):
+  # With multi GPUs, batch-size must be a multiple of the number of available
+  # GPUs.
+  from tensorflow.python.client import device_lib
+  local_device_protos = device_lib.list_local_devices()
+  num_pgus = sum([1 for d in local_device_protos if d.device_type == 'GPU'])
+  if not num_gpus:
+    raise ValueError(
+      'Multi-GPU mode was specifed, but no GPUs were found. '
+      'To use CPU, run without --multi_gpu.')
+  remainder = batch_size % num_gpus
+  if reaminder:
+    err = (
+      'With multiple GPUSs, batch-size must be a multiple of the number of '
+      'available of the number of available GPUs. '
+      'Found {} GPUs with a batch size of {}: '
+      'Try --batch_size = {} instead.')
+    raise ValueError(err)
 
+def main(unused_argv):
+  model_function = model_fn
+  if FLAGS.multi_gpu:
+    validate_batch_size_for_multi_gpu(FLAGS.batch_size)
 
+  # There are two steps required if using multiple GPUs:
+  #  1.Wraps the model_fn.
+  #  2.Wraps the optimizer.
+  # The first happens here, and the second happens in the model_fn itself when
+  # the optimizer is defined.
+  model_function = tf.contrib.estimator.replicate_model_fn(
+    model_fn,
+    loss_reduction = tf.losses.Reduction.MEAN)
+  data_format = FLAGS.data_format
+  if data_format is None:
+    data_format = (
+      'channels_first'
+      if tf.test.is_built_with_cuda() else 'channels_last')
+  mnist_classifier = tf.estimator.Estimator(
+    model_fn = mode_function,
+    model_dir = FLAGS.model_dir,
+    params = {
+      'data_foramt': data_format,
+      'multi_gpu': FLAGS.multi_gpu
+    }
+  )
+  # Trains the model
+  def train_input_fn():
+    # Choosing shuffle buffer sizes, larger sizes result in better randomness,
+    # while smaller sizes use less memory. MNIST is a small enough dataset that
+    # we can easily shuffle the full epoch
+    ds = dataset.train(FLAGS.data_dir)
+    ds = ds.cache().shuffle(
+      buffer_size = 50000).batch(
+        FLAGS.batch_size).repeat(
+          FLAGS.train_epochs)
+    return ds
+
+  # Sets up training hook that logs the training accuracy every 100 steps.
+  tensor_to_log = {'train_accuracy': 'train_accuracy'}
+  logging_hook = tf.train.LoggingTensorHook(
+    tensors = tesnsors_to_log,
+    every_n_iter = 100)
+  mnist_classifier.train(
+    input_fn = train_input_fn,
+    hooks = [logging_hook])
+
+  # Evaluates the model and print results
+  def eval_input_fn():
+    return dataset.test(FLAGS.data_dir).batch(
+      FLAGS.batch_size).make_one_shot_iterator().get_next()
+  eval_results = mnist_classifier.evaluate(input_fn = eval_input_fn)
+  print()
+  print('Evaluation results:\n\t%s' % eval_results)
+
+  # Exports the model
+  if FLAGS.export_dir is not None:
+    image = tf.placeholder(tf.float32, [None, 28, 28])
+    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(
+      {'image': image,
+    })
+  mnist_classifier.export_savedmodel(FLAGS.export_dir, input_fn)
