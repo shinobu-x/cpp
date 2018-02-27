@@ -123,7 +123,7 @@ BOOST_THREAD_FUTURE<R> make_shared_future_deferred_continuation_shared_state(
 template <typename R, typename F, typename Ex>
 BOOST_THREAD_FUTURE<R> make_future_executor_shared_state(
   Ex& ex,
-  BOOST_THREAD_RV_REF(F) f);
+  BOOST_THREAD_FWD_REF(F) f);
 
 template <typename Ex, typename F, typename R, typename C>
 BOOST_THREAD_FUTURE<R> make_future_executor_continuation_shared_state(
