@@ -221,14 +221,14 @@ def cnn_model_fn(features, labels, mode):
       train_op = train_op)
 
   # Adds evalution metrics
-  eval_metrics_ops = {
+  eval_metric_ops = {
     "accuracy": tf.metrics.accuracy(
       labels = labels,
       predictions = predictions["classes"])}
   return tf.estimator.EstimatorSpec(
     mode = mode,
     loss = loss,
-    eval_metrics_ops = eval_metrics_ops)
+    eval_metric_ops = eval_metric_ops)
 
 def main(unused_argv):
   # Loads training and eval data
