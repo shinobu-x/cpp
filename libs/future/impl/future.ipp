@@ -505,7 +505,7 @@ public:
       BOOST_THREAD_FUTURE) that) BOOST_NOEXCEPT {
     this->base_type::operator=(
       boost::move(
-        static_cast<base_type&>(BOOST_THREAD_FUTURE(that))));
+        static_cast<base_type&>(BOOST_THREAD_RV(that))));
     return *this;
   }
 
