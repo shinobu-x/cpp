@@ -74,7 +74,7 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
     boost::detail::make_future_executor_continuation_shared_state(
       Ex& e,
       boost::unique_lock<boost::mutex>& lock,
-      F f,
+      BOOST_THREAD_RV_REF(F) f,
       BOOST_THREAD_FWD_REF(C) c);
 
   template <typename Ex, typename F, typename R, typename C>
@@ -390,8 +390,16 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
 #ifdef BOOST_THREAD_PROVIDES_EXECUTORS
   template <typename R, typename C, typename Ex>
   friend BOOST_THREAD_FUTURE<R>
+    boost::detail::make_future_executor_shared_state(
+      Ex& ex,
+      BOOST_THREAD_FWD_REF(C) c);
+
+  template <typename Ex, typename F, typename R, typename C>
+  friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_future_executor_continuation_shared_state(
       Ex& ex,
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f,
       BOOST_THREAD_FWD_REF(C) c);
 
   template <typename Ex, typename F, typename R, typename C>
