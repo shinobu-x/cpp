@@ -45,7 +45,7 @@ import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.INFO)
 
 # Model function for CNN.
-def cnn_model_fn(feature, labels, mode):
+def cnn_model_fn(features, labels, mode):
   # conv2d():
   # Constructs a two-dimensional convolutional layer. Takes number of filters,
   # filter kernel size, padding, and activation function as arguments.
@@ -125,7 +125,7 @@ def cnn_model_fn(feature, labels, mode):
     filters = 64,
     kernel_size = [5, 5],
     padding = 'same',
-    activation = tf.nn.relue)
+    activation = tf.nn.relu)
 
   # Pooling layer #2
   # Second max pooling layer with a 2x2 filter and stride of 2.
@@ -139,7 +139,7 @@ def cnn_model_fn(feature, labels, mode):
   # Flatten tensor into a batch of vectors.
   # Input tensor shape: [batch_size, 7, 7, 64].
   # Output tensor shape: [batch_size, 7 * 7 * 64].
-  pool2_flatten = tr.reshape(
+  pool2_flatten = tf.reshape(
     pool2,
     [-1, 7 * 7 * 64])
 
@@ -148,7 +148,7 @@ def cnn_model_fn(feature, labels, mode):
   # Input tensor shape: [batch_size, 7 * 7 * 64]
   # Output tensor shape: [batch_size, 1024]
   dense = tf.layers.dense(
-    input = pool2_flatten,
+    inputs = pool2_flatten,
     units = 1024,
     activation = tf.nn.relu)
 
@@ -182,7 +182,7 @@ def cnn_model_fn(feature, labels, mode):
     # Generate predictions (for PREDICT and EVAL mode)
     "classes": tf.argmax(
       input = logits,
-      exis = 1),
+      axis = 1),
     # Adds softmax_layer to the graph. It is used for PREDICT and by the loggi-
     # ng_hook
     "probabilities": tf.nn.softmax(
@@ -238,7 +238,7 @@ def main(unused_argv):
     mnist.train.labels,
     dtype = np.int32)
   eval_data = mnist.test.images # Returns np.array
-  eval_labels  np.asarray(
+  eval_labels = np.asarray(
     mnist.test.labels,
     dtype = np.int32)
 
@@ -276,7 +276,7 @@ def main(unused_argv):
   # train for 20000 steps total). We pass our logging_hook to the hooks argume-
   # nt, so that it will be triggered during training.
   train_input_fn = tf.estimator.inputs.numpy_input_fn(
-    x = {"x": train_data,
+    x = {"x": train_data},
     y = train_labels,
     batch_size = 100,
     num_epochs = None,
