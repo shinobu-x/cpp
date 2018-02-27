@@ -301,7 +301,7 @@ def main(unused_argv):
     shuffle = False)
   eval_results = mnist_classifier.evaluate(
     input_fn = eval_input_fn)
-  print(eval_result)
+  print(eval_results)
 
 if __name__ == "__main__":
   tf.app.run()
