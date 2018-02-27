@@ -153,7 +153,7 @@ struct future_sync_continuation_shared_state :
   future_sync_continuation_shared_state(
     BOOST_THREAD_RV_REF(F) f,
     BOOST_THREAD_FWD_REF(C) c) :
-    base_type(boost::move(f), boost::forward(c)) {}
+    base_type(boost::move(f), boost::forward<C>(c)) {}
 
   void launch_continuation() {
     this->call();
@@ -168,11 +168,11 @@ struct run_it {
 #ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
   BOOST_THREAD_COPYABLE_AND_MOVABLE(run_it)
 
-  run_it(run_it const& ex) : ex_(ex) {}
-  run_it& operator=(BOOST_THREAD_COPY_ASSIGN_REF(run_it) ex) {
-    if (this != &ex) {
-      ex_ = ex.ex_;
-      ex.ex_.reset();
+  run_it(run_it const& that) : ex_(that.ex_) {}
+  run_it& operator=(BOOST_THREAD_COPY_ASSIGN_REF(run_it) that) {
+    if (this != &that) {
+      ex_ = that.ex_;
+      that.ex_.reset();
     }
     return *this;
   }
@@ -203,7 +203,7 @@ struct future_executor_continuation_shared_state :
   ~future_executor_continuation_shared_state() {}
 
   template <typename Ex>
-  void init(boost::unique_lock<boost::mutex>& lock, Ex ex) {
+  void init(boost::unique_lock<boost::mutex>& lock, Ex& ex) {
     this->set_executor_policy(boost::executor_ptr_type(
       new executor_ref<Ex>(ex)), lock);
     this->base_type::init(lock);
