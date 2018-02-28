@@ -58,6 +58,6 @@ std::size_t f2(const std::string& s) {
   return s.size();
 }
 
-auto main() ->decltype(0) {
+auto main() -> decltype(0) {
   return 0;
 }
