@@ -134,7 +134,8 @@ BOOST_THREAD_FUTURE<R> make_future_executor_continuation_shared_state(
 template <typename Ex, typename F, typename R, typename C>
 BOOST_THREAD_FUTURE<R> make_shared_future_executor_continuation_shared_state(
   Ex& ex,
-  BOOST_THREAD_RV_REF(F) f,
+  boost::unique_lock<boost::mutex>& lock,
+  F f,
   BOOST_THREAD_FWD_REF(C) c);
 #endif // BOOST_THREAD_PROVIDES_EXECUTORS
 #endif // BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
