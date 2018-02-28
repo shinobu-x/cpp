@@ -72,7 +72,7 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
   template <typename Ex, typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_future_executor_continuation_shared_state(
-      Ex& e,
+      Ex& ex,
       boost::unique_lock<boost::mutex>& lock,
       BOOST_THREAD_RV_REF(F) f,
       BOOST_THREAD_FWD_REF(C) c);
@@ -80,7 +80,7 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
   template <typename Ex, typename F, typename R, typename C>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_shared_future_executor_continuation_shared_state(
-      Ex& e,
+      Ex& ex,
       boost::unique_lock<boost::mutex>& lock,
       F f,
       BOOST_THREAD_FWD_REF(C) c);
@@ -94,8 +94,8 @@ class BOOST_THREAD_FUTURE : public boost::detail::basic_future<T> {
   template <typename F, typename R>
   friend BOOST_THREAD_FUTURE<R>
     boost::detail::make_future_unwrap_shared_state(
-       boost::unique_lock<boost::mutex>& lock,
-       BOOST_THREAD_RV_REF(F) f);
+      boost::unique_lock<boost::mutex>& lock,
+      BOOST_THREAD_RV_REF(F) f);
 #endif // BOOST_THREAD_PROVIDES_FUTURE_UNWRAP
 
 #ifdef BOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_AYN
