@@ -70,7 +70,11 @@ struct future_deferred_shared_state<void, F> :
   virtual void execute(
     boost::unique_lock<boost::mutex>& lock) {
     try {
-      this->mark_finished_with_result_internal(f_(), lock);
+      F f = boost::move(f_);
+      relocker relock(lock);
+      f();
+      relock.lock();
+      this->mark_finished_with_result_internal(lock);
     } catch (...) {
       this->mark_exceptional_finish_internal(
         boost::current_exception(), lock);
