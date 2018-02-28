@@ -574,8 +574,10 @@ inline BOOST_THREAD_FUTURE<
       return BOOST_THREAD_MAKE_RV_REF(
         (
           boost::detail::make_future_executor_continuation_shared_state<
+            Ex,
             BOOST_THREAD_FUTURE<R>,
             future_type>(
+              ex,
               lock,
               boost::move(*this),
               boost::forward<F>(f)
