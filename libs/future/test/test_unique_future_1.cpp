@@ -31,7 +31,7 @@ void do_async(async_base* a) {
 template <typename F>
 boost::future<
   typename boost::result_of<F()>::type> async(F&& f) {
-  std::count << __func__ << '\n';
+  std::cout << __func__ << '\n';
   typedef typename boost::result_of<F()>::type callback_type;
 
   async_derived<callback_type>* callback =
@@ -59,7 +59,7 @@ std::size_t f2(const std::string& s) {
 }
 
 void doit() {
-  boost::future<int> f1 = async(&f1);
+  boost::future<int> f = async(&f1);
 }
 
 auto main() -> decltype(0) {
