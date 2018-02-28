@@ -58,6 +58,10 @@ std::size_t f2(const std::string& s) {
   return s.size();
 }
 
+void doit() {
+  boost::future<int> f1 = async(&f1);
+}
+
 auto main() -> decltype(0) {
   return 0;
 }
