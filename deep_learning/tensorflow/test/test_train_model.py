@@ -17,8 +17,8 @@ import tensorflow as tf
 #  A game where a player is challenged to draw a number of objects and see if a
 #  computer can recognize the drawing.
 #
-#  The recogintion in this is performed by a classifier that takes the user inp-
-#  ut, given as a sequence of strokes of points in x and y, and recognize the o-
+#  The recogintion in this is performed by a classifier that takes the user inp
+#  ut, given as a sequence of strokes of points in x and y, and recognize the o
 #  bject category that user tried to draw.
 #
 #  The model will use a combination of convolutional layers, LSTM layers, and a
