@@ -20,6 +20,7 @@ public:
 
   void run() {
     std::cout << __func__ << '\n';
+    task_();
   }
 };
 
@@ -44,24 +45,27 @@ boost::future<
   return boost::move(result);
 }
 
-template <typename F, typename C>
+template <typename F, typename A>
 boost::future<
-  typename boost::result_of<F(C)>::type> async(F&& f, C&& c) {
-  return async(boost::bind(f, c));
+  typename boost::result_of<F(A)>::type> async(F&& f, A&& a) {
+  return async(boost::bind(f, a));
 }
 
-int f1() {
+int a() {
   return 1;
 }
 
-std::size_t f2(const std::string& s) {
+std::size_t b(const std::string& s) {
   return s.size();
 }
 
 void doit() {
-  boost::future<int> f = async(&f1);
+  boost::future<int> f1 = async(&a);
+  auto r = f1.get();
+  assert(r == 1);
 }
 
 auto main() -> decltype(0) {
+  doit();
   return 0;
 }
