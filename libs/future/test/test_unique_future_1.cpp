@@ -8,9 +8,9 @@ struct async_base {
 template <typename T>
 struct async_derived : async_base {
 private:
-  boost::packaged_task<T> task_;
+  boost::packaged_task<T()> task_;
 public:
-  async_derived(boost::packaged_task<T>&& task) :
+  async_derived(boost::packaged_task<T()>&& task) :
     task_(boost::move(task)) {}
   ~async_derived() {}
 
@@ -35,7 +35,7 @@ boost::future<
   typedef typename boost::result_of<F()>::type callback_type;
 
   async_derived<callback_type>* callback =
-    new async_derived<callback_type>(boost::packaged_task<callback_type>(
+    new async_derived<callback_type>(boost::packaged_task<callback_type()>(
       boost::forward<F>(f)));
 
   boost::future<callback_type> result = callback->get_future();
