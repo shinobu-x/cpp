@@ -1,6 +1,5 @@
 #ifndef FUTURE_UNWRAP_SHARED_STATE_IPP
 #define FUTURE_UNWRAP_SHARED_STATE_IPP
-
 #include <include/futures.hpp>
 
 namespace boost {
