@@ -1,6 +1,5 @@
 #ifndef SHARED_STATE_NULLARY_TASK_IPP
 #define SHARED_STATE_NULLARY_TASK_IPP
-
 #include <include/futures.hpp>
 
 namespace boost {
