@@ -1,6 +1,5 @@
 #ifndef SHARED_STATE_IPP
 #define SHARED_STATE_IPP
-
 #include <include/futures.hpp>
 
 namespace boost {
