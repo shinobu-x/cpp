@@ -1,7 +1,6 @@
 #ifndef PROMISE_IPP
 #define PROMISE_IPP
-
-#include "../include/futures.hpp"
+#include <include/futures.hpp>
 
 namespace boost {
 
