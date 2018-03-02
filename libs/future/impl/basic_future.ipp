@@ -1,5 +1,6 @@
 #ifndef BASIC_FUTURE_IPP
 #define BASIC_FUTURE_IPP
+#include <include/futures.hpp>
 
 namespace boost {
 namespace detail {
