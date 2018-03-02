@@ -1,7 +1,7 @@
 #ifndef SHARED_FUTURE_IPP
 #define SHARED_FUTURE_IPP
 
-#include "../include/futures.hpp"
+#include <include/futures.hpp>
 
 namespace boost {
 
@@ -59,9 +59,6 @@ public:
 
   // Constructor
   BOOST_CONSTEXPR shared_future() {}
-
-  // Destructor
-  ~shared_future() {}
 
   shared_future(shared_future const& that) : base_type(that.future_) {}
 
