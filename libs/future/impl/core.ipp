@@ -1,7 +1,6 @@
 #ifndef CORE_IPP
 #define CORE_IPP
-
-#include "../include/futures.hpp"
+#include <include/futures.hpp>
 
 namespace boost {
 
