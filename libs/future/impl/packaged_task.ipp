@@ -1,7 +1,6 @@
 #ifndef PACKAGED_TASK_IPP
 #define PACKAGED_TASK_IPP
-
-#include "../include/futures.hpp"
+#include <include/futures.hpp>
 
 namespace boost {
 
