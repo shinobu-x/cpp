@@ -1,8 +1,6 @@
 #ifndef FUTURE_IPP_
 #define FUTURE_IPP_
-
 #ifndef BOOST_NO_EXCEPTIONS
-
 #include <include/futures.hpp>
 #include <hpp/core.hpp>
 #include <hpp/shared_state_base.hpp>
@@ -24,6 +22,7 @@
 #include <hpp/continuation.hpp>
 #include <hpp/future_unwrap_shared_state.hpp>
 #include <hpp/future_when_all_when_any.hpp>
+
 namespace boost {
 
 #ifdef BOOST_NO_CXX11_VARIADIC_TEMPLATE
