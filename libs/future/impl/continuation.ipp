@@ -1,6 +1,5 @@
 #ifndef CONTINUATION_IPP
 #define CONTINUATION_IPP
-
 #include <include/futures.hpp>
 
 namespace boost {
