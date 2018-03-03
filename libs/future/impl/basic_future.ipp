@@ -104,8 +104,8 @@ public:
     }
   }
 
-  bool valid() const {
-    return future_ && future_->valid();
+  bool valid() const BOOST_NOEXCEPT {
+    return future_.get() != 0 && future_->valid();
   }
 
   void wait() const {
