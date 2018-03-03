@@ -246,7 +246,7 @@ struct future_when_all_tuple_shared_state :
   }
 
   bool run_deferred() {
-    return accumulate_run_if_is_deferred<T>()(t_);
+    return accumulate_run_if_is_deferred<Tuple>()(t_);
   }
 
   void init() {
