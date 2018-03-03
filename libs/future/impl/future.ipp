@@ -431,7 +431,7 @@ class BOOST_THREAD_FUTURE<boost::BOOST_THREAD_FUTURE<T2> > :
         typename InputIter::value_type> > >::type
           when_all(InputIter begin, InputIter end);
 
-  inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all();
+  friend inline BOOST_THREAD_FUTURE<boost::csbl::tuple<> > when_all();
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
   template <typename F, typename... Fs>
