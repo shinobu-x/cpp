@@ -157,36 +157,30 @@ BOOST_THREAD_FUTURE<typename boost::decay<T>::type>
 
 #ifdef BOOST_THREAD_USES_MOVE
 inline BOOST_THREAD_FUTURE<void> make_future() {
-
   boost::promise<void> p;
   p.set_value();
-
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 #endif // BOOST_THREAD_USES_MOVE
 
 #ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 template <int = 0, int..., typename T>
-#else
+#else // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 template <typename T>
 #endif // BOOST_NO_CXX11_VARIADIC_TEMPLATE
 BOOST_THREAD_FUTURE<typename boost::detail::deduced_type<T>::type>
   make_ready_future(BOOST_THREAD_FWD_REF(T) value) {
-
   typedef typename boost::detail::deduced_type<T>::type future_value_type;
   boost::promise<future_value_type> p;
   p.set_value(boost::forward<T>(value));
-
   return BOOST_THREAD_MAKE_RV_REF(p.get_future());
 }
 
 template <typename T>
 BOOST_THREAD_FUTURE<T> make_ready_future(
   typename boost::remove_reference<T>::typ& v) {
-
   boost::promise<T> p;
-  p.set_value(boost::forward<typename boost::remove_reference<T>::type>(v));
-
+  p.set_value(v);
   return p.get_future();
 }
 
