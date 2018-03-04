@@ -30,10 +30,10 @@ template <typename R>
 class packaged_task;
 
 template <typename T>
-struct is_future_type<BOOST_THREAD_FUTURE<T> > : boost::true_type {};
+struct is_future_type<boost::future<T> > : boost::true_type {};
 
 template <typename T>
-struct is_future_type<shared_future<T> > : boost::true_type {};
+struct is_future_type<boost::shared_future<T> > : boost::true_type {};
 
 namespace detail {
 
