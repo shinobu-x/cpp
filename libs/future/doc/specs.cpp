@@ -1,3 +1,11 @@
+/**
+ * task_shared_state
+ *   -> task_base_shared_state
+ *     -> shared_state
+ *        void set_value_at_thread_exit
+ *       -> shared_state_base
+ */
+
 namespace boost {
 namespace future_state {
 
