@@ -150,13 +150,19 @@ struct shared_state : boost::detail::shared_state_base {
     if (this->has_value()) {
       boost::throw_exception(boost::promise_already_satisfied());
     }
-#if defined(BOOST_THREAD_FUTURE_USES_OPTIONAL) &&                            \
-   !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
     result_ = boost::move(result);
-#else
+#else // BOOST_THREAD_FUTURE_USES_OPTIONAL
     result_.reset(new (static_cast<rvalue_source_type>(result)));
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
+#else
+#ifdef BOOST_THREAD_FUTURE_USES_OPTIONAL
+    result_ = boost::move(result_);
+#else // BOOST_THREAD_FUTURE_USES_OPTIONAL
+    result_.reset(new T(static_cast<rvalue_source_type>(result)));
+#endif // BOOST_THREAD_FUTURE_USES_OPTIONAL
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
-       // BOOST_THREAD_FUTURE_USES_OPTIONAL
     this->is_constructed_ = true;
     boost::detail::make_ready_at_thread_exit(shared_from_this());
   }
