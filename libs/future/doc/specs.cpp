@@ -1,11 +1,3 @@
-/**
- * task_shared_state
- *   -> task_base_shared_state
- *     -> shared_state
- *        void set_value_at_thread_exit
- *       -> shared_state_base
- */
-
 namespace boost {
 namespace future_state {
 
@@ -134,3 +126,121 @@ typename boost::disable_if<
   boost::future<
     boost::csbl::vector<
       typename InputIter::value_type> > >::type when_all(InputIter, InputIter);
+
+boost {
+detail {
+
+/* shared_state */
+template <typename T>
+struct shared_state :
+  boost::detail::shared_state_base {}
+
+template <typename T>
+struct shared_state<T&> :
+  boost::detail::shared_state_base {}
+
+// storage_type
+typedef boost::optional<T> storage_type;
+typedef boost::csbl::unique_ptr<T> storage_type;
+typedef T* storage_type;
+
+// source_reference_type
+typedef T const& source_reference_type;
+typedef typename boost::conditional<
+  boost::is_fundamental<T>::value,
+  T,
+  T const&>::type source_reference_type;
+typedef T& source_reference_type;
+
+// rvalue_source_type
+typedef BOOST_THREAD_RV_REF(T) rvalue_source_type;
+typedef typename boost::conditional<
+  boost::thread_detail::is_convertible<
+    T&,
+    BOOST_THREAD_RV_REF(T),
+    T const&>::type rvalue_source_type;
+
+// move_dest_type
+typedef T move_dest_type;
+typedef typename boost::conditional<
+  boost::thread_detail::is_convertible<
+    T&,
+    BOOST_THREAD_RV_REF(T)>::value,
+  BOOST_THREAD_RV_REF(T),
+  T>::type move_dest_type;
+typedef T& move_dest_type;
+
+// shared_future_get_result_type
+typedef const T& shared_future_get_result_type;
+typedef T& shared_future_get_result_type;
+
+} // detail
+} // boost
+
+boost {
+detail {
+
+/* task_shared_state */
+template <typename F, typename R, typename... As>
+struct task_shared_state<F, R(As...)> :
+  boost::detail::task_base_shared_state<R(As...)> {}
+
+template <typename F, typename R>
+struct task_shared_state<F, R()> :
+  boost::detail::task_base_shared_state<R()> {}
+
+template <typename F, typename R>
+struct task_shared_state :
+  boost::detail::task_base_shared_state<R> {}
+
+// Call:
+//   set_value_at_thread_exit
+// or:
+//   set_exception_at_thread_exit
+void do_apply(BOOST_THREAD_RV_REF(As));
+void do_apply();
+
+// Call:
+//   mark_finished_with_result
+// or:
+//   mark_exceptional_finish
+void do_run(BOOST_THREAD_RV_REF(As));
+void do_run()
+
+/* task_base_shared_state */
+template <typename R, typename... As>
+struct task_base_shared_state<R(As...)> :
+  boost::detail::shared_state<R> {}
+
+template <typename R>
+struct task_base_shared_state<R()> :
+  boost::detail::shared_state<R> {}
+
+template <typename R>
+struct task_base_shared_state<R> :
+  boost::detail::shared_state<R> {}
+
+virtual void do_run(BOOST_THREAD_RV_REF(As)) = 0;
+// Call
+//   do_run(boost::move(as)...)
+void run(BOOST_THREAD_RV_REF(As));
+
+virtual void do_run() = 0;
+// Call
+//   do_run()
+void run()
+
+virtual void do_apply(BOOST_THREAD_RV_REF(As)) = 0;
+// Call
+//   do_apply(boost::move(as)...)
+void apply(BOOST_THREAD_RV_REF(As));
+
+virtual void do_apply() = 0;
+// Call
+//   do_apply()
+void apply();
+
+void owner_destroyed();
+
+} // detail
+} // boost
