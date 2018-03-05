@@ -38,7 +38,7 @@ public:
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   void do_apply(BOOST_THREAD_RV_REF(As) ...as) {
     try {
-      this->set_value_at_thread_exit(boost::move(as)...);
+      this->set_value_at_thread_exit(f_(boost::move(as)...));
 #else
   void do_apply() {
     try {
