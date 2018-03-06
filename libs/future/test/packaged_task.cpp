@@ -1,6 +1,6 @@
 #include <include/futures.hpp>
-#include <hpp/packaged_task.hpp>
-
+// #include <hpp/packaged_task.hpp>
+// #include "/usr/include/boost/thread/future.hpp"
 boost::condition_variable cv;
 boost::mutex m;
 int ans = 0;
@@ -28,7 +28,7 @@ void c() {
   ans = 2;
 }
 
-void invoke_lazy_task(boost::packaged_task<int()>& task) {
+void invoke_lazy_task(boost::packaged_task<int>& task) {
   std::cout << __func__ << '\n';
   try {
     task();
@@ -37,7 +37,7 @@ void invoke_lazy_task(boost::packaged_task<int()>& task) {
 
 void doit() {
   {
-    boost::packaged_task<int()> task(a);
+    boost::packaged_task<int> task(a);
     task.set_wait_callback(invoke_lazy_task);
      auto f(task.get_future());
     assert(!f.is_ready());
