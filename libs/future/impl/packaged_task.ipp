@@ -68,7 +68,7 @@ explicit packaged_task(R(*f)()) {
 
   task_ = task_ptr(
     new task_shared_state_type(f));
-  future_obtain_ = false;
+  future_obtained_ = false;
 }
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 #endif // BOOST_THREAD_PROVIDES_REFERENCES_DONT_MATCH_FUNCTION_PTR
@@ -105,7 +105,7 @@ explicit packaged_task(
       boost::forward<F>(f)));
   future_obtained_ = false
 }
-#else // BOOST_THREAD_PROVIDE_VARIADIC_THREAD *
+#else // BOOST_THREAD_PROVIDE_VARIADIC_THREAD
 template <typename F>
 explicit packaged_task(
   F const& f,
@@ -285,7 +285,7 @@ packaged_task& operator=(
   packaged_task temp(boost::move(that));
 #else // BOOST_NO_CXX11_RVALUE_REFERENCES
   packaged_task temp(
-    static_cast<BOOST_THREAD_RV_REVF(packaged_task)>(that));
+    static_cast<BOOST_THREAD_RV_REF(packaged_task)>(that));
 #endif // BOOST_NO_CXX11_RVALUE_REFERENCES
   swap(temp);
 
@@ -357,6 +357,7 @@ void operator()() {
   if (!task_) {
     boost::throw_exception(boost::task_moved());
   }
+std::cout << 'a' << '\n';
   task_->run();
 }
 
@@ -368,6 +369,7 @@ void make_ready_at_thread_exit() {
     boost::throw_exception(boost::promise_already_satisfied());
   }
   task_->apply();
+}
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
        // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 
