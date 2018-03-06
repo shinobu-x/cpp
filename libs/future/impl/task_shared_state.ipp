@@ -85,7 +85,7 @@ struct task_shared_state<F, R&()> :
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename F, typename R>
-struct task_shared_state<F, R&>
+struct task_shared_state<F, R&> :
   task_base_shared_state<R&> {
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 private:
@@ -156,7 +156,7 @@ private:
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   typedef R (*CallableType)(As ...);
 #else
-  typedef R (*CallableType());
+  typedef R (*CallableType)();
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
        // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 public:
@@ -216,14 +216,26 @@ struct task_shared_state<R&(*)(), R&()> :
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename R>
-struct task_shared_state<&R(*)(), R&> :
+struct task_shared_state<R&(*)(), R&> :
   task_base_shared_state<R&> {
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
-
-
 private:
   task_shared_state(task_shared_state&);
 public:
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
+    defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
+  typedef R&(*CallableType)(BOOST_THREAD_RV_REF(As)...);
+#else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+      // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  typedef R&(*CallableType)();
+#endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  CallableType f_;
+  task_shared_state(CallableType f) : f_(f) {}
+
+  CallableType callable() {
+    return boost::move(f_);
+  }
 #if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   void do_apply(BOOST_THREAD_RV_REF(As) ...as) {
@@ -341,7 +353,7 @@ struct task_shared_state<void(*)(), void> :
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 private:
   task_shared_state(task_shared_state&);
-#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   typedef void (*CallableType)(As...);
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -357,24 +369,25 @@ public:
     return f_;
   }
 
-#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOST_THREAD_PROVIDES_VARIADIC_THREAD)
   void do_apply(BOOST_THREAD_RV_REF(As) ...as) {
     try {
       f_(boost::move(as)...);
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
       // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+  void do_apply() {
     try {
       f_();
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
        // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
       this->set_value_at_thread_exit();
     } catch (...) {
-      this->set_exception_at_thread_exit();
+      this->set_exception_at_thread_exit(boost::current_exception());
     }
   } // do_apply
 
-#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                  \
+#if defined(BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK) &&                 \
     defined(BOOsT_THREAD_PROVIDES_VARIADIC_THREAD)
   void do_run(BOOST_THREAD_RV_REF(As) ...as) {
     try {
