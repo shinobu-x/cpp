@@ -57,7 +57,7 @@ BOOST_THREAD_FUTURE<R> async(
     boost::thread(boost::move(task_type)).detach();
     return boost::move(r);
   } else if (boost::underlying_cast<int>(policy) &&
-             boost::launch::deferred) {
+             int(boost::launch::deferred)) {
     std::terminate();
   } else {
     std::terminate();
@@ -112,18 +112,18 @@ BOOST_THREAD_FUTURE<
   boost::launch policy,
   BOOST_THREAD_FWD_REF(F) f) {
   typedef typename boost::result_of<
-    typename boost::decay<F>::type()>::type task_type;
+    typename boost::decay<F>::type()>::type result_type;
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
-  typedef boost::packaged_task<task_type()> packaged_task_type;
+  typedef boost::packaged_task<result_type()> packaged_task_type;
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
-  typedef boost::packaged_task<task_type> packaged_task_type;
+  typedef boost::packaged_task<result_type> packaged_task_type;
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
   if (boost::underlying_cast<int>(policy) &&
       int(boost::launch::async)) {
     packaged_task_type task_type(
       boost::forward<F>(f));
-    BOOST_THREAD_FUTURE<R> r = task_type.get_future();
+    BOOST_THREAD_FUTURE<result_type> r = task_type.get_future();
     r.set_async();
     boost::thread(boost::move(task_type)).detach();
     return boost::move(r);
@@ -314,7 +314,7 @@ BOOST_THREAD_FUTURE<R> async(
 template <typename R>
 BOOST_THREAD_FUTURE<R> async(R(*f)()) {
   return BOOST_THREAD_MAKE_RV_REF(
-    boost::sync(
+    boost::async(
       boost::launch(
         boost::launch::any),
     f));
