@@ -157,8 +157,7 @@ BOOST_THREAD_FUTURE<R> async(
     boost::detail::make_future_executor_shared_state<result_type>(
       ex,
       callback_type(
-        boost::thread_detail::decay_copy(
-          boost::forward<F>(f)),
+        f,
         boost::thread_detail::decay_copy(
           boost::forward<As>(as))...
     )));
@@ -236,25 +235,24 @@ BOOST_THREAD_FUTURE<
     typename boost::decay<F>::type> callback_type;
   typedef typename callback_type::result_type result_type;
 
-  return BOOST_THREAD_MAKE_RV_REF(
-    boost::detail::make_future_executor_shared_state<result_type>(
-      ex,
-      callback_type(
-        boost::thread_detail::decay_copy(
-          boost::forward<F>(f)))));
+  return boost::detail::make_future_executor_shared_state<result_type>(
+    ex,
+    callback_type(
+      boost::thread_detail::decay_copy(
+        boost::forward<F>(f))));
 }
 
-template <typename Ex, typename F, typename A1>
+template <typename Ex, typename F, typename A>
 BOOST_THREAD_FUTURE<
   typename boost::result_of<
     typename boost::decay<F>::type(
       typename boost::decay<A1>::type)>::type async(
   Ex& ex,
   BOOST_THREAD_FWD_REF(F) f,
-  BOOST_THREAD_FWD_REF(A1) a1) {
+  BOOST_THREAD_FWD_REF(A) a) {
   typedef boost::detail::invoker<
     typename boost::decay<F>::type,
-    typename boost::decay<A1>::type> callback_type;
+    typename boost::decay<A>::type> callback_type;
   typedef typename callback_type::result_type result_type;
 
   return BOOST_THREAD_MAKE_RV_REF(
@@ -264,15 +262,15 @@ BOOST_THREAD_FUTURE<
         boost::thread_detail::decay_copy(
           boost::forward<F>(f)),
         boost::thread_detail::decay_copy(
-          boost::forward<A1>(a1)))));
+          boost::forward<A1>(a)))));
 }
 
-template <typename Ex, typename F, typename T1, typename T2>
+template <typename Ex, typename F, typename A1, typename A2>
 BOOST_THREAD_FUTURE<
   typename boost::result_of<
     typename boost::decay<F>::type(
-      typename boost::decay<T1>::type,
-      typename boost::decay<T2>::type)>::type> async(
+      typename boost::decay<A1>::type,
+      typename boost::decay<A2>::type)>::type> async(
   Ex& ex,
   BOOST_THREAD_FWD_REF(F) f,
   BOOST_THREAD_FWD_REF(A1) a1,
@@ -286,12 +284,13 @@ BOOST_THREAD_FUTURE<
   return BOOST_THREAD_MAKE_RV_REF(
     boost::detail::make_future_executor_shared_state<result_type>(
       ex,
-      boost::thread_detail::decay_copy(
-        boost::forward<F>(f)),
-      boost::thread_detail::decay_copy(
-        boost::forward<A1>(a1)),
-      boost::thread_detail::decay_copy(
-        boost::forward<A2>(a2))));
+      callback_type(
+        boost::thread_detail::decay_copy(
+          boost::forward<F>(f)),
+        boost::thread_detail::decay_copy(
+          boost::forward<A1>(a1)),
+        boost::thread_detail::decay_copy(
+          boost::forward<A2>(a2)))));
 }
 #endif // BOOST_THREAD_PROVIDES_INVOKE
        // BOOST_NO_CXX11_VARIADIC_TEMPLATE
@@ -341,7 +340,7 @@ BOOST_THREAD_FUTURE<
 #else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename F>
 BOOST_THREAD_FUTURE<
-  typename boost::result_of<F()>::tye> async(
+  typename boost::result_of<F()>::type> async(
   BOOST_THREAD_FWD_REF(F) f) {
   return BOOST_THREAD_MAKE_RV_REF(
     boost::async(
