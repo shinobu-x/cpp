@@ -1,7 +1,6 @@
 #ifndef PACKAGED_TASK_IPP
 #define PACKAGED_TASK_IPP
 #include <include/futures.hpp>
-
 namespace boost {
 
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -10,20 +9,36 @@ template <typename R, typename... As>
 class packaged_task<R(As...)> {
   typedef boost::shared_ptr<
     boost::detail::task_base_shared_state<R(As...)> > task_ptr;
+  boost::shared_ptr<
+    boost::detail::task_base_shared_state<R(As...)> > task_;
+//typedef typename boost::detail::task_base_shared_state<R(As...)> shared_state;
+//  typedef boost::shared_ptr<
+//    boost::detail::task_base_shared_state<R(As...)> > task_ptr;
 #else
 template <typename R>
 class packaged_task<R()> {
+//  typedef typename boost::detail::task_base_shared_state<R()> shared_state;
+//  typedef boost::shared_ptr<
+//    boost::detail::task_base_shared_state<R()> > task_ptr;
   typedef boost::shared_ptr<
     boost::detail::task_base_shared_state<R()> > task_ptr;
+  boost::shared_ptr<
+    boost::detail::task_base_shared_state<R()> > task_;
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename R>
 class packaged_task {
+//  typedef typename boost::detail::task_base_shared_state<R> shared_state;
+//  typedef boost::shared_ptr<
+//    boost::detail::task_base_shared_state<R> > task_ptr;
   typedef boost::shared_ptr<
     boost::detail::task_base_shared_state<R> > task_ptr;
+  boost::shared_ptr<
+    boost::detail::task_base_shared_state<R> > task_;
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
-  task_ptr task_;
+//  typedef boost::shared_ptr<shared_state> task_ptr;
+//  task_ptr task_;
   bool future_obtained_;
   struct dummy;
 
