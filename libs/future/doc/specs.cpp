@@ -129,8 +129,9 @@ typename boost::disable_if<
 
 boost {
 detail {
-
-/* shared_state */
+//////////////////////////////////////
+// shared_state                     //
+//////////////////////////////////////
 template <typename T>
 struct shared_state :
   boost::detail::shared_state_base {}
@@ -174,13 +175,65 @@ typedef T& move_dest_type;
 typedef const T& shared_future_get_result_type;
 typedef T& shared_future_get_result_type;
 
+// Member variables
+storage_type result_;
+
+// Member methods
+// Call:
+//   mark_finished_internal;
+void mark_finished_with_result_internal(
+  source_reference_type,
+  boost::unique_lock<boost::mutex>&);
+
+void mark_finished_with_result_internal(
+  rvalue_source_type,
+  boost::unique_lock<boost::mutex>&);
+
+template <typename... As>
+void mark_finished_with_result_internal(
+  boost::unique_lock<boost::mutex>&,
+  BOOST_THREAD_FWD_REF(As));
+
+// Call:
+//   mark_finished_with_result_internal
+void mark_finished_with_result(
+  source_reference_type);
+
+void mark_finished_with_result(
+  rvalue_reference_type);
+
+storage_type& get_storage(
+  boost::unique_lock<boost::mutex>&);
+
+virtual move_dest_type get(
+  boost::unique_lock<boost::mutex>&);
+
+move_dest_type get();
+
+virtual shared_future_get_result_type get_result_type(
+  boost::unique_lock<boost::mutex>&);
+
+shared_future_get_result_tpe get_result_type();
+
+void set_value_at_thread_exit(
+  source_reference_type);
+
+void set_value_at_thread_exit(
+  rvalue_source_type);
+
+// Private
+shared_state(shared_state const&);
+shared_state& operator=(shared_state const&);
+
 } // detail
 } // boost
 
 boost {
 detail {
 
-/* task_shared_state */
+//////////////////////////////////////
+// task_shared_state                //
+//////////////////////////////////////
 template <typename F, typename R, typename... As>
 struct task_shared_state<F, R(As...)> :
   boost::detail::task_base_shared_state<R(As...)> {}
@@ -207,7 +260,9 @@ void do_apply();
 void do_run(BOOST_THREAD_RV_REF(As));
 void do_run()
 
-/* task_base_shared_state */
+//////////////////////////////////////
+// task_base_shared_state           //
+//////////////////////////////////////
 template <typename R, typename... As>
 struct task_base_shared_state<R(As...)> :
   boost::detail::shared_state<R> {}
@@ -221,22 +276,22 @@ struct task_base_shared_state<R> :
   boost::detail::shared_state<R> {}
 
 virtual void do_run(BOOST_THREAD_RV_REF(As)) = 0;
-// Call
+// Call:
 //   do_run(boost::move(as)...)
 void run(BOOST_THREAD_RV_REF(As));
 
 virtual void do_run() = 0;
-// Call
+// Call:
 //   do_run()
 void run()
 
 virtual void do_apply(BOOST_THREAD_RV_REF(As)) = 0;
-// Call
+// Call:
 //   do_apply(boost::move(as)...)
 void apply(BOOST_THREAD_RV_REF(As));
 
 virtual void do_apply() = 0;
-// Call
+// Call:
 //   do_apply()
 void apply();
 
