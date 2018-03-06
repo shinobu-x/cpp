@@ -142,7 +142,7 @@ struct task_shared_state<R(*)(As...), R(As...)> :
   task_base_shared_state<R(As...)> {
 #else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R>
-struct task_shared_state<R(*)(), R> :
+struct task_shared_state<R(*)(), R()> :
   task_base_shared_state<R()> {
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -216,7 +216,7 @@ struct task_shared_state<R&(*)(), R&()> :
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename R>
-struct task_shared_state<R(*)(), R&> :
+struct task_shared_state<&R(*)(), R&> :
   task_base_shared_state<R&> {
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
