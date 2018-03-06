@@ -41,7 +41,7 @@ BOOST_THREAD_FUTURE<R> async(
 template <typename R>
 BOOST_THREAD_FUTURE<R> async(
   boost::launch policy,
-  R(*f)()() {
+  R(*f)()) {
 #ifdef BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
   typedef boost::packaged_task<R()> packaged_task_type;
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
@@ -54,6 +54,7 @@ BOOST_THREAD_FUTURE<R> async(
     BOOST_THREAD_FUTURE<R> r =
       BOOST_THREAD_MAKE_RV_REF(task_type.get_future());
     r.set_async();
+    boost::thread(boost::move(task_type)).detach();
     return boost::move(r);
   } else if (boost::underlying_cast<int>(policy) &&
              boost::launch::deferred) {
@@ -120,11 +121,11 @@ BOOST_THREAD_FUTURE<
 
   if (boost::underlying_cast<int>(policy) &&
       int(boost::launch::async)) {
-    packaged_task_type task(
+    packaged_task_type task_type(
       boost::forward<F>(f));
-    BOOST_THREAD_FUTURE<R> r = task.get_future();
+    BOOST_THREAD_FUTURE<R> r = task_type.get_future();
     r.set_async();
-    boost::thread(boost::move(task)).detach();
+    boost::thread(boost::move(task_type)).detach();
     return boost::move(r);
   } else if (boost::underlying_cast<int>(policy) &&
              int(boost::launch::deferred)) {
