@@ -7,24 +7,19 @@ namespace boost {
 #ifdef BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R, typename... As>
 class packaged_task<R(As...)> {
-  typedef typename boost::detail::task_base_shared_state<R(As...)> shared_state;
+  typedef typename boost::detail::task_base_shared_state<
+    R(As...)> shared_state;
 #else // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 template <typename R>
 class packaged_task<R()> {
-  typedef typename boost::detail::task_base_shared_state<R()> shared_state;
-  typedef boost::shared_ptr<
-    boost::detail::task_base_shared_state<R()> > task_ptr;
-  boost::shared_ptr<
-    boost::detail::task_base_shared_state<R()> > task_;
+  typedef typename boost::detail::task_base_shared_state<
+    R()> shared_state;
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 template <typename R>
 class packaged_task {
-  typedef typename boost::detail::task_base_shared_state<R> shared_state;
-  typedef boost::shared_ptr<
-    boost::detail::task_base_shared_state<R> > task_ptr;
-  boost::shared_ptr<
-    boost::detail::task_base_shared_state<R> > task_;
+  typedef typename boost::detail::task_base_shared_state<
+    R> shared_state;
 #endif // BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
 
   typedef boost::shared_ptr<shared_state> task_ptr;
@@ -65,7 +60,7 @@ explicit packaged_task(R(*f)()) {
 }
 #endif // BOOST_THREAD_PROVIDES_VARIADIC_THREAD
 #else
-explicit packaged_task(R(*f)() {
+explicit packaged_task(R(*f)()) {
   typedef R(*FR)();
   typedef boost::detail::task_shared_state<
     FR,
@@ -110,7 +105,7 @@ explicit packaged_task(
       boost::forward<F>(f)));
   future_obtained_ = false
 }
-#else // BOOST_THREAD_PROVIDE_VARIADIC_THREAD
+#else // BOOST_THREAD_PROVIDE_VARIADIC_THREAD *
 template <typename F>
 explicit packaged_task(
   F const& f,
