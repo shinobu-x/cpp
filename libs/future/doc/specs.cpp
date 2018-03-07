@@ -379,3 +379,25 @@ template <typename F>
 void set_wait_callback(F);
 
 } // boost
+
+//////////////////////////////////////
+// promise                          //
+//////////////////////////////////////
+boost {
+
+template <typename R>
+class promise;
+
+// Typedef
+typedef typename boost::detail::shared_state<R> shared_state;
+typedef boost::shared_ptr<shared_state> future_ptr;
+typedef typename shared_state::source_reference_type source_reference_type;
+typedef typename shared_state::rvalue_source_type rvalue_source_type;
+typedef typename shared_state::move_dest_type move_dest_type;
+typedef typename shared_state::shared_future_get_result_type result_type;
+
+// Member variables
+future_ptr future_;
+bool future_obtained_;
+
+} // boost
