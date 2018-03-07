@@ -53,7 +53,7 @@ explicit packaged_task(R(*f)()) {
   typedef boost::detail::task_shared_state<
     FR,
     R()> task_shared_state_type;
-
+std::cout << __LINE__ << '\n';
   task_ = task_ptr(
     new task_shared_state_type(f));
   future_obtained_ = false;
@@ -65,7 +65,7 @@ explicit packaged_task(R(*f)()) {
   typedef boost::detail::task_shared_state<
     FR,
     R> task_shared_state_type;
-
+std::cout << __LINE__ << '\n';
   task_ = task_ptr(
     new task_shared_state_type(f));
   future_obtained_ = false;
