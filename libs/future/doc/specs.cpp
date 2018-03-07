@@ -299,3 +299,83 @@ void owner_destroyed();
 
 } // detail
 } // boost
+
+boost {
+
+//////////////////////////////////////
+// packaged_task                    //
+//////////////////////////////////////
+template <typename R, typename... As>
+class packaged_task<R(As...)> {}
+
+template <typename R>
+class packaged_task<R()> {}
+
+template <typename R>
+class packaged_task {}
+
+// Member variables
+typedef boost::shared_ptr<
+  boost::detail::task_base_shared_state<R(As...)> > task_ptr;
+typedef boost::shared_ptr<
+  boost::detail::task_base_shared_state<R()> > task_ptr;
+typedef boost::shared_ptr<
+  boost::detail::task_base_shared_state<R> > task_ptr;
+
+boost::shared_ptr<boost::detail::task_base_shared_state<R(As...)> > task_
+boost::shared_ptr<boost::detail::task_base_shared_state<R()> > task_;
+boost::shared_ptr<boost::detail::task_base_shared_state<R> > task_;
+
+typedef R result_type;
+
+// Member methods
+void set_executor(executor_ptr_type);
+void reset();
+void swap(packaged_task& that) BOOST_NOEXCEPT;
+bool valid() const BOOST_NOEXCEPT;
+BOOST_THREAD_FUTURE<R> get_future();
+
+// Ctor
+explicit packaged_task(R(*f)(),BOOST_THREAD_FWD_REF(As)...);
+explicit packaged_task(R(*f)());
+explicit packaged_task(R(*f)());
+
+template <typename F>
+explicit packaged_task(
+  BOOST_THREAD_FWD_REF(F) f,
+  typename boost::disable_if<
+    boost::is_same<
+      typename boost::decay<F>::type,
+      packaged_task>,
+    dummy* >::type = 0);
+
+template <typename F>
+explicit packaged_task(
+  F const& f,
+  typename boost::disable_if<
+    boost::is_same<
+      typename boost::decay<F>::type,
+      packaged_task>,
+    dummy* >::type = 0);
+
+template <typename F>
+explicit packaged_task(
+  BOOST_THREAD_RV_REF(F) f);
+
+// Execution
+// Call:
+//   task_->run
+void operator()(As...);
+void operator()();
+
+// Call:
+//  task_->apply
+void make_ready_at_thread_exit(As...);
+void make_ready_at_thread_exit();
+
+// Call:
+//  task_->set_wait_callback
+template <typename F>
+void set_wait_callback(F);
+
+} // boost
