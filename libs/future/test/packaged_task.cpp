@@ -1,55 +1,20 @@
 #include <include/futures.hpp>
-// #include <hpp/packaged_task.hpp>
-// #include "/usr/include/boost/thread/future.hpp"
-boost::condition_variable cv;
-boost::mutex m;
-int ans = 0;
-bool is_ready = false;
 
 int a() {
-  std::cout << __func__ << '\n';
+  std::cout << boost::this_thread::get_id() << '\n';
   return 1;
 }
 
-void b() {
-  std::cout << __func__ << '\n';
-  boost::unique_lock<boost::mutex> lock(m);
-  boost::this_thread::sleep_for(boost::chrono::seconds(5));
-  ans = 1;
-  is_ready = true;
-}
-
-void c() {
-  std::cout << __func__ << '\n';
-  boost::unique_lock<boost::mutex> lock(m);
-  while (!is_ready) {
-    cv.wait(lock);
-  }
-  ans = 2;
-}
-
-void invoke_lazy_task(boost::packaged_task<int>& task) {
-  std::cout << __func__ << '\n';
-  try {
-    task();
-  } catch (...) {}
-}
-
 void doit() {
-  {
-    boost::packaged_task<int> task(a);
-    task.set_wait_callback(invoke_lazy_task);
-     auto f(task.get_future());
-    assert(!f.is_ready());
-    assert(!f.has_value());
-    auto r = f.get();
-    assert(f.is_ready());
-    assert(f.has_value());
-  }
-  {
-    b();
-    c();
-  }
+  boost::packaged_task<int()> task(a);
+  auto f = task.get_future();
+  boost::thread th(boost::move(task));
+  f.wait();
+  assert(f.is_ready());
+  assert(f.has_value());
+  assert(!f.has_exception());
+  assert(f.get_state() == boost::future_state::ready);
+  assert(f.get() == 1);
 }
 
 auto main() -> decltype(0) {
