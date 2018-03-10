@@ -1,4 +1,4 @@
-#include "../include/futures.hpp"
+#include <include/futures.hpp>
 
 struct test {};
 
@@ -24,7 +24,7 @@ void set_thread(boost::promise<T>* p) {
 
 template <typename T>
 T f1() {
-  std::cout << boost::this_thread::get_id() << '\n';
+//  std::cout << boost::this_thread::get_id() << '\n';
   return 0;
 }
 
