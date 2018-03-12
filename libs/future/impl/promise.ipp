@@ -100,7 +100,7 @@ public:
     if (future_obtained_) {
       boost::throw_exception(boost::future_already_retrieved());
     }
-    future_obtained_ = false;
+    future_obtained_ = true;
 
     return BOOST_THREAD_FUTURE<R>(future_);
   }
@@ -448,7 +448,7 @@ public:
     if (future_obtained_) {
       boost::throw_exception(boost::future_already_retrieved());
     }
-
+    future_obtained_ = true;
     return BOOST_THREAD_FUTURE<void>(future_);
   }
 
