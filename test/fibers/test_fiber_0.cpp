@@ -1,5 +1,5 @@
 // Required library
-// boost_fiber, boost_context
+// boost_system, boost_context, boost_fiber, boost_filesystem
 
 #include <boost/fiber/all.hpp>
 #include <boost/exception_ptr.hpp>
@@ -76,6 +76,18 @@ void create_promise() {
   boost::fibers::promise<int> p1;
   std::allocator<boost::fibers::promise<int> > alloc;
   boost::fibers::promise<int> p2(std::allocator_arg, alloc);
+}
+
+void create_promise_ref() {
+  boost::fibers::promise<int&> p1;
+  std::allocator<boost::fibers::promise<int&> > alloc;
+  boost::fibers::promise<int&> p2(std::allocator_arg, alloc);
+}
+
+void test_promise_move() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::promise<int> p2(std::move(p1));
+  p1 = std::move(p2);
 }
 
 auto main() -> decltype(0) {
