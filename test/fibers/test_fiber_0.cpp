@@ -7,7 +7,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 int global_value = 9;
 
@@ -72,24 +71,66 @@ data f1() {
   return data();
 }
 
-void create_promise() {
+void create() {
   boost::fibers::promise<int> p1;
   std::allocator<boost::fibers::promise<int> > alloc;
   boost::fibers::promise<int> p2(std::allocator_arg, alloc);
 }
 
-void create_promise_ref() {
+void create_ref() {
   boost::fibers::promise<int&> p1;
   std::allocator<boost::fibers::promise<int&> > alloc;
   boost::fibers::promise<int&> p2(std::allocator_arg, alloc);
 }
 
-void test_promise_move() {
+void test_move() {
   boost::fibers::promise<int> p1;
-  boost::fibers::promise<int> p2(std::move(p1));
-  p1 = std::move(p2);
+  boost::fibers::promise<int> p2(boost::move(p1));
+  p1 = boost::move(p2);
+}
+
+void test_move_ref() {
+  boost::fibers::promise<int&> p1;
+  boost::fibers::promise<int&> p2(boost::move(p1));
+  p1 = boost::move(p2);
+}
+
+void test_move_void() {
+  boost::fibers::promise<void> p1;
+  boost::fibers::promise<void> p2(boost::move(p1));
+  p1 = boost::move(p2);
+}
+
+void test_swap() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::promise<int> p2(boost::move(p1));
+  p1.swap(p2);
+}
+
+void test_swap_ref() {
+  boost::fibers::promise<int&> p1;
+  boost::fibers::promise<int&> p2(boost::move(p1));
+  p1.swap(p2);
+}
+
+void test_swap_void() {
+  boost::fibers::promise<void> p1;
+  boost::fibers::promise<void> p2(boost::move(p1));
+  p1.swap(p2);
+}
+
+void doit() {
+  create();
+  create_ref();
+  test_move();
+  test_move_ref();
+  test_move_void();
+  test_swap();
+  test_swap_ref();
+  test_swap_void();
 }
 
 auto main() -> decltype(0) {
+  doit();
   return 0;
 }
