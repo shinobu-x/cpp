@@ -119,6 +119,60 @@ void test_swap_void() {
   p1.swap(p2);
 }
 
+void test_get_future() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::future<int> f1 = p1.get_future();
+  assert(f1.valid());
+  bool thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::future_already_retrieved const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_get_future_ref() {
+  boost::fibers::promise<int&> p1;
+  boost::fibers::future<int&> f1 = p1.get_future();
+  assert(f1.valid());
+  bool thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::future_already_retrieved const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_get_future_move() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::future<int> f1 = p1.get_future();
+  assert(f1.valid());
+  bool thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::future_already_retrieved const&) {
+    thrown = true;
+  }
+  assert(thrown);
+  boost::fibers::promise<int> p2(boost::move(p1));
+  thrown = false;
+  try {
+    f1 = p2.get_future();
+  } catch (boost::fibers::future_already_retrieved const&) {
+    thrown = true;
+  }
+  assert(thrown);
+  thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::promise_uninitialized const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
 void doit() {
   create();
   create_ref();
@@ -128,6 +182,9 @@ void doit() {
   test_swap();
   test_swap_ref();
   test_swap_void();
+  test_get_future();
+  test_get_future_ref();
+  test_get_future_move();
 }
 
 auto main() -> decltype(0) {
