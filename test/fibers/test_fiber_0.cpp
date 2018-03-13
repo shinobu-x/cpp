@@ -224,6 +224,65 @@ void test_set_value_ref() {
   assert(thrown);
 }
 
+void test_set_value_void() {
+  boost::fibers::promise<void> p1;
+  boost::fibers::future<void> f1 = p1.get_future();
+  assert(f1.valid());
+  p1.set_value();
+  f1.get();
+  bool thrown = false;
+  try {
+    p1.set_value();
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_set_exception() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::future<int> f1 = p1.get_future();
+  assert(f1.valid());
+  bool thrown = false;
+  p1.set_exception(std::make_exception_ptr(exception()));
+  try {
+    p1.set_exception(std::make_exception_ptr(exception()));
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+  thrown = false;
+  int i = 1;
+  try {
+    p1.set_value(i);
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_set_exception_void() {
+  boost::fibers::promise<void> p1;
+  boost::fibers::future<void> f1 = p1.get_future();
+  assert(f1.valid());
+  p1.set_exception(std::make_exception_ptr(exception()));
+  bool thrown = false;
+  try {
+    p1.set_exception(std::make_exception_ptr(exception()));
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+  thrown = false;
+  try {
+    p1.set_value();
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+
 void doit() {
   create();
   create_ref();
