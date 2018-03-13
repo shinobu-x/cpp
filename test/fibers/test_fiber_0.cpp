@@ -173,6 +173,57 @@ void test_get_future_move() {
   assert(thrown);
 }
 
+void test_set_value() {
+  boost::fibers::promise<int> p1;
+  boost::fibers::future<int> f1 = p1.get_future();
+  assert(f1.valid());
+  p1.set_value(1);
+  assert(1 == f1.get());
+  bool thrown = false;
+  try {
+    p1.set_value(2);
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_set_value_move() {
+  boost::fibers::promise<data> p1;
+  boost::fibers::future<data> f1 = p1.get_future();
+  assert(f1.valid());
+  data d1;
+  d1.value = 1;
+  p1.set_value(boost::move(d1));
+  data d2 = f1.get();
+  assert(d2.value == 1);
+  bool thrown = false;
+  try {
+    data d3;
+    p1.set_value(std::move(d3));
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
+void test_set_value_ref() {
+  boost::fibers::promise<int&> p1;
+  boost::fibers::future<int&> f1 = p1.get_future();
+  assert(f1.valid());
+  int i = 1;
+  p1.set_value(i);
+  int& j = f1.get();
+  assert(&i == &j);
+  bool thrown = false;
+  try {
+     p1.set_value(i);
+  } catch (boost::fibers::promise_already_satisfied const&) {
+    thrown = true;
+  }
+  assert(thrown);
+}
+
 void doit() {
   create();
   create_ref();
@@ -185,6 +236,9 @@ void doit() {
   test_get_future();
   test_get_future_ref();
   test_get_future_move();
+  test_set_value();
+  test_set_value_move();
+  test_set_value_ref();
 }
 
 auto main() -> decltype(0) {
