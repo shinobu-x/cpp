@@ -67,6 +67,31 @@ data f10() {
   return d;
 }
 
+void test_create() {
+  boost::fibers::promise<int> p1;
+  std::allocator<boost::fibers::promise<int> > alloc;
+  boost::fibers::promise<int> p2(std::allocator_arg, alloc);
+}
+
+void test_create_ref() {
+  boost::fibers::promise<int&> p1;
+  std::allocator<boost::fibers::promise<int&> > alloc;
+  boost::fibers::promise<int&> p2(std::allocator_arg, alloc);
+}
+
+void test_create_void() {
+  boost::fibers::promise<void> p1;
+  std::allocator<boost::fibers::promise<void> > alloc;
+  boost::fibers::promise<void> p2(std::allocator_arg, alloc);
+}
+
+void doit() {
+  test_create();
+  test_create_ref();
+  test_create_void();
+}
+
 auto main() -> decltype(0) {
+  doit();
   return 0;
 }
