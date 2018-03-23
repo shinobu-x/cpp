@@ -168,6 +168,23 @@ void test_get_future_ref() {
 void test_get_future_vaoid() {
   boost::fibers::promise<void> p1;
   boost::fibers::future<void> f1 = p1.get_future();
+  assert(f1.valid());
+  bool thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::future_already_retrieved const&) {
+    thrown = true;
+  }
+  assert(thrown);
+
+  boost::fibers::promise<void> p2(boost::move(p1));
+  thrown = false;
+  try {
+    f1 = p1.get_future();
+  } catch (boost::fibers::promise_uninitialized const&) {
+    thrown = true;
+  }
+  assert(thrown);
 }
 
 void doit() {
