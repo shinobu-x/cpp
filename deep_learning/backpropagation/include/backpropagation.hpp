@@ -1,4 +1,4 @@
-#ifndef BACKPROPAGATION_HPP
+#ifndef BACKPROPAGATION_HPa
 #define BACKPROPAGATION_HPP
 
 #include <boost/numeric/ublas/matrix.hpp>
@@ -9,14 +9,24 @@
 #include <cstddef>
 #include <set>
 
-template <typename T = double>
-inline T random_number_generator(const T min = 0.0, const T max = 1.0) {
+namespace Random {
+
+boost::random::mt19937 generator;
+
+inline double generate(const double min = 0.0, const double max = 1.0) {
   typedef unsigned long value_type;
   static boost::mt19937 r(static_cast<value_type>(time(0)));
   boost::random::uniform_real_distribution<> range(min, max);
 
   return range(r);
 }
+
+inline int generate(int min, int max) {
+  boost::random::uniform_int_distribution<> dist(min, max);
+  return dist(generator);
+}
+
+}; // Random
 
 struct backpropagation {
   typedef double value_type;
@@ -55,7 +65,7 @@ public:
       auto end = weight_input.end1();
       for (;it != end; ++it) {
         std::transform(it.begin(), it.end(), it.begin(),
-          [](c_double_type x) { return random_number_generator(); });
+          [](c_double_type x) { return Random::generate(); });
       }
     }
 
@@ -64,7 +74,7 @@ public:
       auto end = weight_hidden.end1();
       for (;it != end; ++it) {
         std::transform(it.begin(), it.end(), it.begin(),
-          [](c_double_type x) { return random_number_generator(); });
+          [](c_double_type x) { return Random::generate(); });
       }
     }
   }
@@ -73,7 +83,7 @@ public:
   vector_type, vector_type> >& dataset) {
     for (std::size_t i = 0; i < max_epoch; ++i) {
       for (std::size_t j = 0; j < 100; ++j) {
-        c_int_type index = random_number_generator(0.0, dataset.size() - 1.0);
+        c_int_type index = Random::generate(0, dataset.size() - 1);
         c_vector_type mask = generate_dropout_mask(hidden.size());
         c_vector_type output = forwardpropagate(dataset[index].second, mask);
         backpropagate(
@@ -134,11 +144,23 @@ private:
   }
 
   void update_weight() {
-
+    weight_input -= learn_rate * diff_weight_input;
+    weight_hidden -= learn_rate * diff_weight_hidden;
   }
 
-  vector_type generate_dropout_mask(c_int_type max) {
+  vector_type generate_dropout_mask(c_int_type max_size) {
+    vector_type mask(max_size, 1.0);
+    std::set<int> unique_indices;
 
+    while (unique_indices.size() < (max_size / 2)) {
+      unique_indices.insert(Random::generate(0, max_size - 1));
+    }
+
+    for (const auto& index : unique_indices) {
+      mask(index) = 0.0;
+    }
+
+    return mask;
   }
 };
 
