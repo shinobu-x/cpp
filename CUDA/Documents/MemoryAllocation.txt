@@ -1,0 +1,19 @@
+DMA
+1 Host, Device間のコピーには、DMAを使用
+2 DMAはCPUとは、独立に動作
+3 DMA動作条件: Host, Device間の物理アドレス固定
+
+malloc / new
+1 仮想アドレス確保
+2 物理アドレス未確保
+3 DMA使用不可
+4 固定領域 (Staging Buffer) にコピー後DMA起動: 遅延理由
+5 DMA起動
+
+cudaHostAlloc / cudaMallocHost
+1 ページング不使用
+2 物理アドレスに直接領域確保
+3 DMA起動
+
+cudaMallocManaged
+1 Host, 1つのDevice上でアドレス確保
