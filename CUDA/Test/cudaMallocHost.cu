@@ -5,7 +5,7 @@
 #include <device_launch_parameters.h>
 #include <math_functions.h>
 
-#include "../Hpp/CalElapsedTime.hpp"
+#include "../HPP/CalElapsedTime.hpp"
 
 __global__
 void CalSine(const float* angle, float* sine, std::size_t size) {
