@@ -1,3 +1,6 @@
+#ifndef INITDATA_HPP
+#define INITDATA_HPP
+
 #include <random>
 
 template <typename ValueType = float>
@@ -11,3 +14,5 @@ inline void InitData(float* data, int size) {
   }
 
 }
+
+#endif
