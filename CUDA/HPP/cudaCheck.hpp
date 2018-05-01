@@ -4,12 +4,10 @@
 #include <cuda_runtime.h>
 #include <sstream>
 
-inline void cudaCheck(const char* expr, cudaError_t status, const char* file,
-  int line) {
+inline void cudaCheck(cudaError_t status) {
   if (status != cudaSuccess) {
     std::stringstream error;
-    error << cudaGetErrorString(status) << "\n\t" << expr << " at " << file
-      << '.' << line << std::endl;
+    error << cudaGetErrorString(status) << '\n';
   }
 }
 #endif // CUDACHECK_HPP
