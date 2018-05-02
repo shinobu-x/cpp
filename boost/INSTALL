@@ -1,0 +1,10 @@
+$ sudo mkdir -p /src/boost; sudo chown -R ${User Account}. /src
+$ cd /git
+$ git clone --recursive https://github.com/boostorg/boost
+$ cd boost; ./bootstrap.sh
+$ sudo mkdir -p /src/boost; sudo chown -R ${User Account}. /src
+$ ./b2 install -j4 --prefix=/src/boost
+$ vim ~/.bashrc
+export BOOST_ROOT=/src/boost
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/src/boost/lib
+export CPLUS_INCLUDE_PATH=${CPLUS_INCLUDE_PATH}:/src/boost/include
