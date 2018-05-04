@@ -1,3 +1,6 @@
+#ifndef SPAWNKERNEL_HPP
+#define SPAWNKERNEL_HPP
+
 #include <cstdlib>
 #include <cuda_runtime.h>
 #include <boost/thread.hpp>
@@ -60,3 +63,5 @@ struct SpawnKernel {
     cudaFree(d_c);
   }
 };
+
+#endif
