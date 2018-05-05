@@ -4,7 +4,7 @@
 #include <chrono>
 #include <utility>
 
-template <typename TimeType = std::chrono::microseconds>
+template <typename TimeType = std::chrono::nanoseconds>
 struct CalElapsedTime {
   template <typename Callable, typename... Args>
   static typename TimeType::rep Execution(Callable&& callable,
