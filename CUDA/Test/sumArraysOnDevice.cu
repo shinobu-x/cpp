@@ -2,9 +2,9 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#include "../HPP/InitData.hpp"
-#include "../HPP/cudaSetupDevice.hpp"
-#include "../HPP/sumArraysOnDevice.hpp"
+#include <CUDA/HPP/InitData.hpp>
+#include <CUDA/HPP/cudaSetupDevice.hpp>
+#include <CUDA/HPP/sumArraysOnDevice.hpp>
 
 
 auto main() -> decltype(0) {
