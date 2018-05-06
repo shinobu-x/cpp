@@ -6,18 +6,22 @@
 #include <boost/thread.hpp>
 #include <iostream>
 
-#include "../HPP/InitData.hpp"
-#include "../HPP/cudaSetupDevice.hpp"
-#include "../HPP/sumArraysOnDevice.hpp"
+#include <CUDA/HPP/InitData.hpp>
+#include <CUDA/HPP/cudaSetupDevice.hpp>
+#include <CUDA/HPP/sumArraysOnDevice.hpp>
 
 template <typename ValueType = float>
 struct SpawnKernel {
 
-  void operator()(int thread_num) {
+  void operator()(int thread_num = 0) {
     std::cout << boost::this_thread::get_id() << '\n';
 
     typedef ValueType value_type;
-    int threads = thread_num;
+    if (thread_num == 0) {
+      int threads = 1 << 24;
+    } else {
+      int threads = thread_num;
+    }
     std::size_t size = threads * sizeof(value_type);
 
     // Addresses reservations for Host
