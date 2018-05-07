@@ -12,6 +12,8 @@ const int N = 8;
 std::size_t NBytes = N * sizeof(value_type);
 
 void SpawnKernel(cudaStream_t stream = nullptr) {
+  std::cout << boost::this_thread::get_id() << "\n";
+
   value_type* h_a;
   value_type* h_b;
   value_type* h_c;
@@ -112,47 +114,52 @@ void DoAsync() {
 }
 
 void Dummy() {
-  std::cout << __func__ << "\n";
+  std::cout << boost::this_thread::get_id() << "\n";
 }
 
 void Job1(boost::future<void> f) {
-  std::cout << __func__ << "\n";
+  std::cout << __func__ << ": Start!" << "\n";
   assert(f.valid());
   f.get();
   assert(!f.valid());
   SpawnKernel(nullptr);
+  std::cout << __func__ << ": Done!" << "\n";
 }
 
 void Job2(boost::future<void> f) {
-  std::cout << __func__ << "\n";
+  std::cout << __func__ << ": Start!" << "\n";
   assert(f.valid());
   f.get();
   assert(!f.valid());
   SpawnKernel(nullptr);
+  std::cout << __func__ << ": Done!" << "\n";
 }
 
 void Job3(boost::future<void> f) {
-  std::cout << __func__ << "\n";
+  std::cout << __func__ << ": Start!" << "\n";
   SpawnKernel(nullptr);
   assert(f.valid());
   f.get();
   assert(!f.valid());
+  std::cout << __func__ << ": Done!" << "\n";
 }
 
 void Job4(boost::future<void> f) {
-  std::cout << __func__ << "\n";
+  std::cout << __func__ << ": Start!" << "\n";
   SpawnKernel(nullptr);
   assert(f.valid());
   f.get();
   assert(!f.valid());
+  std::cout << __func__ << ": Done!" << "\n";
 }
 
 void Job5(boost::future<void> f) {
-  std::cout << __func__ << "\n";
+  std::cout << __func__ << ": Start!" << "\n";
   SpawnKernel(nullptr);
   assert(f.valid());
   f.get();
   assert(!f.valid());
+  std::cout << __func__ << ": Done!" << "\n";
 }
 
 void DoContinuation() {
@@ -160,7 +167,11 @@ void DoContinuation() {
   assert(f1.valid());
 
   boost::future<void> f2 =
-    f1.then(&Job1).then(&Job2).then(&Job3).then(&Job4).then(&Job5);
+    f1.then(boost::launch::async, &Job1).
+       then(boost::launch::async, &Job3).
+       then(boost::launch::async, &Job5).
+       then(boost::launch::async, &Job2).
+       then(boost::launch::async, &Job4);
   assert(f2.valid());
   assert(!f1.valid());
 
@@ -172,6 +183,6 @@ auto main() -> decltype(0) {
 //  DoStream();
 //  DoFuture();
 //  DoAsync();
-  DoContinuation();
+//  DoContinuation();
   return 0;
 }
