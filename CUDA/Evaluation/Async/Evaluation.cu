@@ -1,16 +1,15 @@
-// nvprof --print-gpu-trace ./a.out
 #define BOOST_THREAD_VERSION 4
 #include <boost/thread/future.hpp>
 #include <boost/thread.hpp>
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <CUDA/HPP/InitData.hpp>
 #include <CUDA/HPP/sumArraysOnDevice.hpp>
 
 typedef float value_type;
 const int N = 8;
 std::size_t NBytes = N * sizeof(value_type);
-// cudaStream_t stream = nullptr;
 
 void SpawnKernel(cudaStream_t stream = nullptr) {
   value_type* h_a;
@@ -26,9 +25,9 @@ void SpawnKernel(cudaStream_t stream = nullptr) {
   value_type* d_a;
   value_type* d_b;
   value_type* d_c;
-  cudaMalloc((value_type**)&d_a, NBytes);
-  cudaMalloc((value_type**)&d_b, NBytes);
-  cudaMalloc((value_type**)&d_c, NBytes);
+  cudaMalloc(&d_a, NBytes);
+  cudaMalloc(&d_b, NBytes);
+  cudaMalloc(&d_c, NBytes);
 
   cudaMemcpy(d_a, h_a, NBytes, cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, h_b, NBytes, cudaMemcpyHostToDevice);
@@ -37,13 +36,19 @@ void SpawnKernel(cudaStream_t stream = nullptr) {
   dim3 Block(N);
   dim3 Grid((N + Block.x - 1) / Block.x);
   if (stream) {
+    cudaMemcpyAsync(d_a, h_a, NBytes, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_b, h_b, NBytes, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_c, h_c, NBytes, cudaMemcpyHostToDevice, stream);
     sumArraysOnDevice<<<Grid, Block, 0, stream>>>(
       d_a, d_b, d_c, N);
     cudaMemcpyAsync(h_c, d_c, NBytes, cudaMemcpyDeviceToHost, stream);
   } else {
+    cudaMemcpy(d_a, h_a, NBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, h_b, NBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_c, h_c, NBytes, cudaMemcpyHostToDevice);
     sumArraysOnDevice<<<Grid, Block>>>(d_a, d_b, d_c, N);
+    cudaDeviceSynchronize();
   }
-  cudaDeviceSynchronize();
 
   free(h_a);
   free(h_b);
@@ -61,6 +66,11 @@ void DoStream() {
     cudaStreamCreate(&s[i]);
     cudaMalloc(&Data[i], NBytes);
     SpawnKernel(s[i]);
+  }
+
+  for (int i = 0; i < N; ++i) {
+    cudaStreamSynchronize(s[i]);
+    cudaStreamDestroy(s[i]);
   }
 }
 
@@ -100,9 +110,68 @@ void DoAsync() {
   }
 
 }
+
+void Dummy() {
+  std::cout << __func__ << "\n";
+}
+
+void Job1(boost::future<void> f) {
+  std::cout << __func__ << "\n";
+  assert(f.valid());
+  f.get();
+  assert(!f.valid());
+  SpawnKernel(nullptr);
+}
+
+void Job2(boost::future<void> f) {
+  std::cout << __func__ << "\n";
+  assert(f.valid());
+  f.get();
+  assert(!f.valid());
+  SpawnKernel(nullptr);
+}
+
+void Job3(boost::future<void> f) {
+  std::cout << __func__ << "\n";
+  SpawnKernel(nullptr);
+  assert(f.valid());
+  f.get();
+  assert(!f.valid());
+}
+
+void Job4(boost::future<void> f) {
+  std::cout << __func__ << "\n";
+  SpawnKernel(nullptr);
+  assert(f.valid());
+  f.get();
+  assert(!f.valid());
+}
+
+void Job5(boost::future<void> f) {
+  std::cout << __func__ << "\n";
+  SpawnKernel(nullptr);
+  assert(f.valid());
+  f.get();
+  assert(!f.valid());
+}
+
+void DoContinuation() {
+  boost::future<void> f1 = boost::async(boost::launch::async, &Dummy);
+  assert(f1.valid());
+
+  boost::future<void> f2 =
+    f1.then(&Job1).then(&Job2).then(&Job3).then(&Job4).then(&Job5);
+  assert(f2.valid());
+  assert(!f1.valid());
+
+  f2.get();
+  assert(!f2.valid());
+}
+
 auto main() -> decltype(0) {
 //  DoStream();
 //  DoFuture();
-  DoAsync();
+//  DoAsync();
+  DoContinuation();
   return 0;
 }
