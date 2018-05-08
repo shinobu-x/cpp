@@ -1,0 +1,33 @@
+## Maxwell: Geforce GTX 980
+SMs: 16
+CUDA Cores: 2048
+Base Clock: 1126 MHz
+GPU Boost Clock: 1216 MHz
+Single Precision:
+Double Precision:
+Texture Units: 128
+Texel fill-rate: 155.6 Gigatexels/s
+Memory Clock: 7.0 GHz
+Memory Bandwidth: 224 GB/s
+L2 Cache Size: 2048 KB
+TDP: 165 Watts
+Transistors: 5.2 billion
+Die Size: 398 mm^2
+Manufacturing Process: 28 nm
+
+## Pascal: Geforce GTX 1080
+SMs: 20
+CUDA Cores: 2560
+Base Clock: 1607 MHz
+GPU Boost Clock: 1733 MHz
+Single Precision:
+Double Precision:
+Texture Units: 160
+Texel fill-rate: 277.3 Gigatexels/s
+Memory Clock: 10 GHz
+Memory Bandwidth: 320 GBs
+L2 Cache Size: 2048 KB
+TDP: 180 Watts
+Transistors: 7.2 billion
+Die Size: 314 mm^2
+Manufacturing Process: 16 nm
