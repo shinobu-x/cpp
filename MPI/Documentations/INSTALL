@@ -1,0 +1,16 @@
+OpenMPI
+# Download
+https://www.open-mpi.org/software/ompi/
+
+# Install
+tar zxvf openmpi-x.y.z.tar.gz; cd openmpi-*; \
+./configure --prefix=${INSTALLATION_DIRECTORY} --with-cuda; \
+make; make install
+
+# Update .bashrc
+export PATH=/src/openmpi/bin:${PATH}
+export LD_LIBRARY_PATH=/src/openmpi/lib:${LD_LIBRARY_PATH}
+
+Hardware Locality
+# Download
+https://www.open-mpi.org/projects/hwloc/
