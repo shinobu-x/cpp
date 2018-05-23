@@ -1,0 +1,26 @@
+# Download source
+sudo su -c "grep '^deb ' /etc/apt/sources.list | \
+sed 's/^deb/deb-src/g' > /etc/apt/sources.list.d/deb-src.list"
+sudo apt update -y
+sudo apt upgrade -y
+sudo apt install build-essential devscripts -y
+sudo apt update -y
+sudo apt build-dep ibus-mozc -y
+apt source ibus-mozc
+
+# Edit code
+vim $(find . -name property_handler.cc)
+@Start code
+// Some users expect that Mozc is turned off by default on IBus 1.5.0 and later.
+// https://code.google.com/p/mozc/issues/detail?id=201
+// On IBus 1.4.x, IBus expects that an IME should always be turned on and
+// IME on/off keys are handled by IBus itself rather than each IME.
+const bool kActivatedOnLaunch = true;
+@end code
+
+# Build
+cd mozc-*
+dpkg-buildpackage -us -uc -b
+sudo dpkg -i ../mozc-*.deb ../ibus-mozc*.deb
+
+# Reboot
