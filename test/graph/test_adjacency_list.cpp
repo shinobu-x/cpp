@@ -5,13 +5,13 @@
 #include <vector>
 
 /**
-  template <class OutEdgeListS = vecS.            # 隣接構造
-            class VertexListS = vecS,             # 頂点集合
-            class DirectedS = directedS,          # 有向／無向
-            class VertexProperties = no_property, # 頂点のカスタムプロパティ
-            class EdgeProperties = no_property,   # 辺のカスタムプロパティ
-            class GraphProperties = no_property,  # グラフのカスタムプロパティ
-            class EdgeListS = listS>              # グラフの辺リストのコンテナ
+  template <class OutEdgeListS = vecS.          # 隣接構造
+            class VertexListS = vecS,           # 頂点集合
+            class DirectedS = directedS,        # 有向／無向
+            class VertexProperty = no_property, # 頂点のカスタムプロパティ
+            class EdgeProperty = no_property,   # 辺のカスタムプロパティ
+            class GraphProperty = no_property,  # グラフのカスタムプロパティ
+            class EdgeListS = listS>            # グラフの辺リストのコンテナ
   class adjacency_list;
 */
 
@@ -26,7 +26,7 @@ typedef boost::adjacency_list<
 typedef boost::adjacency_list<
   boost::listS,
   boost::vecS,
-  boost::directedS
+  boost::directedS,
   boost::no_property,
   boost::property<
     boost::edge_weight_t, int>
