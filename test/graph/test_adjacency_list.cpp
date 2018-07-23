@@ -22,6 +22,11 @@ typedef boost::adjacency_list<
   boost::undirectedS
   > UndirectedGraph;
 
+typedef boost::graph_traits<UndirectedGraph>::vertex_descriptor UGVDescriptor;
+typedef boost::graph_traits<UndirectedGraph>::edge_descriptor UGEDescriptor;
+typedef boost::graph_traits<UndirectedGraph>::vertex_iterator UGVIterator;
+typedef boost::graph_traits<UndirectedGraph>::edge_iterator UGEIterator;
+
 // 有向グラフ
 typedef boost::adjacency_list<
   boost::listS,
@@ -32,6 +37,11 @@ typedef boost::adjacency_list<
     boost::edge_weight_t, int>
   > DirectedGraph;
 
+typedef boost::graph_traits<DirectedGraph>::vertex_descriptor DGVDescriptor;
+typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEDescriptor;
+typedef boost::graph_traits<DirectedGraph>::vertex_iterator DGVIterator;
+typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEIterator;
+
 // 双方向グラフ
 typedef boost::adjacency_list<
   boost::listS,
@@ -40,6 +50,11 @@ typedef boost::adjacency_list<
   boost::property<
     boost::edge_weight_t, int>
   > BidirectedGraph;
+
+typedef boost::graph_traits<BidirectedGraph>::vertex_descriptor BGVDescriptor;
+typedef boost::graph_traits<BidirectedGraph>::edge_descriptor BGEDescriptor;
+typedef boost::graph_traits<BidirectedGraph>::vertex_iterator BGVIterator;
+typedef boost::graph_traits<BidirectedGraph>::edge_iterator BGEIterator;
 
 auto main() -> decltype(0) {
   UndirectedGraph ug;
