@@ -57,9 +57,19 @@ typedef boost::graph_traits<BidirectedGraph>::vertex_iterator BGVIterator;
 typedef boost::graph_traits<BidirectedGraph>::edge_iterator BGEIterator;
 
 auto main() -> decltype(0) {
-  UndirectedGraph ug;
-  DirectedGraph dg;
-  BidirectedGraph bg;
+  UndirectedGraph ug_u, ug_v;
+  DirectedGraph dg_u, dg_v;
+  BidirectedGraph bg_u, bg_v;
+
+  std::vector<UGEDescriptor> ug_u_edges;
+  std::vector<UGEDescriptor> ug_v_edges;
+
+  ug_u_edges.push_back(boost::add_edge(0, 1, ug_u).first);
+  ug_u_edges.push_back(boost::add_edge(0, 2, ug_u).first);
+  ug_u_edges.push_back(boost::add_edge(0, 3, ug_u).first);
+  ug_u_edges.push_back(boost::add_edge(0, 4, ug_u).first);
+  ug_u_edges.push_back(boost::add_edge(1, 2, ug_u).first);
+  ug_u_edges.push_back(boost::add_edge(3, 4, ug_u).first);
 
   return 0;
 }
