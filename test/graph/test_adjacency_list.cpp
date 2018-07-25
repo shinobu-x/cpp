@@ -71,5 +71,12 @@ auto main() -> decltype(0) {
   ug_u_edges.push_back(boost::add_edge(1, 2, ug_u).first);
   ug_u_edges.push_back(boost::add_edge(3, 4, ug_u).first);
 
+  ug_v_edges.push_back(boost::add_edge(1, 2, ug_v).first);
+  ug_v_edges.push_back(boost::add_edge(2, 0, ug_v).first);
+  ug_v_edges.push_back(boost::add_edge(2, 3, ug_v).first);
+  ug_v_edges.push_back(boost::add_edge(4, 3, ug_v).first);
+  ug_v_edges.push_back(boost::add_edge(0, 3, ug_v).first);
+  ug_v_edges.push_back(boost::add_edge(0, 4, ug_v).first);
+
   return 0;
 }
