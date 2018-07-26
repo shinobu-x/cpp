@@ -61,22 +61,11 @@ auto main() -> decltype(0) {
   DirectedGraph dg_u, dg_v;
   BidirectedGraph bg_u, bg_v;
 
-  std::vector<UGEDescriptor> ug_u_edges;
-  std::vector<UGEDescriptor> ug_v_edges;
-
-  ug_u_edges.push_back(boost::add_edge(0, 1, ug_u).first);
-  ug_u_edges.push_back(boost::add_edge(0, 2, ug_u).first);
-  ug_u_edges.push_back(boost::add_edge(0, 3, ug_u).first);
-  ug_u_edges.push_back(boost::add_edge(0, 4, ug_u).first);
-  ug_u_edges.push_back(boost::add_edge(1, 2, ug_u).first);
-  ug_u_edges.push_back(boost::add_edge(3, 4, ug_u).first);
-
-  ug_v_edges.push_back(boost::add_edge(1, 2, ug_v).first);
-  ug_v_edges.push_back(boost::add_edge(2, 0, ug_v).first);
-  ug_v_edges.push_back(boost::add_edge(2, 3, ug_v).first);
-  ug_v_edges.push_back(boost::add_edge(4, 3, ug_v).first);
-  ug_v_edges.push_back(boost::add_edge(0, 3, ug_v).first);
-  ug_v_edges.push_back(boost::add_edge(0, 4, ug_v).first);
+  const int vertices = 9;
+  int capacity[] = {
+    10, 20, 20, 20, 40, 40, 20, 20, 20, 10};
+  int flow[] = {
+    8, 12, 12, 12, 12, 12, 16, 16, 16, 8};
 
   return 0;
 }
