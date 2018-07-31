@@ -65,35 +65,12 @@ auto main() -> decltype(0) {
   UndirectedGraph ug_u, ug_v;
   BidirectedGraph bg_u, bg_v;
 
-  typedef boost::property<boost::edge_name_t, int> edge_property;
-  const int vertices = 9;
-  int capacity[] = {
-    10, 20, 20, 20, 40, 40, 20, 20, 20, 10};
-  int flow[] = {
-    8, 12, 12, 12, 12, 12, 16, 16, 16, 8};
+  auto a = boost::edges(dg_u);
+  auto b = boost::edges(ug_u);
+  auto c = boost::edges(bg_u);
 
-/**
- // include/boost/graph/detail/adjacency_list.hpp
- Method: add_edge
+  // property_value
+  // boost/pending/property.hpp
 
- O(1) for allow_parallel_edge_tag
- O(log(E/V)) for disallow_parallel_edge_tag
-
- Directed | Undirected | Bidirected Graphs
-
- Input: vertex_descriptor,
-        vertex_descriptor,
-        edge_property_type&,
-        directed_graph_helper& |
-        undirected_graph_helper& |
-        bidirectional_graph_helper_with_property&
-
- Return Type: std::pair
-        Value: edge_descriptor, bool
-
-*/
-  boost::add_edge(1, 2, 1, dg_u);
-  boost::add_edge(1, 2, 1, ug_u);
-  boost::add_edge(1, 2, 1, bg_u);
   return 0;
 }
