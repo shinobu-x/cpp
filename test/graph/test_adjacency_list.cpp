@@ -69,8 +69,7 @@ auto main() -> decltype(0) {
   auto b = boost::edges(ug_u);
   auto c = boost::edges(bg_u);
 
-  // property_value
-  // boost/pending/property.hpp
+  auto d = boost::get(boost::vertex_index, dg_u);
 
   return 0;
 }
