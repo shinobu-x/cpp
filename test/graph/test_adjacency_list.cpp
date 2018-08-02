@@ -65,11 +65,17 @@ auto main() -> decltype(0) {
   UndirectedGraph ug_u, ug_v;
   BidirectedGraph bg_u, bg_v;
 
-  auto a = boost::edges(dg_u);
-  auto b = boost::edges(ug_u);
-  auto c = boost::edges(bg_u);
+  {
+    auto a = boost::edges(dg_u);
+    auto b = boost::edges(ug_u);
+    auto c = boost::edges(bg_u);
+  }
 
-  auto d = boost::get(boost::vertex_index, dg_u);
+  {
+    auto a = boost::get(boost::vertex_index, dg_u);
+    auto b = boost::get(boost::vertex_index, ug_u);
+    auto c = boost::get(boost::vertex_index, bg_u);
+  }
 
   return 0;
 }
