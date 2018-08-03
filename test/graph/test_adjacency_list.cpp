@@ -75,6 +75,13 @@ auto main() -> decltype(0) {
     auto a = boost::get(boost::vertex_index, dg_u);
     auto b = boost::get(boost::vertex_index, ug_u);
     auto c = boost::get(boost::vertex_index, bg_u);
+
+    DGVIterator dg_it;
+    auto d = boost::get(boost::vertex_index, dg_u, *dg_it);
+    UGVIterator ug_it;
+    auto e = boost::get(boost::vertex_index, ug_u, *ug_it);
+    BGVIterator bg_it;
+    auto f = boost::get(boost::vertex_index, bg_u, *bg_it);
   }
 
   return 0;
