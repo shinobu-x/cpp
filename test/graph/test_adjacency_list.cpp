@@ -29,6 +29,9 @@ typedef boost::graph_traits<DirectedGraph>::vertex_descriptor DGVDescriptor;
 typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEDescriptor;
 typedef boost::graph_traits<DirectedGraph>::vertex_iterator DGVIterator;
 typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEIterator;
+typename boost::detail::stored_edge_iter<DGVDescriptor, DGEIterator,
+  boost::property<boost::edge_weight_t, int> > DGSEIterator;
+typename std::vector<DGEDescriptor>::iterator DGEDIterator;
 
 // 無向グラフ
 typedef boost::adjacency_list<
@@ -84,5 +87,7 @@ auto main() -> decltype(0) {
     auto f = boost::get(boost::vertex_index, bg_u, *bg_it);
   }
 
+  {
+  }
   return 0;
 }
