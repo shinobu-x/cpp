@@ -15,78 +15,99 @@
             class EdgeListS = listS>            # グラフの辺リストのコンテナ
   class adjacency_list;
 */
+struct VertexProperty {
+  int Id;
+  VertexProperty(int id) : Id(id) {}
+};
+
 // 有向グラフ
 typedef boost::adjacency_list<
   boost::listS,
   boost::vecS,
   boost::directedS,
-  boost::no_property,
+  VertexProperty,
   boost::property<
     boost::edge_weight_t, int>
   > DirectedGraph;
 
-typedef boost::graph_traits<DirectedGraph>::vertex_descriptor DGVDescriptor;
-typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEDescriptor;
-typedef boost::graph_traits<DirectedGraph>::vertex_iterator DGVIterator;
-typedef boost::graph_traits<DirectedGraph>::edge_descriptor DGEIterator;
-typedef typename boost::detail::stored_edge_iter<DGVDescriptor, DGEIterator,
-  boost::property<boost::edge_weight_t, int> > DGStoredIterator;
-typedef typename boost::detail::stored_ra_edge_iter<DGVDescriptor,
-  std::vector<DGEDescriptor>,
-  boost::property<boost::edge_weight_t, int> > DGStoredRaIterator;
+typedef boost::graph_traits<DirectedGraph>::vertex_descriptor
+DGVertexDescriptor;
+typedef boost::graph_traits<DirectedGraph>::edge_descriptor
+DGEdgeescriptor;
+typedef boost::graph_traits<DirectedGraph>::vertex_iterator
+DGVertexIterator;
+typedef boost::graph_traits<DirectedGraph>::edge_descriptor
+DGEdgeIterator;
 
 // 無向グラフ
 typedef boost::adjacency_list<
   boost::listS,
   boost::vecS,
   boost::undirectedS,
-  boost::no_property,
+  VertexProperty,
   boost::property<
     boost::edge_weight_t, int>
   > UndirectedGraph;
 
-typedef boost::graph_traits<UndirectedGraph>::vertex_descriptor UGVDescriptor;
-typedef boost::graph_traits<UndirectedGraph>::edge_descriptor UGEDescriptor;
-typedef boost::graph_traits<UndirectedGraph>::vertex_iterator UGVIterator;
-typedef boost::graph_traits<UndirectedGraph>::edge_iterator UGEIterator;
+typedef boost::graph_traits<UndirectedGraph>::vertex_descriptor
+UGVertexDescriptor;
+typedef boost::graph_traits<UndirectedGraph>::edge_descriptor
+UGEdgeDescriptor;
+typedef boost::graph_traits<UndirectedGraph>::vertex_iterator
+UGVertexIterator;
+typedef boost::graph_traits<UndirectedGraph>::edge_iterator
+UGEdgeIterator;
 
 // 双方向グラフ
 typedef boost::adjacency_list<
   boost::listS,
   boost::vecS,
   boost::bidirectionalS,
-  boost::no_property,
+  VertexProperty,
   boost::property<
     boost::edge_weight_t, int>
   > BidirectedGraph;
 
-typedef boost::graph_traits<BidirectedGraph>::vertex_descriptor BGVDescriptor;
-typedef boost::graph_traits<BidirectedGraph>::edge_descriptor BGEDescriptor;
-typedef boost::graph_traits<BidirectedGraph>::vertex_iterator BGVIterator;
-typedef boost::graph_traits<BidirectedGraph>::edge_iterator BGEIterator;
+typedef boost::graph_traits<BidirectedGraph>::vertex_descriptor
+BGVertexDescriptor;
+typedef boost::graph_traits<BidirectedGraph>::edge_descriptor
+BGEdgeDescriptor;
+typedef boost::graph_traits<BidirectedGraph>::vertex_iterator
+BGVertexIterator;
+typedef boost::graph_traits<BidirectedGraph>::edge_iterator
+BGEdgeIterator;
 
 auto main() -> decltype(0) {
-  DirectedGraph dg_u, dg_v;
-  UndirectedGraph ug_u, ug_v;
-  BidirectedGraph bg_u, bg_v;
+  DirectedGraph dg;
+  UndirectedGraph ug;
+  BidirectedGraph bg;
 
   {
-    auto a = boost::edges(dg_u);
-    auto b = boost::edges(ug_u);
-    auto c = boost::edges(bg_u);
+    auto a = boost::edges(dg);
+    auto b = boost::edges(ug);
+    auto c = boost::edges(bg);
   }
 
   {
-    auto a = boost::get(boost::vertex_index, dg_u);
-    auto b = boost::get(boost::vertex_index, ug_u);
-    auto c = boost::get(boost::vertex_index, bg_u);
+    int id = 1;
+    VertexProperty vp(id);
+    auto a = boost::get(&VertexProperty::Id, dg);
+    auto b = boost::get(&VertexProperty::Id, ug);
+    auto c = boost::get(&VertexProperty::Id, bg);
 
-    DGVIterator dg_it;
-    auto d = boost::get(boost::vertex_index, dg_u, *dg_it);
-    UGVIterator ug_it;
-    auto e = boost::get(boost::vertex_index, ug_u, *ug_it);
-    BGVIterator bg_it;
-    auto f = boost::get(boost::vertex_index, bg_u, *bg_it);
+    DGVertexIterator dg_it;
+    auto d = boost::get(&VertexProperty::Id, dg, *dg_it);
+    UGVertexIterator ug_it;
+    auto e = boost::get(&VertexProperty::Id, ug, *ug_it);
+    BGVertexIterator bg_it;
+    auto f = boost::get(&VertexProperty::Id, bg, *bg_it);
+
+    DGVertexDescriptor dg_desc;
+    auto g = boost::get(&VertexProperty::Id, dg, dg_desc);
+    UGVertexDescriptor ug_desc;
+    auto h = boost::get(&VertexProperty::Id, ug, ug_desc);
+    BGVertexDescriptor bg_desc;
+    auto i = boost::get(&VertexProperty::Id, bg, bg_desc);
   }
 
   return 0;
