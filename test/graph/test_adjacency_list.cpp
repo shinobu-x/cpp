@@ -6,6 +6,31 @@
 #include <vector>
 
 /**
+  // The Graph concepts
+  template <class G>
+  struct GraphConcept {
+    typedef typename boost::graph_traits<G>::vertex_descriptor
+      vertexdescriptor;
+    typedef typename boost::graph_traits<G>::edge_descriptor
+      edge_descriptor;
+    typedef typename boost::graph_traits<G>::directed_category
+      directed_category;
+    typedef typename boost::graph_traits<G>::edge_parallel_category
+      edge_parallel_category;
+    typedef typename boost::graph_traits<G>::traversal_category
+      traversal_category;
+
+    // Boost concept checks
+    void constraints() {
+      BOOST_CONCEPT_ASSERT((DefaultConstructibleConcept<vertex_descriptor>));
+      BOOST_CONCEPT_ASSERT((EqualityComparableConcept<vertex_descriptor>));
+      BOOST_CONCEPT_ASSERT((AssignableConcept<vertex_descriptor>));
+      BOOST_CONCEPT_ASSERT((DefaultConstructibleConcept<edge_descriptor>));
+      BOOST_CONCEPT_ASSERT((EqualityComparableConcept<edge_descriptor>));
+      BOOST_CONCEPT_ASSERT((AssignableConcept<edge_descriptor>));
+    }
+    G g;
+  };
   template <class OutEdgeListS = vecS.          # 隣接構造
             class VertexListS = vecS,           # 頂点集合
             class DirectedS = directedS,        # 有向／無向
@@ -13,7 +38,7 @@
             class EdgeProperty = no_property,   # 辺のカスタムプロパティ
             class GraphProperty = no_property,  # グラフのカスタムプロパティ
             class EdgeListS = listS>            # グラフの辺リストのコンテナ
-  class adjacency_list;
+  class adjacency_list; 
 */
 struct VertexProperty {
   int Id;
