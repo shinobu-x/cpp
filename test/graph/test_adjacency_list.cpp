@@ -55,6 +55,8 @@
     }
     G g;
   };
+
+  # adjacency_list
   namespace boost {
     template <class OutEdgeListS = vecS.          # 隣接構造
               class VertexListS = vecS,           # 頂点集合
@@ -72,14 +74,50 @@
     # multisetS: std::multiset
     # hash_setS: boost::unordered_set
   }
+
+  # property
+  namespace boost {
+    template <class PropertyTag,
+              class T,
+              class NextProperty = no_property>
+    struct property;
+  }
 */
-struct cost_t {
-  typedef boost::edge_property_tag a;
+typedef boost::property<boost::vertex_distance_t,
+                        float,
+                        boost::property<boost::vertex_name_t,
+                                        std::string> > VertexProperty;
+typedef boost::property<boost::edge_weight_t,
+                        float> EdgeProperty;
+
+struct flow_t {
+  typedef boost::edge_property_tag flow;
 };
 
 struct capacity_t {
-  typedef boost::edge_property_tag b;
+  typedef boost::edge_property_tag capacity;
 };
+
+namespace boost {
+  enum edge_extraflow_t {
+    edge_extra_flow
+  };
+  enum edge_extracapacity_t {
+    edge_extra_capacity
+  };
+  BOOST_INSTALL_PROPERTY(edge, extraflow);
+  BOOST_INSTALL_PROPERTY(edge, extracapacity);
+}
+
+typedef boost::property<boost::edge_extracapacity_t,
+                        float> ExtraCapacity;
+typedef boost::property<boost::edge_extraflow_t,
+                        float,
+                        ExtraCapacity> ExtraFlow;
+typedef boost::adjacency_list<boost::vecS,
+                              boost::vecS,
+                              boost::no_property,
+                              ExtraFlow> G1;
 
 auto main() -> decltype(0) {
   return 0;
