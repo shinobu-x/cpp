@@ -1,10 +1,5 @@
 #include <boost/graph/adjacency_list.hpp>
 
-#include <iostream>
-#include <list>
-#include <set>
-#include <vector>
-
 /**
   # コンセプト
   template <class G>
@@ -98,26 +93,36 @@ struct capacity_t {
   typedef boost::edge_property_tag capacity;
 };
 
+enum edge_extraflow_t {
+  edge_extraflow
+};
+enum edge_extracapacity_t {
+  edge_extracapacity
+};
+
 namespace boost {
-  enum edge_extraflow_t {
-    edge_extra_flow
-  };
-  enum edge_extracapacity_t {
-    edge_extra_capacity
-  };
   BOOST_INSTALL_PROPERTY(edge, extraflow);
   BOOST_INSTALL_PROPERTY(edge, extracapacity);
 }
 
-typedef boost::property<boost::edge_extracapacity_t,
-                        float> ExtraCapacity;
-typedef boost::property<boost::edge_extraflow_t,
+typedef boost::property<edge_extracapacity_t,
+                        float> Capacity;
+typedef boost::property<edge_extraflow_t,
                         float,
-                        ExtraCapacity> ExtraFlow;
+                        Capacity> Flow;
+
 typedef boost::adjacency_list<boost::vecS,
                               boost::vecS,
+                              boost::bidirectionalS,
                               boost::no_property,
-                              ExtraFlow> G1;
+                              Flow> G1;
+
+void DoIt() {
+  {
+    G1 g;
+    auto r = boost::get(edge_extraflow, g);
+  }
+}
 
 auto main() -> decltype(0) {
   return 0;
