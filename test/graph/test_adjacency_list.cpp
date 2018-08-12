@@ -84,11 +84,10 @@ typedef boost::property<boost::vertex_distance_t,
                                         std::string> > VertexProperty;
 typedef boost::property<boost::edge_weight_t,
                         float> EdgeProperty;
-
+// Custom edge properties
 struct flow_t {
   typedef boost::edge_property_tag flow;
 };
-
 struct capacity_t {
   typedef boost::edge_property_tag capacity;
 };
@@ -100,27 +99,51 @@ enum edge_extracapacity_t {
   edge_extracapacity
 };
 
+// Custom vertex properties
+struct name_t {
+  typedef boost::vertex_property_tag name;
+};
+
+enum vertex_extrainfo_t {
+  vertex_extrainfo
+};
+
 namespace boost {
   BOOST_INSTALL_PROPERTY(edge, extraflow);
   BOOST_INSTALL_PROPERTY(edge, extracapacity);
+  BOOST_INSTALL_PROPERTY(vertex, extrainfo);
 }
 
 typedef boost::property<edge_extracapacity_t,
-                        float> Capacity;
+                        float> Capacity_t;
 typedef boost::property<edge_extraflow_t,
                         float,
-                        Capacity> Flow;
-
-typedef boost::adjacency_list<boost::vecS,
-                              boost::vecS,
-                              boost::bidirectionalS,
-                              boost::no_property,
-                              Flow> G1;
+                        Capacity_t> Flow_t;
+typedef boost::property<vertex_extrainfo_t,
+                        std::string> Vertex_t;
 
 void DoIt() {
   {
-    G1 g;
-    auto r = boost::get(edge_extraflow, g);
+    typedef boost::adjacency_list<boost::vecS,
+                                  boost::vecS,
+                                  boost::bidirectionalS,
+                                  Vertex_t,
+                                  Flow_t> G;
+    G g1;
+    typename boost::property_map<G, edge_extraflow_t>::type f1 =
+      boost::get(edge_extraflow, g1);
+    typename boost::property_map<G, edge_extracapacity_t>::type c1 =
+      boost::get(edge_extracapacity, g1);
+    typename boost::property_map<G, vertex_extrainfo_t>::type v1 =
+      boost::get(vertex_extrainfo, g1);
+
+    const G g2;
+    typename boost::property_map<G, edge_extraflow_t>::const_type f2 =
+      boost::get(edge_extraflow, g2);
+    typename boost::property_map<G, edge_extracapacity_t>::const_type c2 =
+      boost::get(edge_extracapacity, g2);
+    typename boost::property_map<G, vertex_extrainfo_t>::const_type v2 =
+      boost::get(vertex_extrainfo, g2);
   }
 }
 
