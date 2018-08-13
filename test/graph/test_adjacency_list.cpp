@@ -122,6 +122,38 @@ typedef boost::property<edge_extraflow_t,
 typedef boost::property<vertex_extrainfo_t,
                         std::string> Vertex_t;
 
+// Custom container
+template <class Allocator>
+struct list_allocatorS {};
+
+namespace boost {
+  template <class Allocator, class ValueType>
+  struct container_gen<list_allocatorS<Allocator>, ValueType> {
+    typedef typename Allocator::template rebind<ValueType>::other Alloc_t;
+    typedef std::list<ValueType, Alloc_t> type;
+  };
+
+  template <>
+  struct parallel_edge_traits<list_allocatorS<std::allocator<int> > > {
+    typedef allow_parallel_edge_tag type;
+  };
+}
+
+// Overloading push and erase method to add and remove custom container
+namespace boost {
+  template <class T>
+  std::pair<typename list_allocatorS<T>::iterator, bool>
+  push(list_allocatorS<T>& c, const T& v) {
+    c.push_back(v);
+    return std::make_pair(boost::prior(c.end()), true);
+  }
+
+  template <class T>
+  void erase(list_allocatorS<T>& c, const T& x) {
+    c.erase(std::remove(c.begin(), c.end(), x), c.end());
+  }
+}
+
 void DoIt() {
   {
     typedef boost::adjacency_list<boost::vecS,
@@ -144,6 +176,21 @@ void DoIt() {
       boost::get(edge_extracapacity, g2);
     typename boost::property_map<G, vertex_extrainfo_t>::const_type v2 =
       boost::get(vertex_extrainfo, g2);
+  }
+
+  {
+    typedef boost::adjacency_list<list_allocatorS<std::allocator<int> >,
+                                  boost::vecS,
+                                  boost::directedS,
+                                  Vertex_t,
+                                  Flow_t> G;
+    G g;
+    typename boost::property_map<G, edge_extraflow_t>::type f =
+      boost::get(edge_extraflow, g);
+    typename boost::property_map<G, edge_extracapacity_t>::type c =
+      boost::get(edge_extracapacity, g);
+    typename boost::property_map<G, vertex_extrainfo_t>::type v =
+      boost::get(vertex_extrainfo, g);
   }
 }
 
