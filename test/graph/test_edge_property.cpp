@@ -96,5 +96,15 @@ auto main() -> decltype(0) {
   boost::add_edge(5, 7, flow(5, capacity(9)), g);
   boost::add_edge(7, 11, flow(10, capacity(9)), g);
 
+  boost::property_map<G, edge_xflow_t>::type f = boost::get(edge_xflow, g);
+
+  boost::graph_traits<G>::vertex_iterator v, v_end;
+  boost::graph_traits<G>::out_edge_iterator e, e_end;
+
+  for (boost::tie(v, v_end) = boost::vertices(g); v != v_end; ++v) {
+    for (boost::tie(e, e_end) = boost::out_edges(*v, g); e != e_end; ++e) {
+    }
+  }
+
   return 0;
 }
