@@ -17,8 +17,8 @@ namespace boost {
 }
 
 template <typename T>
-struct Graph {
-   Graph(T& g) : G(g) {}
+struct DoIt {
+   DoIt(const T& g) : G(g) {}
 
   // The type for the iterators returned by vertices()
   typedef typename boost::graph_traits<T>::vertex_iterator vertex_iterator;
@@ -34,6 +34,7 @@ struct Graph {
 
   void operator()(T& g) {
 
+    // Gets iterator range providing access to the vertex set of graph
     std::pair<vertex_iterator, vertex_iterator> v = boost::vertices(G);
     for (; v.first != v.second; ++v.first) {
 
@@ -59,7 +60,7 @@ struct Graph {
     std::cout << "\n";
   }
 
-  T& G;
+  const T& G;
 };
 
 auto main() -> decltype(0) {
@@ -105,6 +106,8 @@ auto main() -> decltype(0) {
     for (boost::tie(e, e_end) = boost::out_edges(*v, g); e != e_end; ++e) {
     }
   }
+
+  DoIt<G> d(g);
 
   return 0;
 }
