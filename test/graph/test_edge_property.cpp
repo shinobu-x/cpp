@@ -32,27 +32,29 @@ struct DoIt {
   typename boost::property_map<T, edge_xflow_t>::const_type flow =
     boost::get(edge_xflow, G);
 
-  void operator()(T& g) {
+  void operator()() {
 
     // Gets iterator range providing access to the vertex set of graph
     std::pair<vertex_iterator, vertex_iterator> v = boost::vertices(G);
     for (; v.first != v.second; ++v.first) {
 
       // Capacity and flow from source to destination edges
-      boost::graph_traits<boost::adjacency_list<T> > oe =
+      std::pair<out_edge_iterator, out_edge_iterator> oe =
         boost::out_edges(*v.first, G);
-      for (; oe.first != oe.second; ++oe.fisrt) {
+      for (; oe.first != oe.second; ++oe.first) {
         std::cout << "-- [Capacity] " << capacity[*oe.first] << ", "
-          << " [Flow] " << flow[*oe.first] << " --> "
-          << boost::target(*oe.first, G) << "\t";
+          << "[Flow] " << flow[*oe.first] << " --> "
+          << "[Target] " << boost::target(*oe.first, G) << "\n";
       }
 
       // Capacity and flow from destination to source edges
       std::pair<in_edge_iterator, in_edge_iterator> ie =
         boost::in_edges(*v.first, G);
       for (; ie.first != ie.second; ++ie.first) {
-        std::cout << " <-- " << capacity[*ie.first] << " [Capacity], "
-          << flow[*ie.first] << " [Flow] " << boost::source(*ie.first, G)
+        std::cout << "\t";
+        std::cout << "<-- [Capacity] " << capacity[*ie.first] << ", "
+          << "[Flow] " << flow[*ie.first] << " -- "
+          << "[Source] " << boost::source(*ie.first, G)
           << "\n";
       }
     }
@@ -97,17 +99,20 @@ auto main() -> decltype(0) {
   boost::add_edge(5, 7, flow(5, capacity(9)), g);
   boost::add_edge(7, 11, flow(10, capacity(9)), g);
 
-  boost::property_map<G, edge_xflow_t>::type f = boost::get(edge_xflow, g);
+  {
+    boost::property_map<G, edge_xflow_t>::type flow = boost::get(edge_xflow, g);
+    boost::graph_traits<G>::vertex_iterator v, v_end;
+    boost::graph_traits<G>::out_edge_iterator e, e_end;
 
-  boost::graph_traits<G>::vertex_iterator v, v_end;
-  boost::graph_traits<G>::out_edge_iterator e, e_end;
-
-  for (boost::tie(v, v_end) = boost::vertices(g); v != v_end; ++v) {
-    for (boost::tie(e, e_end) = boost::out_edges(*v, g); e != e_end; ++e) {
+    int f = 0;
+    for (boost::tie(v, v_end) = boost::vertices(g); v != v_end; ++v) {
+      for (boost::tie(e, e_end) = boost::out_edges(*v, g); e != e_end; ++e) {
+        flow[*e] = ++f;
+      }
     }
+    DoIt<G> doit(g);
+    doit();
   }
-
-  DoIt<G> d(g);
 
   return 0;
 }
