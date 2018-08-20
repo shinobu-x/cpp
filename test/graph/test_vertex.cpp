@@ -1,5 +1,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
+#include <iostream>
+
 enum vertex_location_t {
   vertex_location
 };
@@ -18,8 +20,17 @@ auto main() -> decltype(0) {
   G g;
 
   typedef typename boost::graph_traits<G>::vertex_descriptor vertex_descriptor;
+  typedef typename boost::graph_traits<G>::edge_iterator edge_iterator;
+  location l;
 
-  vertex_descriptor v = boost::add_vertex(g);
+  boost::property_map<G, vertex_location_t>::type loc =
+    boost::get(vertex_location_t(), g);
+
+  boost::put(loc, 0, "A");
+
+  std::pair<edge_iterator, edge_iterator> es = boost::edges(g);
+
+  
 
   return 0;
 }
