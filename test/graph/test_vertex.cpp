@@ -7,37 +7,59 @@ enum vertex_location_t {
   vertex_location
 };
 
+
+// namespace boost {
+//   BOOST_INSTALL_PROPERTY(vertex, location);
+// }
+
+// BOOST_INSTALL_PROPERTY
 namespace boost {
-  BOOST_INSTALL_PROPERTY(vertex, location);
+  template <>
+  struct property_kind<vertex_location_t> {
+    typedef vertex_property_tag type;
+  };
 }
 
 auto main() -> decltype(0) {
   typedef boost::property<vertex_location_t,
-                          std::vector<std::string> > location;
+                          std::vector<std::string> > location_p;
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
                                 boost::directedS,
-                                location,
+                                location_p,
                                 boost::no_property> G;
-  typedef typename boost::property_map<G, vertex_location_t>::type location_t;
   typedef typename boost::graph_traits<G>::vertex_descriptor vertex_descriptor;
   typedef typename boost::graph_traits<G>::edge_iterator edge_iterator;
 
-  G g;
-  location l;
+  typedef typename boost::property_map<G, vertex_location_t>::type location_m;
+  typedef typename boost::property_traits<location_m>::value_type location_t;
 
-  boost::property_map<G, vertex_location_t>::type loc1 =
+  G g;
+  // boost::property<vertex_location_t,
+  //                 std::vector<std::string>
+  //                >
+  location_p l;
+
+  boost::property_map<G, vertex_location_t>::type loc_t =
     boost::get(vertex_location_t(), g);
 
   std::vector<std::string> v;
   v.push_back("A");
 
-  boost::put(loc1, 0, v);
+  boost::put(loc_t, 0, v);
 
+  // boost::property_map<G,
+  //                     vertex_location_t
+  //                    >::value_type
+  location_m loc_m = boost::get(vertex_location_t(), g);
   std::pair<edge_iterator, edge_iterator> es = boost::edges(g);
- 
-  // location_t r = boost::get(vertex_location, g);
-  location_t loc2 = boost::get(vertex_location_t(), g);
+
+  // boost::property_traits<boost::property_map<G,
+  //                                            vertex_location_t
+  //                                           >::type
+  //                       >::value_type
+  location_t s = boost::get(loc_m, boost::source(*es.first, g));
+  location_t t = boost::get(loc_m, boost::target(*es.first, g));
 
   return 0;
 }
