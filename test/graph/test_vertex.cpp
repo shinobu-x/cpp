@@ -29,6 +29,8 @@ auto main() -> decltype(0) {
 
   typedef typename boost::property_map<G, vertex_location_t>::type location_m;
   typedef typename boost::property_traits<location_m>::value_type location_t;
+  typedef typename G::vertices_size_type vertices_size_type;
+
   typedef std::pair<int, int> vertices;
 
   G g;
@@ -40,6 +42,7 @@ auto main() -> decltype(0) {
 
   std::pair<int, int> edges[10] = {vertices(0, 1)};
   boost::add_edge(edges[0].first, edges[0].second, g);
+  vertices_size_type vertices_size = boost::num_vertices(g);  
 
   boost::property_map<G, vertex_location_t>::type loc_t =
     boost::get(vertex_location_t(), g);
@@ -74,6 +77,8 @@ auto main() -> decltype(0) {
 
   std::cout << s[1] << "\n";
   std::cout << t[1] << "\n";
+
+  std::cout << vertices_size << "\n";
 
   return 0;
 }
