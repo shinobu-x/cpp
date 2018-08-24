@@ -16,7 +16,7 @@ namespace boost {
   };
 }
 
-auto main() -> decltype(0) {
+void test1() {
   typedef boost::property<vertex_location_t,
                           std::vector<std::string> > location_p;
   typedef boost::adjacency_list<boost::vecS,
@@ -79,6 +79,51 @@ auto main() -> decltype(0) {
   std::cout << t[1] << "\n";
 
   std::cout << vertices_size << "\n";
+}
 
+void test2() {
+  typedef boost::property<vertex_location_t,
+                          std::pair<std::string,
+                                    std::vector<boost::adjacency_list<>
+                                               > > > location_p;
+  typedef boost::adjacency_list<boost::vecS,
+                                boost::vecS,
+                                boost::directedS,
+                                location_p,
+                                boost::no_property> G0;
+  typedef boost::adjacency_list<> G1;
+  typedef typename boost::graph_traits<G0>::vertex_descriptor vertex_descriptor;
+  typedef typename boost::graph_traits<G0>::edge_iterator edge_iterator;
+
+  typedef typename boost::property_map<G0, vertex_location_t>::type location_m;
+  typedef typename boost::property_traits<location_m>::value_type location_t;
+  typedef typename G0::vertices_size_type vertices_size_type;
+
+  typedef std::pair<int, int> vertices;
+
+  G0 g0;
+  G1 g1;
+
+  location_t l;
+  std::pair<int, int> edges[10] = {vertices(0, 1)};
+  boost::add_edge(edges[0].first, edges[0].second, g0);
+
+  typedef std::pair<std::string,
+                   std::vector<boost::adjacency_list<> > > details;
+
+  boost::property_map<G0, vertex_location_t>::type loc_t =
+    boost::get(vertex_location_t(), g0);
+
+  std::vector<boost::adjacency_list<> > v1;
+  v1.push_back(g1);
+
+  std::pair<std::string,
+            std::vector<boost::adjacency_list<> > > d1 = {details("A", v1)};
+
+  boost::put(loc_t, 0, d1);
+}
+
+auto main() -> decltype(0) {
+  test1();
   return 0;
 }
