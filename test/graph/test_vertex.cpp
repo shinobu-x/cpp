@@ -42,7 +42,7 @@ void test1() {
 
   std::pair<int, int> edges[10] = {vertices(0, 1)};
   boost::add_edge(edges[0].first, edges[0].second, g);
-  vertices_size_type vertices_size = boost::num_vertices(g);  
+  vertices_size_type vertices_size = boost::num_vertices(g);
 
   boost::property_map<G, vertex_location_t>::type loc_t =
     boost::get(vertex_location_t(), g);
@@ -91,7 +91,8 @@ void test2() {
                                 boost::directedS,
                                 location_p,
                                 boost::no_property> G0;
-  typedef boost::adjacency_list<> G1;
+  typedef boost::adjacency_list</* some properties */> G1;
+  typedef boost::adjacency_list</* some properties */> G2;
   typedef typename boost::graph_traits<G0>::vertex_descriptor vertex_descriptor;
   typedef typename boost::graph_traits<G0>::edge_iterator edge_iterator;
 
@@ -103,6 +104,7 @@ void test2() {
 
   G0 g0;
   G1 g1;
+  G2 g2;
 
   location_t l;
   std::pair<int, int> edges[10] = {vertices(0, 1)};
@@ -115,15 +117,36 @@ void test2() {
     boost::get(vertex_location_t(), g0);
 
   std::vector<boost::adjacency_list<> > v1;
+  std::vector<boost::adjacency_list<> > v2;
+
   v1.push_back(g1);
+  v2.push_back(g2);
 
   std::pair<std::string,
             std::vector<boost::adjacency_list<> > > d1 = {details("A", v1)};
+  std::pair<std::string,
+            std::vector<boost::adjacency_list<> > > d2 = {details("B", v2)};
 
   boost::put(loc_t, 0, d1);
+  boost::put(loc_t, 1, d2);
+
+  location_m loc_m = boost::get(vertex_location_t(), g0);
+  std::pair<edge_iterator, edge_iterator> es = boost::edges(g0);
+
+  location_t s = boost::get(loc_m, boost::source(*es.first, g0));
+  location_t t = boost::get(loc_m, boost::target(*es.first, g0));
+
+  std::cout << s.first << "\n";
+  std::cout << t.first << "\n";
+
+  G1 g1_s1;
+  G2 g2_s1;
+
+  s.second.push_back(g1_s1);
+  t.second.push_back(g2_s1);
 }
 
 auto main() -> decltype(0) {
-  test1();
+  test2();
   return 0;
 }
