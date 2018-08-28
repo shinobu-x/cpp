@@ -82,9 +82,9 @@ void test1() {
 }
 
 void test2() {
-  typedef boost::property<boost::edge_weight_t,
+  typedef boost::property<vertex_location_t,
                           std::pair<std::string,
-                                    int> > sub_edge_property;
+                                    std::string> > sub_edge_property;
 
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
@@ -114,8 +114,8 @@ void test2() {
   typedef std::pair<int, int> vertices;
 
   graph_t g0;
+  sub_graph_t sg0;
   sub_graph_t sg1;
-  sub_graph_t sg2;
   location_t l;
 
   typedef boost::property<boost::no_property,
@@ -130,21 +130,23 @@ void test2() {
   typedef std::pair<std::string,
                    std::vector<sub_graph_t> > details;
 
-  boost::property_map<graph_t, vertex_location_t>::type loc_t =
-    boost::get(vertex_location_t(), g0);
+  typedef typename boost::property_map<graph_t,
+                                       vertex_location_t> property_m;
+
+  property_m::type g0_property = boost::get(vertex_location_t(), g0);
 
   typedef std::vector<sub_graph_t> sg0v;
   sg0v v1;
   sg0v v2;
 
-  v1.push_back(sg1);
-  v2.push_back(sg2);
+  v1.push_back(sg0);
+  v2.push_back(sg1);
 
   std::pair<std::string, sg0v> d1 = { details("A", v1) };
   std::pair<std::string, sg0v> d2 = { details("B", v2) };
 
-  boost::put(loc_t, 0, d1);
-  boost::put(loc_t, 1, d2);
+  boost::put(g0_property, 0, d1);
+  boost::put(g0_property, 1, d2);
 
   location_m loc_m = boost::get(vertex_location_t(), g0);
   std::pair<edge_iterator, edge_iterator> es = boost::edges(g0);
@@ -158,6 +160,11 @@ void test2() {
   sub_graph_t g1_sub;
   sub_graph_t g2_sub;
 
+  typedef typename boost::property_map<sub_graph_t,
+                                       vertex_location_t> sub_property_m;
+
+  sub_property_m::type sg0_property = boost::get(vertex_location_t(), sg0);
+
   s.second.push_back(g1_sub);
   t.second.push_back(g2_sub);
 
@@ -165,10 +172,13 @@ void test2() {
   boost::add_edge(sub_edges[0].first, sub_edges[1].second, g1_sub);
   boost::add_edge(sub_edges[0].first, sub_edges[1].second, g2_sub);
 
-  typedef std::pair<int, int> sub_details;
+  typedef std::pair<std::string,
+                    std::string> sub_details;
 
-  std::pair<int, int> sub_d1 = { sub_details(9, 10) };
-  std::pair<int, int> sub_d2 = { sub_details(7, 8) };
+  std::pair<std::string,
+            std::string> sub_d1 = { sub_details("a", "b") };
+  std::pair<std::string,
+            std::string> sub_d2 = { sub_details("c", "d") };
 }
 
 auto main() -> decltype(0) {
