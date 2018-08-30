@@ -17,6 +17,7 @@ namespace boost {
 }
 
 void test1() {
+  // pending/property.hpp
   typedef boost::property<vertex_location_t,
                           std::vector<std::string> > location_p;
   typedef boost::adjacency_list<boost::vecS,
@@ -179,6 +180,19 @@ void test2() {
             std::string> sub_d1 = { sub_details("a", "b") };
   std::pair<std::string,
             std::string> sub_d2 = { sub_details("c", "d") };
+
+  boost::put(sg0_property, 0, sub_d1);
+  boost::put(sg0_property, 1, sub_d2);
+
+  typedef typename boost::graph_traits<sub_graph_t>::edge_iterator
+    sub_edge_iterator;
+
+  std::pair<sub_edge_iterator, sub_edge_iterator> es_g1_sub =
+    boost::edges(g1_sub);
+  std::pair<sub_edge_iterator, sub_edge_iterator> es_g2_sub =
+    boost::edges(g2_sub);
+
+  sub_property_m::type sub_loc_m = boost::get(vertex_location_t(), g1_sub);
 }
 
 auto main() -> decltype(0) {
