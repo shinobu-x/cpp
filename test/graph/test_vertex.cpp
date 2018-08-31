@@ -121,9 +121,6 @@ void test2() {
 
   typedef boost::property<boost::no_property,
                           std::pair<int, int> > sub_location_p;
-  typedef typename boost::property_map<sub_graph_t,
-                                       boost::no_property> sub_location_m;
-  typedef typename boost::property_traits<sub_location_m> sub_location_t;
 
   std::pair<int, int> edges[10] = { vertices(0, 1) };
   boost::add_edge(edges[0].first, edges[0].second, g0);
@@ -131,10 +128,7 @@ void test2() {
   typedef std::pair<std::string,
                    std::vector<sub_graph_t> > details;
 
-  typedef typename boost::property_map<graph_t,
-                                       vertex_location_t> property_m;
-
-  property_m::type g0_property = boost::get(vertex_location_t(), g0);
+  location_m g0_property = boost::get(vertex_location_t(), g0);
 
   typedef std::vector<sub_graph_t> sg0v;
   sg0v v1;
@@ -162,9 +156,9 @@ void test2() {
   sub_graph_t g2_sub;
 
   typedef typename boost::property_map<sub_graph_t,
-                                       vertex_location_t> sub_property_m;
+                                       vertex_location_t>::type sub_property_m;
 
-  sub_property_m::type sg0_property = boost::get(vertex_location_t(), sg0);
+  sub_property_m sg0_property = boost::get(vertex_location_t(), sg0);
 
   s.second.push_back(g1_sub);
   t.second.push_back(g2_sub);
@@ -192,7 +186,7 @@ void test2() {
   std::pair<sub_edge_iterator, sub_edge_iterator> es_g2_sub =
     boost::edges(g2_sub);
 
-  sub_property_m::type sub_loc_m = boost::get(vertex_location_t(), g1_sub);
+  sub_property_m sub_loc_m = boost::get(vertex_location_t(), g1_sub);
 }
 
 auto main() -> decltype(0) {
