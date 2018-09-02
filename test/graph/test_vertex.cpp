@@ -60,6 +60,40 @@ void test1() {
   vertex_property_traits_t t = boost::get(pm, boost::target(*es.first, g));
 }
 
+void test2() {
+  // Defines custom property for sub graphs
+  typedef boost::property<extra_vertex_property,
+                          std::pair<std::string,
+                                    std::string> > s_extra_vertex_p;
+  // Dfines sub graph
+  typedef boost::adjacency_list<boost::vecS,
+                                boost::vecS,
+                                boost::directedS,
+                                s_extra_vertex_p,
+                                boost::no_property> sub_graph_t;
+
+  // Defines custom property
+  typedef boost::property<extra_vertex_property,
+                          std::pair<std::string,
+                                    std::vector<sub_graph_t> > > extra_vertex_p;
+  // Defines graph
+  typedef boost::adjacency_list<boost::vecS,
+                                boost::vecS,
+                                boost::directedS,
+                                extra_vertex_p,
+                                boost::no_property> graph_t;
+  // Defines property map
+  typedef typename boost::property_map<graph_t, extra_vertex_property>::type
+    vertex_property_map_t;
+  // Defines property traits
+  typedef typename boost::property_traits<vertex_property_map_t>::value_type
+    vertex_property_traits_t;
+
+  typedef typename boost::graph_traits<graph_t>::edge_iterator edge_iter;
+  typedef typename std::pair<int, int> vertices_t;
+  typedef typename std::pair<edge_iter, edge_iter> edge_iter_t;
+}
+
 auto main() -> decltype(0) {
   test1();
   return 0;
