@@ -65,7 +65,7 @@ void test2() {
   typedef boost::property<extra_vertex_property,
                           std::pair<std::string,
                                     std::string> > s_extra_vertex_p;
-  // Dfines sub graph
+  // Defines sub graph
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
                                 boost::directedS,
@@ -92,6 +92,14 @@ void test2() {
   typedef typename boost::graph_traits<graph_t>::edge_iterator edge_iter;
   typedef typename std::pair<int, int> vertices_t;
   typedef typename std::pair<edge_iter, edge_iter> edge_iter_t;
+
+  graph_t graph;
+
+  vertices_t edges[10] = { vertices_t(0, 1) };
+  boost::add_edge(edges[0].first, edges[1].second, graph);
+
+  vertex_property_map_t graph_map = boost::get(extra_vertex_property(),
+    graph);
 }
 
 auto main() -> decltype(0) {
