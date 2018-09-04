@@ -91,15 +91,15 @@ void test2() {
 
   typedef typename boost::graph_traits<graph_t>::edge_iterator edge_iter;
   typedef typename std::pair<int, int> vertices_t;
+  typedef typename std::pair<std::string,
+                             std::vector<sub_graph_t> > extra_vertices_t;
   typedef typename std::pair<edge_iter, edge_iter> edge_iter_t;
 
   graph_t graph;
 
   vertices_t edges[10] = { vertices_t(0, 1) };
   boost::add_edge(edges[0].first, edges[1].second, graph);
-
-  vertex_property_map_t graph_map = boost::get(extra_vertex_property(),
-    graph);
+  edge_iter_t es = boost::edges(graph);
 }
 
 auto main() -> decltype(0) {
