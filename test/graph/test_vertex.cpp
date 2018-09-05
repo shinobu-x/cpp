@@ -100,6 +100,13 @@ void test2() {
   vertices_t edges[10] = { vertices_t(0, 1) };
   boost::add_edge(edges[0].first, edges[1].second, graph);
   edge_iter_t es = boost::edges(graph);
+
+  vertex_property_map_t loc_map = boost::get(extra_vertex_property(), graph);
+  vertex_property_traits_t s =
+    boost::get(loc_map, boost::source(*es.first, graph));
+  vertex_property_traits_t t =
+    boost::get(loc_map, boost::target(*es.first, graph));
+
 }
 
 auto main() -> decltype(0) {
