@@ -8,7 +8,7 @@ enum extra_vertex_property {
   extra_location
 };
 
-// include/boost/graph/properties.hpp
+//* include/boost/graph/properties.hpp
 namespace boost {
   template <>
   struct property_kind<extra_vertex_property> {
@@ -17,19 +17,19 @@ namespace boost {
 }
 
 void test1() {
-  // Defines custom property
+  //* Defines custom property
   typedef boost::property<extra_vertex_property,
                           std::vector<std::string> > extra_vertex_p;
-  // Defines graph
+  //* Defines graph
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
                                 boost::directedS,
                                 extra_vertex_p,
                                 boost::no_property> graph_t;
-  // Defines property map
+  //* Defines property map
   typedef typename boost::property_map<graph_t, extra_vertex_property>::type
     vertex_property_map_t;
-  // Defines property traits
+  //* Defines property traits
   typedef typename boost::property_traits<vertex_property_map_t>::value_type
     vertex_property_traits_t;
 
@@ -61,31 +61,31 @@ void test1() {
 }
 
 void test2() {
-  // Defines custom property for sub graphs
+  //* Defines custom property for sub graphs
   typedef boost::property<extra_vertex_property,
                           std::pair<std::string,
                                     std::string> > s_extra_vertex_p;
-  // Defines sub graph
+  //* Defines sub graph
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
                                 boost::directedS,
                                 s_extra_vertex_p,
                                 boost::no_property> sub_graph_t;
 
-  // Defines custom property
+  //* Defines custom property
   typedef boost::property<extra_vertex_property,
                           std::pair<std::string,
                                     std::vector<sub_graph_t> > > extra_vertex_p;
-  // Defines graph
+  //* Defines graph
   typedef boost::adjacency_list<boost::vecS,
                                 boost::vecS,
                                 boost::directedS,
                                 extra_vertex_p,
                                 boost::no_property> graph_t;
-  // Defines property map
+  //* Defines property map
   typedef typename boost::property_map<graph_t, extra_vertex_property>::type
     vertex_property_map_t;
-  // Defines property traits
+  //* Defines property traits
   typedef typename boost::property_traits<vertex_property_map_t>::value_type
     vertex_property_traits_t;
 
@@ -99,6 +99,28 @@ void test2() {
 
   vertices_t edges[10] = { vertices_t(0, 1) };
   boost::add_edge(edges[0].first, edges[1].second, graph);
+
+  //* Puts sub graph information
+  sub_graph_t sub_graph1;
+  sub_graph_t sub_graph2;
+
+  std::vector<sub_graph_t> graph_list1;
+  std::vector<sub_graph_t> graph_list2;
+
+  graph_list1.push_back(sub_graph1);
+  graph_list2.push_back(sub_graph2);
+
+  typedef std::pair<std::string,
+                    std::vector<sub_graph_t> > sub_graph_info;
+
+  std::pair<std::string,
+            std::vector<sub_graph_t> > i1 =
+    { sub_graph_info("A", graph_list1) };
+  std::pair<std::string,
+            std::vector<sub_graph_t> > i2 =
+    { sub_graph_info("B", graph_list2) };
+
+  //* Gets reference of edges
   edge_iter_t es = boost::edges(graph);
 
   vertex_property_map_t loc_map = boost::get(extra_vertex_property(), graph);
@@ -110,6 +132,6 @@ void test2() {
 }
 
 auto main() -> decltype(0) {
-  test1();
+  test2();
   return 0;
 }
