@@ -120,14 +120,17 @@ void test2() {
             std::vector<sub_graph_t> > i2 =
     { sub_graph_info("B", graph_list2) };
 
+  vertex_property_map_t property_map =
+    boost::get(extra_vertex_property(), graph);
+  boost::put(property_map, 0, i1);
+
   //* Gets reference of edges
   edge_iter_t es = boost::edges(graph);
 
-  vertex_property_map_t loc_map = boost::get(extra_vertex_property(), graph);
   vertex_property_traits_t s =
-    boost::get(loc_map, boost::source(*es.first, graph));
+    boost::get(property_map, boost::source(*es.first, graph));
   vertex_property_traits_t t =
-    boost::get(loc_map, boost::target(*es.first, graph));
+    boost::get(property_map, boost::target(*es.first, graph));
 
 }
 
