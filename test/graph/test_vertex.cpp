@@ -98,7 +98,7 @@ void test2() {
   graph_t graph;
 
   vertices_t edges[10] = { vertices_t(0, 1) };
-  boost::add_edge(edges[0].first, edges[1].second, graph);
+  boost::add_edge(edges[0].first, edges[0].second, graph);
 
   //* Puts sub graph information
   sub_graph_t sub_graph1;
@@ -123,6 +123,7 @@ void test2() {
   vertex_property_map_t property_map =
     boost::get(extra_vertex_property(), graph);
   boost::put(property_map, 0, i1);
+  boost::put(property_map, 1, i2);
 
   //* Gets reference of edges
   edge_iter_t es = boost::edges(graph);
