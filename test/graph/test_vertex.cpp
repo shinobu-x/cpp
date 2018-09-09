@@ -30,6 +30,7 @@ void test1() {
   typedef typename boost::property_map<graph_t, extra_vertex_property>::type
     vertex_property_map_t;
   //* Defines property traits
+  //* include/boost/graph/graph_traits.hpp
   typedef typename boost::property_traits<vertex_property_map_t>::value_type
     vertex_property_traits_t;
 
@@ -132,7 +133,6 @@ void test2() {
     boost::get(property_map, boost::source(*es.first, graph));
   vertex_property_traits_t t =
     boost::get(property_map, boost::target(*es.first, graph));
-
 }
 
 auto main() -> decltype(0) {
