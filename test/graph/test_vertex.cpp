@@ -133,6 +133,15 @@ void test2() {
     boost::get(property_map, boost::source(*es.first, graph));
   vertex_property_traits_t t =
     boost::get(property_map, boost::target(*es.first, graph));
+
+  std::cout << s.first << "\n";
+  std::cout << t.first << "\n";
+
+  sub_graph_t sub_graph3;
+  sub_graph_t sub_graph4;
+
+  s.second.push_back(sub_graph3);
+  t.second.push_back(sub_graph4);
 }
 
 auto main() -> decltype(0) {
