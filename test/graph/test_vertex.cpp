@@ -142,6 +142,8 @@ void test2() {
 
   s.second.push_back(sub_graph3);
   t.second.push_back(sub_graph4);
+
+  vertices_t sub_graph_edges[10] = { vertices_t(0, 1) };
 }
 
 auto main() -> decltype(0) {
