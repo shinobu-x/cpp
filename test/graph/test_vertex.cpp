@@ -144,6 +144,8 @@ void test2() {
   t.second.push_back(sub_graph4);
 
   vertices_t sub_graph_edges[10] = { vertices_t(0, 1) };
+  boost::add_edge(sub_graph_edges[0].first, sub_graph_edges[1].second,
+    sub_graph3);
 }
 
 auto main() -> decltype(0) {
