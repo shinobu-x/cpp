@@ -148,6 +148,8 @@ void test2() {
     sub_graph3);
   boost::add_edge(sub_graph_edges[1].first, sub_graph_edges[0].second,
     sub_graph3);
+  boost::add_edge(sub_graph_edges[1].first, sub_graph_edges[1].second,
+    sub_graph3);
 }
 
 auto main() -> decltype(0) {
